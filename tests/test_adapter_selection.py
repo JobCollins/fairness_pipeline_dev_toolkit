@@ -1,4 +1,5 @@
 import numpy as np
+# from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
 from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
 
 def test_auto_backend_selection_runs():
