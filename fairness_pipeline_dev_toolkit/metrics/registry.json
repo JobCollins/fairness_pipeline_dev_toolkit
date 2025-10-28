@@ -1,0 +1,21 @@
+{
+  "classification": {
+    "demographic_parity_difference": {
+      "task": "classification",
+      "fn": "demographic_parity_difference",
+      "description": "Max difference in selection/positive prediction rates across groups."
+    },
+    "equalized_odds_difference": {
+      "task": "classification",
+      "fn": "equalized_odds_difference",
+      "description": "Max of (TPR gap, FPR gap) across groups."
+    }
+  },
+    "regression": {
+        "mae_parity_difference": {
+            "task": "regression",
+            "fn": "mae_parity_difference",
+            "description": "Max difference in Mean Absolute Error across groups."
+        }
+    }
+}
