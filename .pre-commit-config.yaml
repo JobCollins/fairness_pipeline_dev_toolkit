@@ -16,7 +16,7 @@ repos:
   hooks:
     - id: fairness-sample-check
       name: Fairness sample check (non‑blocking)
-      entry: python -m fairness_toolkit.cli.main sample-check --config fairpipe.yaml
+      entry: python -m fairness_pipeline_dev_toolkit.cli.main sample-check --config fairpipe.yaml
       language: system
       pass_filenames: false
       stages: [commit]
