@@ -1,5 +1,6 @@
 name: CI
 on: [push, pull_request]
+
 jobs:
   test:
     strategy:
@@ -10,16 +11,66 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev] -r requirements.txt
+
       - name: Lint (black)
         run: black --check fairness_pipeline_dev_toolkit tests
+
       - name: Lint (flake8)
         run: flake8 fairness_pipeline_dev_toolkit
+
       - name: Tests
         run: pytest --cov=fairness_pipeline_dev_toolkit
+
+      # ---------- Fairness Gate (run only on Ubuntu to keep CI fast/stable) ----------
+      - name: Prepare tiny synthetic CSV for fairness checks (Ubuntu only)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          import numpy as np
+          rng = np.random.default_rng(0)
+          n = 500
+          df = pd.DataFrame({
+              "y_true": rng.integers(0, 2, n),
+              "y_pred": rng.integers(0, 2, n),
+              "group": rng.choice(["A","B"], size=n, p=[0.55, 0.45])
+          })
+          df.to_csv("ci_sample.csv", index=False)
+          PY
+
+      - name: Fairness gate (smoke) — quick script
+        if: runner.os == 'Linux'
+        run: |
+          python scripts/quick_fairness_check.py \
+            --csv ci_sample.csv \
+            --y-true y_true --y-pred y_pred \
+            --sensitive group \
+            --threshold 0.12 \
+            --min-group-size 20
+
+      - name: Generate Markdown fairness report via CLI (Ubuntu only)
+        if: runner.os == 'Linux'
+        run: |
+          python -m fairness_pipeline_dev_toolkit.cli.main validate \
+            --csv ci_sample.csv \
+            --y-true y_true --y-pred y_pred \
+            --sensitive group \
+            --min-group-size 20 \
+            --out fairness_report.md
+
+      - name: Upload fairness report (artifact) (Ubuntu only)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fairness-report
+          path: fairness_report.md

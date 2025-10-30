@@ -1,6 +1,7 @@
 import numpy as np
-from fairness_pipeline_dev_toolkit.stats.bootstrap import bootstrap_ci
+
 from fairness_pipeline_dev_toolkit.stats.bayesian import beta_binomial_interval
+
 
 def two_sample_percentile_ci(A, B, level=0.90, B_reps=1000, rng_seed=None):
     rng = np.random.default_rng(rng_seed)
@@ -14,6 +15,7 @@ def two_sample_percentile_ci(A, B, level=0.90, B_reps=1000, rng_seed=None):
     lo = np.percentile(stats, 100 * (alpha / 2))
     hi = np.percentile(stats, 100 * (1 - alpha / 2))
     return float(lo), float(hi)
+
 
 def test_bootstrap_percentile_coverage_simple():
     # Two groups with true rates pA=0.6, pB=0.5; true disparity = 0.1
@@ -32,6 +34,7 @@ def test_bootstrap_percentile_coverage_simple():
     est_coverage = covered / sims
     # Allow some slack due to Monte Carlo error
     assert 0.85 <= est_coverage <= 0.95
+
 
 def test_beta_binomial_interval_small_n_monotonic():
     # Small-n posterior intervals shrink as successes approach trials

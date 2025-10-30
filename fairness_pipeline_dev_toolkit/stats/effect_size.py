@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import numpy as np
 
 
@@ -9,14 +10,15 @@ def risk_ratio(p1: float, p2: float) -> float:
         p1: Rate for group 1 (numerator).
         p2: Rate for group 2 (denominator).
     Returns:
-        Risk ratio as a float. 
+        Risk ratio as a float.
         Returns np.nan if denominator is zero or any input is invalid.
     """
     if p1 is None or p2 is None:
         return np.nan
     if not np.isfinite(p1) or not np.isfinite(p2) or p2 == 0:
         return np.nan
-    return float(p1/p2)
+    return float(p1 / p2)
+
 
 def cohens_d(x: np.ndarray, y: np.ndarray) -> float:
     """
@@ -35,7 +37,7 @@ def cohens_d(x: np.ndarray, y: np.ndarray) -> float:
         return np.nan
     mean_x, mean_y = np.mean(x), np.mean(y)
     var_x, var_y = np.var(x, ddof=1), np.var(y, ddof=1)
-    # pooled standard deviation
+    # pooled standard deviation
     pooled_std = np.sqrt(((nx - 1) * var_x + (ny - 1) * var_y) / (nx + ny - 2))
     if pooled_std == 0 or not np.isfinite(pooled_std):
         return np.nan
