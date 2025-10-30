@@ -22,10 +22,13 @@ import argparse
 import sys
 from typing import List, Optional
 
+import numpy as np
 import pandas as pd
 
 from fairness_pipeline_dev_toolkit.integration.reporting import to_markdown_report
 from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
+from fairness_pipeline_dev_toolkit.stats.bootstrap import bootstrap_ci
+from fairness_pipeline_dev_toolkit.stats.effect_size import risk_ratio
 
 
 def cmd_version(args: argparse.Namespace) -> int:
@@ -56,6 +59,134 @@ def _normalize_sensitive_arg(sens_arg) -> list[str]:
         return items
     else:
         return [p.strip() for p in str(sens_arg).split(",") if p.strip()]
+
+
+def _bootstrap_metric_ci(n, stat_fn, B=1000, level=0.95):
+    """
+    Generic bootstrap over row indices. stat_fn(idx: np.ndarray[int]) -> float
+    """
+    idx = np.arange(n, dtype=int)
+
+    def stat_from_idx(sample_idx):
+        return float(stat_fn(sample_idx))
+
+    return bootstrap_ci(idx, stat_from_idx, B=B, level=level, method="percentile")
+
+
+def _dp_risk_ratio(
+    y_pred: np.ndarray, sensitive: np.ndarray, min_group_size: int
+) -> Optional[float]:
+    # selection rates per group
+    s = pd.Series(sensitive)
+    yp = np.asarray(y_pred)
+    counts = s.value_counts()
+    valid_mask = s.map(counts).to_numpy() >= min_group_size
+    if valid_mask.sum() == 0:
+        return None
+    s = s[valid_mask].to_numpy()
+    yp = yp[valid_mask]
+    groups = np.unique(s)
+    if len(groups) < 2:
+        return None
+    rates = []
+    for g in groups:
+        m = s == g
+        rates.append(yp[m].mean())
+    hi = float(np.max(rates))
+    lo = float(np.min(rates))
+    if hi == 0.0 or lo == 0.0:
+        return None
+    return risk_ratio(hi, lo)
+
+
+def _eod_ratio(
+    y_true: np.ndarray, y_pred: np.ndarray, sensitive: np.ndarray, min_group_size: int
+) -> Optional[float]:
+    """
+    Compute a single 'effect size' proxy for EOD: the max of (TPR ratio, FPR ratio)
+    across groups (largest ratio across all group pairs). Returns None if undefined.
+    """
+    s = pd.Series(sensitive)
+    yt = np.asarray(y_true)
+    yp = np.asarray(y_pred)
+    counts = s.value_counts()
+    valid_mask = s.map(counts).to_numpy() >= min_group_size
+    if valid_mask.sum() == 0:
+        return None
+    s = s[valid_mask].to_numpy()
+    yt = yt[valid_mask]
+    yp = yp[valid_mask]
+    groups = np.unique(s)
+    if len(groups) < 2:
+        return None
+
+    # per-group TPR/FPR
+    tprs, fprs = [], []
+    for g in groups:
+        m = s == g
+        yt_g, yp_g = yt[m], yp[m]
+        pos = yt_g == 1
+        neg = yt_g == 0
+        tpr = float(yp_g[pos].mean()) if pos.any() else np.nan
+        fpr = float(yp_g[neg].mean()) if neg.any() else np.nan
+        tprs.append(tpr)
+        fprs.append(fpr)
+
+    def _max_ratio(arr):
+        vals = [v for v in arr if not np.isnan(v) and v > 0]
+        if len(vals) < 2:
+            return None
+        hi, lo = max(vals), min(vals)
+        if lo == 0.0:
+            return None
+        return hi / lo
+
+    candidates = [r for r in (_max_ratio(tprs), _max_ratio(fprs)) if r is not None]
+    return max(candidates) if candidates else None
+
+
+def _cohens_d_between_groups(
+    y_true: np.ndarray, y_pred: np.ndarray, sensitive: np.ndarray, min_group_size: int
+) -> Optional[float]:
+    """
+    Cohen's d between residuals of groups with max vs min MAE.
+    """
+    s = pd.Series(sensitive)
+    yt = np.asarray(y_true)
+    yp = np.asarray(y_pred)
+    counts = s.value_counts()
+    valid_mask = s.map(counts).to_numpy() >= min_group_size
+    if valid_mask.sum() == 0:
+        return None
+    s = s[valid_mask].to_numpy()
+    yt = yt[valid_mask]
+    yp = yp[valid_mask]
+    groups = np.unique(s)
+    if len(groups) < 2:
+        return None
+
+    maes = {}
+    residuals_by_group = {}
+    res = np.abs(yt - yp)
+    for g in groups:
+        m = s == g
+        maes[str(g)] = float(res[m].mean())
+        residuals_by_group[str(g)] = res[m].astype(float)
+
+    if len(maes) < 2:
+        return None
+    g_max = max(maes, key=maes.get)
+    g_min = min(maes, key=maes.get)
+    a, b = residuals_by_group[g_max], residuals_by_group[g_min]
+    # pooled SD
+    sa, sb = a.std(ddof=1), b.std(ddof=1)
+    na, nb = len(a), len(b)
+    if na < 2 or nb < 2:
+        return None
+    sp = np.sqrt(((na - 1) * sa**2 + (nb - 1) * sb**2) / (na + nb - 2))
+    if sp == 0:
+        return None
+    return float((a.mean() - b.mean()) / sp)
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
@@ -153,6 +284,94 @@ def cmd_validate(args: argparse.Namespace) -> int:
             y_true=y_true, y_pred=scores, sensitive=sensitive_col
         )
 
+    # Parse sensitive (support single or multiple)
+    if isinstance(args.sensitive, list):
+        sens_cols = args.sensitive
+    else:
+        sens_cols = [c.strip() for c in str(args.sensitive).split(",") if c.strip()]
+    if len(sens_cols) == 1:
+        sensitive_col = df[sens_cols[0]].to_numpy().ravel()
+        attrs_df = df[[sens_cols[0]]]
+    else:
+        attrs_df = df[sens_cols]
+        sensitive_col = attrs_df.apply(lambda r: "_".join(map(str, r.values)), axis=1).to_numpy()
+
+    y_true = df[args.y_true].to_numpy().ravel() if args.y_true else None
+    y_pred = df[args.y_pred].to_numpy().ravel() if args.y_pred else None
+    scores = df[args.score].to_numpy().ravel() if args.score else None
+
+    fa = FairnessAnalyzer(min_group_size=args.min_group_size, backend=args.backend)
+    n = len(df)
+    results = {}
+
+    # 1) DPD (classification) if y_pred present
+    if y_pred is not None:
+        r = fa.demographic_parity_difference(y_pred=y_pred, sensitive=sensitive_col)
+        # CI (bootstrap over indices)
+        if args.with_ci:
+
+            def stat_fn(idx):
+                idx = np.asarray(idx, dtype=int)
+                return fa.demographic_parity_difference(
+                    y_pred=y_pred[idx], sensitive=sensitive_col[idx]
+                ).value
+
+            r.ci = _bootstrap_metric_ci(n, stat_fn, B=args.bootstrap_B, level=args.ci_level)
+
+        # Effect size: risk ratio of selection rates
+        if args.with_effects:
+            r.effect_size = _dp_risk_ratio(y_pred, sensitive_col, args.min_group_size)
+
+        results["demographic_parity_difference"] = r
+
+    # 2) EOD (classification) if y_pred and y_true
+    if (y_pred is not None) and (y_true is not None):
+        r = fa.equalized_odds_difference(
+            y_true=y_true, y_pred=y_pred, sensitive=sensitive_col, attrs_df=attrs_df
+        )
+        if args.with_ci:
+
+            def stat_fn(idx):
+                idx = np.asarray(idx, dtype=int)
+                return fa.equalized_odds_difference(
+                    y_true=y_true[idx],
+                    y_pred=y_pred[idx],
+                    sensitive=sensitive_col[idx],
+                    attrs_df=attrs_df.iloc[idx] if attrs_df is not None else None,
+                ).value
+
+            r.ci = _bootstrap_metric_ci(n, stat_fn, B=args.bootstrap_B, level=args.ci_level)
+
+        if args.with_effects:
+            r.effect_size = _eod_ratio(y_true, y_pred, sensitive_col, args.min_group_size)
+
+        results["equalized_odds_difference"] = r
+
+    # 3) MAE parity (regression-ish) if scores + y_true
+    if (scores is not None) and (y_true is not None):
+        r = fa.mae_parity_difference(
+            y_true=y_true, y_pred=scores, sensitive=sensitive_col, attrs_df=attrs_df
+        )
+        if args.with_ci:
+
+            def stat_fn(idx):
+                idx = np.asarray(idx, dtype=int)
+                return fa.mae_parity_difference(
+                    y_true=y_true[idx],
+                    y_pred=scores[idx],
+                    sensitive=sensitive_col[idx],
+                    attrs_df=attrs_df.iloc[idx] if attrs_df is not None else None,
+                ).value
+
+            r.ci = _bootstrap_metric_ci(n, stat_fn, B=args.bootstrap_B, level=args.ci_level)
+
+        if args.with_effects:
+            r.effect_size = _cohens_d_between_groups(
+                y_true, scores, sensitive_col, args.min_group_size
+            )
+
+        results["mae_parity_difference"] = r
+
     # 11) Markdown report
     md = to_markdown_report(results, title="Fairness Validation Report (CLI)")
     print(md)
@@ -203,6 +422,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     p_val.add_argument("--out", help="Write Markdown report to this file")
     p_val.set_defaults(func=cmd_validate)
+    # add to `validate` subparser
+    p_val.add_argument("--with-ci", action="store_true", help="Compute bootstrap CI for metrics")
+    p_val.add_argument(
+        "--ci-level", type=float, default=0.95, help="Confidence level (default 0.95)"
+    )
+    p_val.add_argument(
+        "--bootstrap-B", type=int, default=1000, help="Bootstrap resamples (default 1000)"
+    )
+    p_val.add_argument("--with-effects", action="store_true", help="Compute effect sizes")
 
     # NEW: add sample-check
     sample = sub.add_parser("sample-check")
