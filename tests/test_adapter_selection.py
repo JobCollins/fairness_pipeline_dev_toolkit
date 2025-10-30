@@ -1,10 +1,12 @@
 import numpy as np
+
 # from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
 from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
 
+
 def test_auto_backend_selection_runs():
     # will pick fairlearn -> aequitas -> native based on availability
-    fa = FairnessAnalyzer(min_group_size=1) #auto-pick
+    fa = FairnessAnalyzer(min_group_size=1)  # auto-pick
     assert fa.backend in {"fairlearn", "aequitas", "native"}
 
     y_true = np.array([0, 1, 0, 1, 0, 1])
@@ -19,6 +21,7 @@ def test_auto_backend_selection_runs():
     eo_res = fa.equalized_odds_difference(y_true, y_pred, sensitive)
     assert eo_res.metric == "equalized_odds_difference"
     assert isinstance(eo_res.n_per_group, dict)
+
 
 def test_force_native_backend():
     fa = FairnessAnalyzer(min_group_size=1, backend="native")
