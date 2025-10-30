@@ -1,17 +1,20 @@
 from __future__ import annotations
-from typing import Iterable, List, Tuple, Dict, Optional
-import pandas as pd
+
+from typing import Dict, Iterable, List, Optional
+
 import numpy as np
+import pandas as pd
+
 
 def build_intersectional_labels(
-        attrs_df: pd.DataFrame,
-        columns: Optional[List[str]] = None,
-        sep: str = "||",
-        include_na: bool = True
+    attrs_df: pd.DataFrame,
+    columns: Optional[List[str]] = None,
+    sep: str = "||",
+    include_na: bool = True,
 ) -> pd.Series:
     """
     Create an intersectional group label per row by concatenating selected attribute columns.
-    
+
     Args:
         attrs_df (pd.DataFrame): Must align 1:1 with y_true/y_pred index/length.
         columns (Optional[List[str]]): List of column names to use for intersectional labels.
@@ -28,7 +31,7 @@ def build_intersectional_labels(
         columns = list(attrs_df.columns)
 
     df = attrs_df[columns].copy()
-    
+
     if include_na:
         # Replace NaN with string "NaN" for labeling
         df = df.fillna("NaN")
@@ -37,20 +40,18 @@ def build_intersectional_labels(
         # will introduce NaNs where any attribute is NaN
         labels = df.astype("string").agg(sep.join, axis=1)
 
-    return labels.astype('category')
+    return labels.astype("category")
 
-def min_group_mask(
-        labels: Iterable,
-        min_group_size: int
-) -> np.ndarray:
+
+def min_group_mask(labels: Iterable, min_group_size: int) -> np.ndarray:
     """
     Return a boolean mask slecting rows whose group appears >= min_group_size times."""
     s = pd.Series(labels)
 
     # ensure categoricals are not compared againsts ints
     if pd.api.types.is_categorical_dtype(s.dtype):
-        s = s.astype(object) # or astype("string") but object is fastest/neutral here
-    
+        s = s.astype(object)  # or astype("string") but object is fastest/neutral here
+
     group_counts = s.value_counts(dropna=False)
     # valid_groups = s.map(group_counts) >= min_group_size
     # Map to per-row group size and coerce to numeric for safe comparison
@@ -58,9 +59,8 @@ def min_group_mask(
 
     return (per_row_sizes >= int(min_group_size)).to_numpy()
 
-def group_sizes(
-        labels: Iterable
-) -> Dict[str, int]:
+
+def group_sizes(labels: Iterable) -> Dict[str, int]:
     """
     Return a dictionary of group -> size, helpful in reporting n_per_group outputs.
     Only counts non-NaN labels.
@@ -69,6 +69,6 @@ def group_sizes(
 
     if pd.api.types.is_categorical_dtype(s.dtype):
         s = s.astype(object)
-    
-    counts =  s.value_counts(dropna=True)
+
+    counts = s.value_counts(dropna=True)
     return {str(k): int(v) for k, v in counts.to_dict().items()}

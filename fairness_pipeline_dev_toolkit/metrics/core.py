@@ -1,16 +1,17 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
+
 import numpy as np
 import pandas as pd
 
-from .base import MetricResult
-from .native_adapter import NativeAdapter
-from .fairlearn_adapter import FairlearnAdapter
-from .aequitas_adapter import AequitasAdapter
-from ..utils.intersectional import build_intersectional_labels, min_group_mask, group_sizes
 from ..stats.bootstrap import bootstrap_ci
-from ..stats.effect_size import risk_ratio, cohens_d
+from ..stats.effect_size import cohens_d, risk_ratio
+from ..utils.intersectional import build_intersectional_labels, min_group_mask
+from .aequitas_adapter import AequitasAdapter
+from .fairlearn_adapter import FairlearnAdapter
+from .native_adapter import NativeAdapter
 
 
 @dataclass
@@ -126,7 +127,12 @@ class FairnessAnalyzer:
 
         # CI via bootstrap: resample within each group
         if with_ci and len(groups) >= 2 and np.isfinite(res.value):
-            idx_by_group = {g: np.where((sens.astype(str) if sens.dtype.kind not in {"U","S","O"} else sens) == g)[0] for g in groups}
+            idx_by_group = {
+                g: np.where(
+                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
+                )[0]
+                for g in groups
+            }
 
             def stat_fn(_):
                 rates = []
@@ -189,7 +195,12 @@ class FairnessAnalyzer:
         # For CI, we need to recompute TPR/FPR per resample
         groups = [g for g, n in (res.n_per_group or {}).items() if n >= self.min_group_size]
         if with_ci and len(groups) >= 2 and np.isfinite(res.value):
-            idx_by_group = {g: np.where((sens.astype(str) if sens.dtype.kind not in {"U","S","O"} else sens) == g)[0] for g in groups}
+            idx_by_group = {
+                g: np.where(
+                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
+                )[0]
+                for g in groups
+            }
 
             def stat_fn(_):
                 tprs, fprs = [], []
@@ -200,8 +211,8 @@ class FairnessAnalyzer:
                     draw = idx[np.random.randint(0, idx.size, size=idx.size)]
                     yt_g = yt[draw]
                     yp_g = yp[draw]
-                    pos = (yt_g == 1)
-                    neg = (yt_g == 0)
+                    pos = yt_g == 1
+                    neg = yt_g == 0
                     tpr_g = np.nan if pos.sum() == 0 else float((yp_g[pos] == 1).mean())
                     fpr_g = np.nan if neg.sum() == 0 else float((yp_g[neg] == 1).mean())
                     if np.isfinite(tpr_g):
@@ -262,7 +273,12 @@ class FairnessAnalyzer:
         abs_err = np.abs(yt - yp)
 
         if with_ci and len(groups) >= 2 and np.isfinite(res.value):
-            idx_by_group = {g: np.where((sens.astype(str) if sens.dtype.kind not in {"U","S","O"} else sens) == g)[0] for g in groups}
+            idx_by_group = {
+                g: np.where(
+                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
+                )[0]
+                for g in groups
+            }
 
             def stat_fn(_):
                 maes = []
@@ -283,12 +299,22 @@ class FairnessAnalyzer:
             # choose extreme groups by MAE
             maes_by_group = {}
             for g in groups:
-                idx = np.where((sens.astype(str) if sens.dtype.kind not in {"U","S","O"} else sens) == g)[0]
+                idx = np.where(
+                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
+                )[0]
                 maes_by_group[g] = float(abs_err[idx].mean())
             g_max = max(maes_by_group, key=maes_by_group.get)
             g_min = min(maes_by_group, key=maes_by_group.get)
-            x = abs_err[np.where((sens.astype(str) if sens.dtype.kind not in {"U","S","O"} else sens) == g_max)[0]]
-            y = abs_err[np.where((sens.astype(str) if sens.dtype.kind not in {"U","S","O"} else sens) == g_min)[0]]
+            x = abs_err[
+                np.where(
+                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g_max
+                )[0]
+            ]
+            y = abs_err[
+                np.where(
+                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g_min
+                )[0]
+            ]
             res.effect_size = cohens_d(x, y)
 
         return res

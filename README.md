@@ -17,3 +17,11 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 pre-commit install
 pytest -q
+
+## Demo & System Test
+
+Run the end-to-end system test:
+```bash
+pytest tests/system -q
+
+
