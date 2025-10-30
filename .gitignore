@@ -6,4 +6,4 @@ __pycache__/
 .coverage
 htmlcov/
 mlruns/
-coverage.txt
+next_steps/
