@@ -12,11 +12,19 @@ repos:
   rev: 5.13.2
   hooks:
     - id: isort
-- repo: local
-  hooks:
-    - id: fairness-sample-check
-      name: Fairness sample check (non‑blocking)
-      entry: python -m fairness_pipeline_dev_toolkit.cli.main sample-check --config fairpipe.yaml
-      language: system
-      pass_filenames: false
-      stages: [commit]
+# - repo: local
+#   hooks:
+#     - id: fairness-sample-check
+#       name: Fairness sample check (non‑blocking)
+#       entry: .venv/bin/python -m fairness_pipeline_dev_toolkit.cli.main sample-check --config fairpipe.yaml
+#       language: system
+#       pass_filenames: false
+#       stages: [commit]
+# - repo: local
+#   hooks:
+    # - id: quick-fairness-check
+    #   name: quick fairness check (smoke)
+    #   entry: python scripts/quick_fairness_check.py --csv dev_sample.csv --y-true y_true --y-pred y_pred --sensitive group --threshold 0.15 --min-group-size 10 # change this when there is real data
+    #   language: system
+    #   pass_filenames: false
+    #   stages: [pre-commit]

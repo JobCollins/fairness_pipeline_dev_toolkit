@@ -1,6 +1,9 @@
 from __future__ import annotations
-from typing import Callable, Tuple, Optional
+
+from typing import Callable, Optional, Tuple
+
 import numpy as np
+
 
 def _percentile_ci(samples: np.ndarray, level: float) -> Tuple[float, float]:
     alpha = (1 - level) / 2
@@ -23,15 +26,16 @@ def _percentile_ci(samples: np.ndarray, level: float) -> Tuple[float, float]:
 #     upper = np.percentile(stats, (1 + level) / 2 * 100)
 #     return float(lower), float(upper)
 
+
 def bootstrap_ci(
-        data: np.ndarray,
-        stat_fn: Callable[[np.ndarray], float],
-        *,
-        B: int = 2000,
-        level: float = 0.95,
-        method: str = "percentile",
-        random_state: Optional[int] = 42
-    ) -> Tuple[float, float]:
+    data: np.ndarray,
+    stat_fn: Callable[[np.ndarray], float],
+    *,
+    B: int = 2000,
+    level: float = 0.95,
+    method: str = "percentile",
+    random_state: Optional[int] = 42,
+) -> Tuple[float, float]:
     """
     Generic bootstrap confidence interval computation on 1D data vectors.
 
@@ -63,21 +67,22 @@ def bootstrap_ci(
         return bca_ci(x, stat_fn, stats, level)
     else:
         raise ValueError(f"Unknown bootstrap method: {method}")
-    
+
+
 def bca_ci(
-        x: np.ndarray,
-        stat_fn: Callable[[np.ndarray], float],
-        boot_stats: np.ndarray,
-        *,
-        level: float = 0.95
-    ) -> Tuple[float, float]:
+    x: np.ndarray,
+    stat_fn: Callable[[np.ndarray], float],
+    boot_stats: np.ndarray,
+    *,
+    level: float = 0.95,
+) -> Tuple[float, float]:
     """
     Bias-Corrected and Accelerated (BCa) bootstrap confidence interval.
 
     Based on Efron and Tibshirani (1993). Comutes bias correction (z0) via proportion of
     bootstrap statistics less than the observed statistic, and acceleration (a) via jackknife.
 
-    Notes: 
+    Notes:
     - BCa intervals can be unstable for small samples or extreme statistics; fallback if needed.
     Args:
         x: Original data array.
@@ -92,7 +97,7 @@ def bca_ci(
     if n < 5 or np.any(~np.isfinite(x)):
         # BCa unreliable for small samples or non-finite data
         return _percentile_ci(boot_stats, level)
-    
+
     theta_hat = stat_fn(x)
     # bias correction z0
     prop_less = np.mean(boot_stats < theta_hat)
@@ -101,7 +106,7 @@ def bca_ci(
     z0 = _z(prop_less)
 
     # acceleration a via jackknife
-    jack_stats = np.empty(n, dtype=float)
+    jack = np.empty(n, dtype=float)
     for i in range(n):
         jack[i] = stat_fn(np.delete(x, i))
     jack_mean = np.mean(jack)
@@ -112,14 +117,14 @@ def bca_ci(
     alpha1 = (1 - level) / 2
     alpha2 = 1 - alpha1
 
-    z_alpha1 = _z(alpha1)
-    z_alpha2 = _z(alpha2)
+    # z_alpha1 = _z(alpha1)
+    # z_alpha2 = _z(alpha2)
 
     def bca_quantile(alpha):
         z = _z(alpha)
         adj = z0 + (z0 + z) / (1 - a * (z0 + z))
         return _phi(adj)
-    
+
     q1 = bca_quantile(alpha1)
     q2 = bca_quantile(alpha2)
     lower = np.percentile(boot_stats, q1)
@@ -127,17 +132,20 @@ def bca_ci(
     return float(lower), float(upper)
 
 
-#------------------helpers------------------#
+# ------------------helpers------------------#
 def _z(p: float) -> float:
     """Inverse of standard normal CDF (probit function)."""
-    # Use numpy's erfcinv-based approximation
+    # Use numpy's erfcinv-based approximation
     # z = sqrt(2) * erfinv(2p) * -1
     from math import sqrt
+
     from numpy import erfcinv
-    return sqrt(2) * float(erfcinv(2 *  p))
+
+    return sqrt(2) * float(erfcinv(2 * p))
+
 
 def _phi(z: float) -> float:
     """Standard normal CDF."""
-    from math import erf, sqrt
-    return 0.5 * (1 + erf(z / np.sqrt(2)))
+    from math import erf
 
+    return 0.5 * (1 + erf(z / np.sqrt(2)))

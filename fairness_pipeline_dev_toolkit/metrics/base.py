@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, Protocol, runtime_checkable
+from typing import Dict, Optional, Protocol, runtime_checkable
+
 import numpy as np
 import pandas as pd
+
 
 # -------------------------------
 # Result schema (Part 5 requirement)
@@ -13,10 +16,11 @@ class MetricResult:
     Unified result object returned by all adapters and by FairnessAnalyzer.
     This keeps outputs stable across libraries and easy to log into MLflow.
     """
-    metric: str                          # e.g., "demographic_parity_difference"
-    value: float                         # point estimate
-    ci: Optional[tuple[float, float]] = None   # confidence interval (Phase 3 fills this)
-    effect_size: Optional[float] = None        # risk ratio, Cohen's d, etc. (Phase 3 fills this)
+
+    metric: str  # e.g., "demographic_parity_difference"
+    value: float  # point estimate
+    ci: Optional[tuple[float, float]] = None  # confidence interval (Phase 3 fills this)
+    effect_size: Optional[float] = None  # risk ratio, Cohen's d, etc. (Phase 3 fills this)
     n_per_group: Optional[Dict[str, int]] = None  # sample sizes by group
 
 
@@ -40,8 +44,7 @@ class MetricAdapter(Protocol):
         sensitive: np.ndarray | pd.Series,
         *,
         min_group_size: int = 30,
-    ) -> MetricResult:
-        ...
+    ) -> MetricResult: ...
 
     def equalized_odds_difference(
         self,
@@ -50,5 +53,4 @@ class MetricAdapter(Protocol):
         sensitive: np.ndarray | pd.Series,
         *,
         min_group_size: int = 30,
-    ) -> MetricResult:
-        ...
+    ) -> MetricResult: ...

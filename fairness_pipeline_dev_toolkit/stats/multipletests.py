@@ -1,6 +1,9 @@
 from __future__ import annotations
+
+from typing import Tuple
+
 import numpy as np
-from typing import Tuple, Callable, Optional
+
 
 def bonferroni(pvals):
     """
@@ -10,6 +13,7 @@ def bonferroni(pvals):
     pvals = np.asarray(pvals, dtype=float)
     n_tests = pvals.size
     return np.minimum(1.0, pvals * n_tests)
+
 
 def benjamini_hochberg(pvals) -> Tuple[np.ndarray, np.ndarray]:
     """
