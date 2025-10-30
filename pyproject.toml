@@ -33,3 +33,9 @@ dev = [
 where = ["."]
 include = ["fairness_pipeline_dev_toolkit*"]   # <-- IMPORTANT
 exclude = ["tests*", "benchmarks*"]
+
+[project.scripts]
+fairpipe = "fairness_pipeline_dev_toolkit.cli.main:main"
+
+[tool.ruff]
+extend-exclude = ["*.ipynb"]
