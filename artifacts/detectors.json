@@ -27,12 +27,8 @@
         "B": 0.31,
         "C": 0.2
       },
-      "benchmark": {
-        "A": 0.4,
-        "B": 0.4,
-        "C": 0.2
-      },
-      "chi2_pvalue": 0.12861170791754997,
+      "benchmark": null,
+      "chi2_pvalue": null,
       "flagged": false
     }
   ],

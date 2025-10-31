@@ -1,58 +1,36 @@
+# fairness_pipeline_dev_toolkit/pipeline/orchestration/builder.py  (EXPANDED lightly)
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Tuple
 
-import pandas as pd
 from sklearn.pipeline import Pipeline
 
-from ..detectors import (
-    DetectionReport,
-    DisparityDetector,
-    ProxyDetector,
-    RepresentationDetector,
-)
-from .registry import TRANSFORMER_REGISTRY
+from ..config import PipelineConfig, PipelineStep
+from .registry import get_transformer_class
 
 
-def build_pipeline(cfg: Dict[str, Any]) -> Pipeline:
+def _make_step(step: PipelineStep, cfg: PipelineConfig) -> Tuple[str, object]:
     """
-    Build a sklearn Pipeline from config (Scafold: wiring only).
-    Example cfg:
-      steps:
-        - name: di_repair
-          kind: disparate_impact
-          params: {columns: ["feature1"], sensitive_col: "group", repair_level: 0.8}
-        - name: reweight
-          kind: reweighting
-          params: {strategy: "none"}
+    Instantiate a transformer from a PipelineStep using the registry.
+    We may inject config-derived defaults here if needed.
     """
-    steps = []
-    for step in cfg.get("steps", []):
-        kind = step["kind"]
-        cls = TRANSFORMER_REGISTRY[kind]
-        params = step.get("params", {})
-        steps.append((step["name"], cls(**params)))
-    return Pipeline(steps)
+    cls = get_transformer_class(step.transformer)
+    params = dict(step.params or {})
+
+    # Provide smart defaults commonly used across transformers
+    if step.transformer in ("InstanceReweighting", "ReweighingTransformer"):
+        params.setdefault("sensitive", cfg.sensitive)
+        params.setdefault("benchmarks", cfg.benchmarks)
+
+    if step.transformer == "ProxyDropper":
+        params.setdefault("sensitive", cfg.sensitive)
+        # If no features is provided, the transformer will use all non-sensitive columns.
+
+    return (step.name, cls(**params))
 
 
-def run_detectors(df: pd.DataFrame, cfg: Dict[str, Any]) -> DetectionReport:
-    """
-    Execute detector stubs using config keys:
-      sensitive: ["group", ...]
-      features: ["x1","x2",...]
-      target: "y"
-      benchmarks: {group: {A:0.5,B:0.5}}
-    """
-    sensitive = cfg.get("sensitive", [])
-    features = cfg.get("features", [])
-    target = cfg.get("target")
-
-    rep = RepresentationDetector().run(df, sensitive=sensitive, benchmarks=cfg.get("benchmarks"))
-    disp = DisparityDetector().run(df, target=target, sensitive=sensitive)
-    prox = ProxyDetector().run(df, features=features, sensitive=sensitive)
-    return DetectionReport(
-        representation={"result": rep.__dict__},
-        disparity={"result": disp.__dict__},
-        proxy={"result": prox.__dict__},
-        meta={"phase": "0"},
-    )
+def build_pipeline(cfg: PipelineConfig) -> Pipeline:
+    steps = [_make_step(s, cfg) for s in cfg.pipeline]
+    if not steps:
+        raise ValueError("Config has no pipeline steps. Add a 'pipeline:' section.")
+    return Pipeline(steps=steps)
