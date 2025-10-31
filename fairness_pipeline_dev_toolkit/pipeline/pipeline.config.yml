@@ -1,24 +1,32 @@
+# fairness_pipeline_dev_toolkit/pipeline/pipeline.config.yml  (EXPANDED example)
 sensitive: ["sensitive"]
-
 benchmarks:
-  sensitive:
-    A: 0.40
-    B: 0.40
-    C: 0.20
-
+  group:
+    A: 0.5
+    B: 0.5
 alpha: 0.05
 proxy_threshold: 0.30
 report_out: "artifacts/pipeline_bias_report.json"
 
 pipeline:
-  - name: reweight
-    transformer: InstanceReweighting
+  - name: reweigh
+    transformer: ReweighingTransformer
     params:
-      max_weight: 8.0
-  - name: repair
+      # sensitive and benchmarks default from config; override here if needed
+      sensitive: ["sensitive"]        
+      clip: 8.0
+
+  - name: drop_proxies
+    transformer: ProxyDropper
+    params:
+      # features: if omitted -> all non-sensitive columns are candidates
+      sensitive: ["sensitive"] 
+      threshold: 0.35
+      max_drop: 10
+
+  - name: di_repair
     transformer: DisparateImpactRemover
     params:
-      sensitive: "sensitive"          # optional if config.sensitive has one
-      features: ["score"]              # put real continuous features here
-      repair_level: 0.6
-      min_group_size: 30
+      features: ["y_pred"]     # choose numeric features to repair
+      sensitive: "sensitive"             # Phase 2 requirement: single sensitive for DI
+      repair_level: 0.8

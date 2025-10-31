@@ -1,3 +1,6 @@
+# fairness_pipeline_dev_toolkit/pipeline/orchestration/engine.py
+# (updated: remove non-existent transformer imports; keep BiasReport + registry consistent)
+
 from __future__ import annotations
 
 import json
@@ -15,9 +18,11 @@ from ..detectors import (
 from ..detectors.report import BiasReport
 from ..transformers.disparate_impact import DisparateImpactRemover
 from ..transformers.instance_reweighting import InstanceReweighting
+from ..transformers.proxy_dropper import ProxyDropper
+from ..transformers.reweighing import ReweighingTransformer
 
 
-def run_detectors(df: pd.DataFrame, cfg: PipelineConfig) -> BiasReport:  # <-- return BiasReport
+def run_detectors(df: pd.DataFrame, cfg: PipelineConfig) -> BiasReport:
     """
     Execute Representation, Disparity, and Proxy detectors for every sensitive attribute.
     Returns a BiasReport (with attribute access via .meta) and writes JSON if cfg.report_out is set.
@@ -74,9 +79,12 @@ def run_detectors(df: pd.DataFrame, cfg: PipelineConfig) -> BiasReport:  # <-- r
     return bias_report
 
 
+# Registry only includes transformers that exist in your tree right now
 _TRANSFORMER_REGISTRY = {
     "InstanceReweighting": InstanceReweighting,
     "DisparateImpactRemover": DisparateImpactRemover,
+    "ReweighingTransformer": ReweighingTransformer,
+    "ProxyDropper": ProxyDropper,
 }
 
 
