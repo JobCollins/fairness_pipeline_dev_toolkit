@@ -1,26 +1,55 @@
 # Changelog
 <!-- A simple changelog for your first release candidate. Helps clients and teammates track what’s in v0.1.0. -->
+## [v0.3.0-rc1] — 2025-10-31
+### Added
+- **System Test:** End-to-end CLI test (`tests/system/test_cli_e2e_pipeline.py`) verifying full pipeline execution and artifact generation.
+- **Demo Notebook Generator:** `scripts/make_demo_notebook.py` programmatically creates a clean, runnable `demo.ipynb` showing detection → mitigation → reporting.
+- **Artifacts:** Auto-generated `demo.ipynb` ready for Jupyter or VS Code use.
+- **Docs Update:** Expanded README with Phase 5 instructions (E2E tests, demo generation, and MLflow logging).
+
+### Improved
+- Documentation flow and developer onboarding clarity.
+- Test reliability for pipeline and detector integration.
+
+### Purpose
+Phase 5 finalizes the first release candidate by validating the entire fairness pipeline through automated tests and a reproducible demo.
+
+
 ## [v0.2.0] — 2025-10-31
 ### Added
-- **Pipeline Module (Phase 1–2)**:
-  - Bias Detection Engine: representation, statistical disparity, proxy variable detection with thresholds.
-  - sklearn-compatible transformers: `InstanceReweighting`, `DisparateImpactRemover`.
-  - Typed YAML config (`PipelineConfig`, `PipelineStep`) + loader (`load_config`).
-  - Orchestration: `run_detectors`, `build_pipeline`, `apply_pipeline`.
-  - CLI: `pipeline-run` to execute detectors and pipeline end-to-end.
-- Sample config and smoke tests under `tests/pipeline/`.
+- **Pipeline Module (Phases 3 & 4)**
+  - Implemented YAML-driven configuration (`pipeline.config.yml`) for sensitive attributes, benchmarks, and pipeline steps.
+  - Integrated a **Bias Detection Engine** (representation, disparity, and proxy analysis) returning typed `BiasReport` objects.
+  - Added orchestration engine for end-to-end execution (`run_detectors`, `build_pipeline`, `apply_pipeline`).
+  - Introduced scikit-learn compatible transformers:
+    - `InstanceReweighting`
+    - `DisparateImpactRemover`
+    - `ReweighingTransformer`
+    - `ProxyDropper`
+  - Expanded transformer registry for safer instantiation and automatic default injection.
 
 ### Changed
-- `README.md`: added Pipeline Module section, examples (CLI + Python), and directory layout.
+- Enhanced CLI command `pipeline` to support:
+  - `--config`, `--csv`, `--out-csv`, `--detector-json`, and `--report-md` arguments.
+  - Full execution of bias detection → transformation → artifact generation.
+- Refactored engine logic for compatibility with `BiasReport.to_dict()` serialization.
+- Improved validation for YAML configs and transformer parameters.
 
 ### Fixed
-- CLI artifact handling: ensure detector outputs are JSON-serializable (plain `dict`).
-- Minor robustness in pipeline build defaults (auto-inject sensitive/benchmarks where appropriate).
+- Resolved serialization errors (`BiasReport` JSON conversion).
+- Fixed import path consistency across installed and editable environments.
+- Eliminated “Unknown transformer” and missing parameter errors by unifying registry defaults.
 
-### Notes
-- Measurement Module remains v0.1.x compatible; no breaking API changes.
-- Next: Phase 3 (CI templates for pipeline fairness checks, richer detectors, and docs).
-
+### Deliverables
+- CLI workflow validated:
+  ```bash
+  python -m fairness_pipeline_dev_toolkit.cli.main pipeline \
+    --config fairness_pipeline_dev_toolkit/pipeline/pipeline.config.yml \
+    --csv dev_sample.csv \
+    --out-csv artifacts/sample.transformed.csv \
+    --detector-json artifacts/detectors.json \
+    --report-md artifacts/pipeline_run.md
+  ```
 
 ## [v0.1.0] — 2025-10-30
 
@@ -76,4 +105,3 @@ fairness_pipeline_dev_toolkit/
 **Release Candidate:** v0.1.0  
 Validated via system tests, demo, and CI/CD pipeline.  
 Ready for client pilot deployment and UX feedback collection.
-
