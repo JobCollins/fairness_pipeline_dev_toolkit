@@ -1,8 +1,10 @@
 # Fairness Pipeline Development Toolkit — Measurement Module
 
+A unified, statistically-rigorous **fairness toolkit** for ML workflows, delivered in two parts:
 
-A unified, statistically-rigorous **fairness measurement** layer for machine learning workflows.
-The toolkit wraps multiple libraries (Fairlearn, Aequitas) behind a single API, computes bootstrap and Bayesian confidence intervals, reports standardized effect sizes, and integrates seamlessly with MLflow, pytest, and CI/CD pipelines.
+- **Measurement Module** – compute fairness metrics (DP, EO, MAE parity), bootstrap CIs, and effect sizes; integrates with MLflow, pytest, and CI.
+- **Pipeline Module (beta)** – detect bias in raw data and apply mitigation via scikit-learn–compatible transformers (e.g., instance reweighting, disparate-impact repair). Includes a typed YAML config and orchestration to build/run pipelines end-to-end.
+
 
 
 ## Features
@@ -95,6 +97,113 @@ fairness_pipeline_dev_toolkit/
 
 See `docs/ADR-001-architecture.md` for design decisions.
 The API is stable as of version `v0.1.0`.
+
+
+## Pipeline Module (beta)
+
+The Pipeline Module gives data engineers a **standardized, configurable, and automated** way to detect and mitigate bias **before** modeling.
+
+### What it includes (Phase 1–2)
+- **Bias Detection Engine**
+  - Representation bias (counts/ratios vs. optional benchmarks)
+  - Statistical disparity across groups (chi-square/ANOVA selection by type)
+  - Proxy variable detection (Cramér’s V / η² with thresholding)
+- **Transformers (sklearn-compatible)**
+  - `InstanceReweighting` – computes per-row `sample_weight` to correct representation disparities
+  - `DisparateImpactRemover` – rank-preserving repair for continuous features wrt a sensitive attribute
+- **Config + Orchestration**
+  - Typed YAML config (`PipelineConfig`, `PipelineStep`)
+  - Build and run via `build_pipeline(...)`, `apply_pipeline(...)`, `run_detectors(...)`
+- **CLI**
+  - `fairpipe pipeline-run` to run detectors + transform data from a config
+
+### Directory (new/updated)
+
+```text
+fairness_pipeline_dev_toolkit/
+└── pipeline/
+  ├── __init__.py
+  ├── config/
+  │   ├── __init__.py
+  │   └── schema.py               # PipelineConfig, PipelineStep, loader
+  ├── detectors/
+  │   ├── __init__.py
+  │   ├── representation.py       # RepresentationBiasDetector
+  │   ├── disparity.py            # StatisticalDisparityDetector
+  │   └── proxy.py                # ProxyVariableDetector
+  ├── orchestration/
+  │   ├── __init__.py
+  │   └── engine.py               # run_detectors, build_pipeline, apply_pipeline
+  └── transformers/
+    ├── __init__.py
+    ├── instance_reweighting.py
+    └── disparate_impact.py
+```
+
+### Minimal config example
+```yaml
+# config/pipeline.dev.yml
+sensitive: ["group"]
+alpha: 0.05
+proxy_threshold: 0.30
+report_out: "artifacts/pipeline_bias_report.json"
+
+pipeline:
+  - name: reweight
+    transformer: InstanceReweighting
+    params:
+      strategy: "target"         # or "uniform"
+      benchmarks:
+        group: {A: 0.5, B: 0.5}  # optional
+
+  - name: di_repair
+    transformer: DisparateImpactRemover
+    params:
+      features: ["income", "score"]
+      sensitive: "group"
+      repair_level: 0.8
+```
+
+### CLI Usage
+
+# Validate env (one-time)
+```console
+pip install -e .
+```
+
+# Run detectors and pipeline from a config
+```console
+python -m fairness_pipeline_dev_toolkit.cli.main pipeline-run \
+  --config config/pipeline.dev.yml \
+  --in-csv dev_sample.csv \
+  --out-csv artifacts/dev_sample_transformed.csv \
+  --detector-json artifacts/pipeline_bias_report.json
+```
+
+## Python API Usage
+
+
+```python
+import pandas as pd
+from fairness_pipeline_dev_toolkit.pipeline.config import load_config
+from fairness_pipeline_dev_toolkit.pipeline.orchestration import (
+    run_detectors, build_pipeline, apply_pipeline
+)
+
+cfg = load_config("config/pipeline.dev.yml")
+df = pd.read_csv("dev_sample.csv")
+
+# 1) Detect
+report = run_detectors(df, cfg)        # dict JSON-safe
+
+# 2) Build & apply
+pipe = build_pipeline(cfg)
+Xt, artifacts = apply_pipeline(pipe, df)  # artifacts may include 'sample_weight'
+```
+
+
+
+
 
 
 

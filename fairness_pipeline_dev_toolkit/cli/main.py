@@ -4,6 +4,8 @@
 Subcommands:
 - version
 - validate : run a quick fairness validation on a CSV and print/save a Markdown report
+- sample-check : lightweight pre-commit check on sample data
+- pipeline-run : (NEW Pipeline Module Phase 0 demo)
 
 Examples:
     python -m fairness_pipeline_dev_toolkit.cli.main version
@@ -19,6 +21,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import pathlib
 import sys
 from typing import List, Optional
 
@@ -27,8 +30,16 @@ import pandas as pd
 
 from fairness_pipeline_dev_toolkit.integration.reporting import to_markdown_report
 from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
+from fairness_pipeline_dev_toolkit.pipeline.config import load_config
+from fairness_pipeline_dev_toolkit.pipeline.orchestration import (
+    apply_pipeline,
+    build_pipeline,
+    run_detectors,
+)
 from fairness_pipeline_dev_toolkit.stats.bootstrap import bootstrap_ci
 from fairness_pipeline_dev_toolkit.stats.effect_size import risk_ratio
+
+# import yaml
 
 
 def cmd_version(args: argparse.Namespace) -> int:
@@ -396,6 +407,79 @@ def cmd_sample_check(args):
     return 0
 
 
+def _write_artifact(path: Optional[str], content: str, mode: str = "w") -> None:
+    if not path:
+        return
+    p = pathlib.Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with open(p, mode, encoding="utf-8") as f:
+        f.write(content)
+
+
+def cmd_pipeline_run(args: argparse.Namespace) -> int:
+    """
+    Run the Pipeline Module:
+      1) load config (YAML)
+      2) load CSV data
+      3) run detectors (optional)
+      4) build sklearn pipeline from config
+      5) apply pipeline to data
+      6) write transformed CSV and optional JSON/Markdown reports
+    """
+    # 1) Load config
+    cfg = load_config(args.config)
+
+    # 2) Load data
+    df = pd.read_csv(args.csv)
+
+    # 3) Run detectors (optional)
+    detector_report = None
+    if not args.no_detectors:
+        detector_report = run_detectors(
+            df=df,
+            cfg=cfg,
+            # If your detectors need explicit sensitive column names, pass via config.
+        )
+        # Pretty print a short summary
+        print("== Detector Summary ==")
+        for key, val in detector_report.items():
+            print(f"- {key}: {val if not isinstance(val, dict) else '[dict]'}")
+
+        # Optionally write a JSON artifact of the full detector output
+        if args.detector_json:
+            _write_artifact(args.detector_json, str(detector_report))
+
+    # 4) Build pipeline
+    pipe = build_pipeline(cfg)
+
+    # 5) Apply pipeline
+    Xt, _ = apply_pipeline(pipe, df)
+
+    # 6) Persist outputs
+    if args.out_csv:
+        _write_artifact(args.out_csv, Xt.to_csv(index=False))
+
+    # Optional Markdown summary of what ran (lightweight)
+    if args.report_md:
+        lines = ["# Pipeline Run Report", ""]
+        lines.append(f"- **Config**: `{args.config}`")
+        lines.append(f"- **Input CSV**: `{args.csv}`")
+        if args.out_csv:
+            lines.append(f"- **Output CSV**: `{args.out_csv}`")
+        if detector_report is not None:
+            lines.append("")
+            lines.append("## Detector Findings (summary)")
+            for k, v in detector_report.items():
+                if isinstance(v, dict):
+                    lines.append(f"- **{k}**: {len(v)} entries")
+                else:
+                    lines.append(f"- **{k}**: {v}")
+        _write_artifact(args.report_md, "\n".join(lines))
+
+    print("Pipeline completed.")
+    return 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(prog="fairpipe", description="Fairness Toolkit CLI")
     sub = parser.add_subparsers(dest="cmd")
@@ -435,6 +519,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     # NEW: add sample-check
     sample = sub.add_parser("sample-check")
     sample.set_defaults(func=cmd_sample_check)
+
+    # Pipeline
+    p_pipe = sub.add_parser("pipeline", help="Run detectors + apply configured pipeline on a CSV")
+    p_pipe.add_argument("--config", required=True, help="Path to pipeline.config.yml")
+    p_pipe.add_argument("--csv", required=True, help="Input CSV")
+    p_pipe.add_argument("--out-csv", help="Write transformed CSV here")
+    p_pipe.add_argument("--detector-json", help="Write detector findings JSON here")
+    p_pipe.add_argument("--report-md", help="Write a brief Markdown run report here")
+    p_pipe.add_argument("--no-detectors", action="store_true", help="Skip detector stage")
+    p_pipe.set_defaults(func=cmd_pipeline_run)
 
     args = parser.parse_args(argv)
     if not hasattr(args, "func"):
