@@ -9,7 +9,7 @@ without depending on internal layout.
 from ..integration.mlflow_logger import log_fairness_metrics  # noqa: F401
 from ..integration.pytest_plugin import assert_fairness  # noqa: F401
 from ..integration.reporting import to_markdown_report  # noqa: F401
-from ..metrics.core import FairnessAnalyzer, MetricResult  # noqa: F401
+from ..metrics import FairnessAnalyzer, MetricResult
 
 # (Optional) expose common stats utilities
 try:

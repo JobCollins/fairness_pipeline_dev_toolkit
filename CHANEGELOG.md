@@ -1,5 +1,26 @@
 # Changelog
 <!-- A simple changelog for your first release candidate. Helps clients and teammates track what’s in v0.1.0. -->
+## [v0.2.0] — 2025-10-31
+### Added
+- **Pipeline Module (Phase 1–2)**:
+  - Bias Detection Engine: representation, statistical disparity, proxy variable detection with thresholds.
+  - sklearn-compatible transformers: `InstanceReweighting`, `DisparateImpactRemover`.
+  - Typed YAML config (`PipelineConfig`, `PipelineStep`) + loader (`load_config`).
+  - Orchestration: `run_detectors`, `build_pipeline`, `apply_pipeline`.
+  - CLI: `pipeline-run` to execute detectors and pipeline end-to-end.
+- Sample config and smoke tests under `tests/pipeline/`.
+
+### Changed
+- `README.md`: added Pipeline Module section, examples (CLI + Python), and directory layout.
+
+### Fixed
+- CLI artifact handling: ensure detector outputs are JSON-serializable (plain `dict`).
+- Minor robustness in pipeline build defaults (auto-inject sensitive/benchmarks where appropriate).
+
+### Notes
+- Measurement Module remains v0.1.x compatible; no breaking API changes.
+- Next: Phase 3 (CI templates for pipeline fairness checks, richer detectors, and docs).
+
 
 ## [v0.1.0] — 2025-10-30
 

@@ -1,0 +1,29 @@
+{
+  "representation": {
+    "result": {
+      "by_group": {},
+      "benchmarks": {
+        "sensitive": {
+          "A": 0.5,
+          "B": 0.5
+        }
+      },
+      "notes": "Scaffold stub"
+    }
+  },
+  "disparity": {
+    "result": {
+      "metrics": {},
+      "notes": "Scafold stub"
+    }
+  },
+  "proxy": {
+    "result": {
+      "associations": {},
+      "notes": "Scafold stub"
+    }
+  },
+  "meta": {
+    "phase": "0"
+  }
+}
