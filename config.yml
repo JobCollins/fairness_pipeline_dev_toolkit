@@ -1,0 +1,23 @@
+# Which columns the detectors should consider
+sensitive: ["sensitive"]
+features: ["x1", "x2", "x3"]
+target: "y_true"
+
+# Optional: population benchmarks for representation checks (Phase 1 will use them)
+benchmarks:
+  sensitive:
+    A: 0.5
+    B: 0.5
+
+# Pipeline steps (wiring only in Phase 0; both are no-ops right now)
+steps:
+  - name: di_repair
+    kind: disparate_impact
+    params:
+      columns: ["x1"]
+      sensitive_col: "sensitive"
+      repair_level: 0.8
+  - name: reweight
+    kind: reweighting
+    params:
+      strategy: "none"
