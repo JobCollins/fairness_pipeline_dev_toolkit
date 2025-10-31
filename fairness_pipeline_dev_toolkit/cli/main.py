@@ -442,12 +442,12 @@ def cmd_pipeline_run(args: argparse.Namespace) -> int:
         )
         # Pretty print a short summary
         print("== Detector Summary ==")
-        for key, val in detector_report.items():
+        for key, val in detector_report.body.items():
             print(f"- {key}: {val if not isinstance(val, dict) else '[dict]'}")
 
         # Optionally write a JSON artifact of the full detector output
         if args.detector_json:
-            _write_artifact(args.detector_json, str(detector_report))
+            _write_artifact(args.detector_json, detector_report.to_json())
 
     # 4) Build pipeline
     pipe = build_pipeline(cfg)
