@@ -4,6 +4,8 @@
 Subcommands:
 - version
 - validate : run a quick fairness validation on a CSV and print/save a Markdown report
+- sample-check : lightweight pre-commit check on sample data
+- pipeline-run : (NEW Pipeline Module Phase 0 demo)
 
 Examples:
     python -m fairness_pipeline_dev_toolkit.cli.main version
@@ -24,9 +26,14 @@ from typing import List, Optional
 
 import numpy as np
 import pandas as pd
+import yaml
 
 from fairness_pipeline_dev_toolkit.integration.reporting import to_markdown_report
 from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
+from fairness_pipeline_dev_toolkit.pipeline.orchestration import (
+    build_pipeline,
+    run_detectors,
+)
 from fairness_pipeline_dev_toolkit.stats.bootstrap import bootstrap_ci
 from fairness_pipeline_dev_toolkit.stats.effect_size import risk_ratio
 
@@ -396,6 +403,34 @@ def cmd_sample_check(args):
     return 0
 
 
+def cmd_pipeline_run(args: argparse.Namespace) -> int:
+    """
+    Phase 0:
+    - load CSV + config.yml
+    - build sklearn pipeline (no-op transformers)
+    - run detector stubs and print a minimal JSON-ish report
+    """
+    df = pd.read_csv(args.csv)
+    # cfg = load_config(path=args.config)
+    with open(args.config, "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f) or {}
+
+    # Build pipeline (wiring only; transforms are no-ops in Phase 0)
+    _ = build_pipeline(cfg)  # pipeline object reserved for Phase 1+ application
+
+    # Run detectors (stubs)
+    report = run_detectors(df, cfg)
+
+    # Simple pretty print
+    import json
+
+    print(json.dumps(report.to_jsonable(), indent=2))
+    if args.out:
+        with open(args.out, "w", encoding="utf-8") as f:
+            f.write(json.dumps(report.to_jsonable(), indent=2))
+    return 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(prog="fairpipe", description="Fairness Toolkit CLI")
     sub = parser.add_subparsers(dest="cmd")
@@ -435,6 +470,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     # NEW: add sample-check
     sample = sub.add_parser("sample-check")
     sample.set_defaults(func=cmd_sample_check)
+
+    # Pipeline
+    pp = sub.add_parser("pipeline-run", help="Run Pipeline Module detectors from a YAML config")
+    pp.add_argument("--csv", required=True, help="Input CSV file")
+    pp.add_argument("--config", required=True, help="Pipeline config YAML")
+    pp.add_argument("--out", help="Optional path to write JSON report")
+    pp.set_defaults(func=cmd_pipeline_run)
 
     args = parser.parse_args(argv)
     if not hasattr(args, "func"):
