@@ -173,11 +173,12 @@ pip install -e .
 
 # Run detectors and pipeline from a config
 ```console
-python -m fairness_pipeline_dev_toolkit.cli.main pipeline-run \
-  --config config/pipeline.dev.yml \
-  --in-csv dev_sample.csv \
-  --out-csv artifacts/dev_sample_transformed.csv \
-  --detector-json artifacts/pipeline_bias_report.json
+ python -m fairness_pipeline_dev_toolkit.cli.main pipeline \
+  --config fairness_pipeline_dev_toolkit/pipeline/pipeline.config.yml \
+  --csv dev_sample.csv \
+  --out-csv artifacts/sample.transformed.csv \
+  --detector-json artifacts/detectors.json \
+  --report-md artifacts/pipeline_run.md
 ```
 
 ## Python API Usage
@@ -190,7 +191,7 @@ from fairness_pipeline_dev_toolkit.pipeline.orchestration import (
     run_detectors, build_pipeline, apply_pipeline
 )
 
-cfg = load_config("config/pipeline.dev.yml")
+cfg = load_config("pipeline.config.yml")
 df = pd.read_csv("dev_sample.csv")
 
 # 1) Detect
