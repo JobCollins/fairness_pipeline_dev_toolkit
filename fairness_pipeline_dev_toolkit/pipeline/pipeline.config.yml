@@ -1,0 +1,24 @@
+sensitive: ["sensitive"]
+
+benchmarks:
+  sensitive:
+    A: 0.40
+    B: 0.40
+    C: 0.20
+
+alpha: 0.05
+proxy_threshold: 0.30
+report_out: "artifacts/pipeline_bias_report.json"
+
+pipeline:
+  - name: reweight
+    transformer: InstanceReweighting
+    params:
+      max_weight: 8.0
+  - name: repair
+    transformer: DisparateImpactRemover
+    params:
+      sensitive: "sensitive"          # optional if config.sensitive has one
+      features: ["score"]              # put real continuous features here
+      repair_level: 0.6
+      min_group_size: 30
