@@ -40,7 +40,7 @@ pipeline: []
     #  - No representation flags
     #  - No disparity flags
     #  - No proxy flags
-    summary = report["summary"]
+    summary = report.body["summary"]
     assert summary["representation_flags"] == 0, f"Representation flags: {summary}"
     assert summary["disparity_flags"] == 0, f"Disparity flags: {summary}"
     assert summary["proxy_flags"] == 0, f"Proxy flags: {summary}"

@@ -30,7 +30,11 @@ class BiasReport(Mapping[str, Any]):
 
     def to_dict(self) -> Dict[str, Any]:
         # Keep 'meta' explicit at the top level for artifact clarity
-        return {"meta": self.meta, **self.body}
+        return {"meta": self.meta, "body": self.body}
+
+    def to_json(self, *, indent: int = 2, ensure_ascii: bool = False) -> str:
+        """Stringified JSON convenience."""
+        return json.dumps(self.to_dict(), indent=indent, ensure_ascii=ensure_ascii)
 
     # ---- Mapping (dict-like) interface ----
     def __getitem__(self, key: str) -> Any:
