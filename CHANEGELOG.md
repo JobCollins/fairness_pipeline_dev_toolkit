@@ -1,7 +1,19 @@
 # Changelog
 <!-- A simple changelog for your first release candidate. Helps clients and teammates track what’s in v0.1.0. -->
-## [v0.2.0] — 2025-10-31
-# Changelog
+## [v0.3.0-rc1] — 2025-10-31
+### Added
+- **System Test:** End-to-end CLI test (`tests/system/test_cli_e2e_pipeline.py`) verifying full pipeline execution and artifact generation.
+- **Demo Notebook Generator:** `scripts/make_demo_notebook.py` programmatically creates a clean, runnable `demo.ipynb` showing detection → mitigation → reporting.
+- **Artifacts:** Auto-generated `demo.ipynb` ready for Jupyter or VS Code use.
+- **Docs Update:** Expanded README with Phase 5 instructions (E2E tests, demo generation, and MLflow logging).
+
+### Improved
+- Documentation flow and developer onboarding clarity.
+- Test reliability for pipeline and detector integration.
+
+### Purpose
+Phase 5 finalizes the first release candidate by validating the entire fairness pipeline through automated tests and a reproducible demo.
+
 
 ## [v0.2.0] — 2025-10-31
 ### Added
