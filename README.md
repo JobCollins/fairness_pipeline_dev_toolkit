@@ -101,21 +101,26 @@ The API is stable as of version `v0.1.0`.
 
 ## Pipeline Module (beta)
 
-The Pipeline Module gives data engineers a **standardized, configurable, and automated** way to detect and mitigate bias **before** modeling.
+The **Pipeline Module** extends the Fairness Pipeline Development Toolkit beyond measurement into **active bias mitigation**.  
+It enables automated detection, transformation, and validation of data bias directly within data processing pipelines.
 
-### What it includes (Phase 1–2)
+### Features
 - **Bias Detection Engine**
-  - Representation bias (counts/ratios vs. optional benchmarks)
-  - Statistical disparity across groups (chi-square/ANOVA selection by type)
-  - Proxy variable detection (Cramér’s V / η² with thresholding)
-- **Transformers (sklearn-compatible)**
-  - `InstanceReweighting` – computes per-row `sample_weight` to correct representation disparities
-  - `DisparateImpactRemover` – rank-preserving repair for continuous features wrt a sensitive attribute
-- **Config + Orchestration**
-  - Typed YAML config (`PipelineConfig`, `PipelineStep`)
-  - Build and run via `build_pipeline(...)`, `apply_pipeline(...)`, `run_detectors(...)`
-- **CLI**
-  - `fairpipe pipeline-run` to run detectors + transform data from a config
+  - Representation bias checks against configurable benchmarks.
+  - Statistical disparity analysis across features and target variables.
+  - Proxy variable detection via correlation and Cramér’s V thresholds.
+- **Mitigation Transformers**
+  - `InstanceReweighting`: Adjusts sample weights to address representation imbalance.
+  - `DisparateImpactRemover`: Repairs continuous features to reduce bias correlations.
+  - `ReweighingTransformer`: Simplified fairness-aware weighting scheme.
+  - `ProxyDropper`: Optionally removes proxy features correlated with protected attributes.
+- **Pipeline Orchestration**
+  - Configurable via YAML (`pipeline.config.yml`).
+  - Fully compatible with scikit-learn’s `Pipeline` API.
+  - Supports dynamic step instantiation and smart parameter defaults.
+- **CI/CD Integration**
+  - Works with the CLI for automated runs, reproducible outputs, and report generation.
+  - Artifacts include transformed data, bias reports (`.json`), and markdown summaries.
 
 ### Directory (new/updated)
 
