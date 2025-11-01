@@ -1,82 +1,14 @@
 {
-  "meta": {
-    "phase": "0",
-    "alpha": 0.05,
-    "proxy_threshold": 0.3
+  "timestamp_utc": "2025-11-01T18:09:36Z",
+  "metric": "demographic_parity_difference",
+  "value": 0.3,
+  "threshold": 0.1,
+  "status": "fail",
+  "columns": {
+    "y_true": "y_true",
+    "y_pred": "y_pred",
+    "sensitive": "sensitive"
   },
-  "summary": {
-    "sensitive": [
-      "group"
-    ],
-    "alpha": 0.05,
-    "proxy_threshold": 0.3,
-    "representation_flags": 0,
-    "disparity_flags": 2,
-    "proxy_flags": 3
-  },
-  "representation": [
-    {
-      "attribute": "group",
-      "counts": {
-        "A": 5,
-        "B": 5
-      },
-      "proportions": {
-        "A": 0.5,
-        "B": 0.5
-      },
-      "benchmark": {
-        "A": 0.5,
-        "B": 0.5
-      },
-      "chi2_pvalue": 1.0,
-      "flagged": false
-    }
-  ],
-  "disparities": [
-    {
-      "feature": "x1",
-      "attribute": "group",
-      "test": "anova",
-      "pvalue": 0.00018000524340134393,
-      "flagged": true
-    },
-    {
-      "feature": "x2",
-      "attribute": "group",
-      "test": "chi2",
-      "pvalue": 0.0301973834223185,
-      "flagged": true
-    },
-    {
-      "feature": "y",
-      "attribute": "group",
-      "test": "chi2",
-      "pvalue": 0.05777957112359719,
-      "flagged": false
-    }
-  ],
-  "proxies": [
-    {
-      "feature": "x1",
-      "attribute": "group",
-      "measure": "eta_squared",
-      "strength": 0.842506867433106,
-      "flagged": true
-    },
-    {
-      "feature": "x2",
-      "attribute": "group",
-      "measure": "cramers_v",
-      "strength": 0.8366600265340756,
-      "flagged": true
-    },
-    {
-      "feature": "y",
-      "attribute": "group",
-      "measure": "cramers_v",
-      "strength": 0.6,
-      "flagged": true
-    }
-  ]
+  "csv": "dev_sample.csv",
+  "min_group_size": 30
 }
