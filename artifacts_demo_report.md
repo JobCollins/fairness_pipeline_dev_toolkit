@@ -1,11 +1,12 @@
-# Fairness Demo Report
+# Quick Fairness Check
 
-_Generated: 2025-10-30 13:23:54 UTC_
+- **Metric**: Demographic Parity Difference
+- **Value**: 0.300000
+- **Threshold**: 0.1
+- **Status**: **FAIL**
 
-| Metric | Value | CI (95%) | Effect Size | n_per_group |
-|---|---:|---|---:|---|
-| `demographic_parity_difference` | 0.200000 | — | None | {"A": 5, "B": 5} |
-| `equalized_odds_difference` | 0.666667 | — | None | {"A": 5, "B": 5} |
-| `mae_parity_difference` | 0.162000 | — | None | {"A": 5, "B": 5} |
-
-> Note: `—` indicates unavailable due to insufficient data or configuration.
+## Context
+- CSV: `dev_sample.csv`
+- Columns: y_true=`y_true`, y_pred=`y_pred`, sensitive=`sensitive`
+- Min group size: 30
+- Timestamp (UTC): 2025-11-01T18:09:36Z

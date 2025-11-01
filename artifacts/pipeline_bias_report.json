@@ -4,78 +4,80 @@
     "alpha": 0.05,
     "proxy_threshold": 0.3
   },
-  "summary": {
-    "sensitive": [
-      "sensitive"
+  "body": {
+    "summary": {
+      "sensitive": [
+        "sensitive"
+      ],
+      "alpha": 0.05,
+      "proxy_threshold": 0.3,
+      "representation_flags": 0,
+      "disparity_flags": 1,
+      "proxy_flags": 0
+    },
+    "representation": [
+      {
+        "attribute": "sensitive",
+        "counts": {
+          "A": 98,
+          "B": 62,
+          "C": 40
+        },
+        "proportions": {
+          "A": 0.49,
+          "B": 0.31,
+          "C": 0.2
+        },
+        "benchmark": null,
+        "chi2_pvalue": null,
+        "flagged": false
+      }
     ],
-    "alpha": 0.05,
-    "proxy_threshold": 0.3,
-    "representation_flags": 0,
-    "disparity_flags": 1,
-    "proxy_flags": 0
-  },
-  "representation": [
-    {
-      "attribute": "sensitive",
-      "counts": {
-        "A": 98,
-        "B": 62,
-        "C": 40
+    "disparities": [
+      {
+        "feature": "y_true",
+        "attribute": "sensitive",
+        "test": "chi2",
+        "pvalue": 0.3569255347473493,
+        "flagged": false
       },
-      "proportions": {
-        "A": 0.49,
-        "B": 0.31,
-        "C": 0.2
+      {
+        "feature": "y_pred",
+        "attribute": "sensitive",
+        "test": "chi2",
+        "pvalue": 0.009580363168086106,
+        "flagged": true
       },
-      "benchmark": null,
-      "chi2_pvalue": null,
-      "flagged": false
-    }
-  ],
-  "disparities": [
-    {
-      "feature": "y_true",
-      "attribute": "sensitive",
-      "test": "chi2",
-      "pvalue": 0.3569255347473493,
-      "flagged": false
-    },
-    {
-      "feature": "y_pred",
-      "attribute": "sensitive",
-      "test": "chi2",
-      "pvalue": 0.009580363168086106,
-      "flagged": true
-    },
-    {
-      "feature": "score",
-      "attribute": "sensitive",
-      "test": "anova",
-      "pvalue": 0.13902782607515096,
-      "flagged": false
-    }
-  ],
-  "proxies": [
-    {
-      "feature": "y_true",
-      "attribute": "sensitive",
-      "measure": "cramers_v",
-      "strength": 0.10150015296054936,
-      "flagged": false
-    },
-    {
-      "feature": "y_pred",
-      "attribute": "sensitive",
-      "measure": "cramers_v",
-      "strength": 0.2155931301950939,
-      "flagged": false
-    },
-    {
-      "feature": "score",
-      "attribute": "sensitive",
-      "measure": "eta_squared",
-      "strength": 0.019831987806349694,
-      "flagged": false
-    }
-  ]
+      {
+        "feature": "score",
+        "attribute": "sensitive",
+        "test": "anova",
+        "pvalue": 0.13902782607515096,
+        "flagged": false
+      }
+    ],
+    "proxies": [
+      {
+        "feature": "y_true",
+        "attribute": "sensitive",
+        "measure": "cramers_v",
+        "strength": 0.10150015296054936,
+        "flagged": false
+      },
+      {
+        "feature": "y_pred",
+        "attribute": "sensitive",
+        "measure": "cramers_v",
+        "strength": 0.2155931301950939,
+        "flagged": false
+      },
+      {
+        "feature": "score",
+        "attribute": "sensitive",
+        "measure": "eta_squared",
+        "strength": 0.019831987806349694,
+        "flagged": false
+      }
+    ]
+  }
 }

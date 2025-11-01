@@ -1,0 +1,38 @@
+[
+  {
+    "epoch": 0,
+    "accuracy": 0.46799999475479126,
+    "violation": 0.0,
+    "lambda": 0.0
+  },
+  {
+    "epoch": 1,
+    "accuracy": 0.4779999852180481,
+    "violation": 0.0,
+    "lambda": 0.0
+  },
+  {
+    "epoch": 2,
+    "accuracy": 0.4880000054836273,
+    "violation": 0.0,
+    "lambda": 0.0
+  },
+  {
+    "epoch": 3,
+    "accuracy": 0.515999972820282,
+    "violation": 0.0,
+    "lambda": 0.0
+  },
+  {
+    "epoch": 4,
+    "accuracy": 0.5249999761581421,
+    "violation": 0.0,
+    "lambda": 0.0
+  },
+  {
+    "epoch": 5,
+    "accuracy": 0.5490000247955322,
+    "violation": 0.0,
+    "lambda": 0.0
+  }
+]
