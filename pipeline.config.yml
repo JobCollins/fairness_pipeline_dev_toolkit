@@ -10,15 +10,64 @@ alpha: 0.05
 proxy_threshold: 0.30
 report_out: "artifacts/pipeline_bias_report.json"
 
+# ---- legacy fallback for tests that don't select a profile ----
 pipeline:
-  - name: reweight
-    transformer: InstanceReweighting
+  - name: reweigh
+    transformer: "InstanceReweighting"
+    params: {}
+  - name: di
+    transformer: "DisparateImpactRemover"
     params:
-      max_weight: 8.0
-  - name: repair
-    transformer: DisparateImpactRemover
-    params:
-      sensitive: "sensitive"          # optional if config.sensitive has one
-      features: ["score"]              # put real continuous features here
-      repair_level: 0.6
-      min_group_size: 30
+      sensitive: "sensitive"
+      features: ["score"]
+      repair_level: 0.8
+
+profiles:
+  training:
+    pipeline:
+      - name: reweigh
+        transformer: "InstanceReweighting"
+        params: {}
+      - name: di
+        transformer: "DisparateImpactRemover"
+        params:
+          features: ["f0", "f1", "f2", "f3", "f4", "f5"]
+          sensitive: "s"
+          repair_level: 0.8
+
+  pipeline:
+    pipeline:
+      - name: reweight
+        transformer: "InstanceReweighting"
+        params:
+          max_weight: 8.0
+      - name: repair
+        transformer: "DisparateImpactRemover"
+        params:
+          sensitive: "sensitive"
+          features: ["score"]
+          repair_level: 0.6
+          min_group_size: 30
+
+# pipeline:
+#   - name: reweigh
+#     transformer: "InstanceReweighting"
+#     params: {}
+#   - name: di
+#     transformer: "DisparateImpactRemover"
+#     params:
+#       features: ["f0", "f1", "f2", "f3", "f4", "f5"]
+#       sensitive: "s"
+#       repair_level: 0.8
+# pipeline:
+#   - name: reweight
+#     transformer: InstanceReweighting
+#     params:
+#       max_weight: 8.0
+#   - name: repair
+#     transformer: DisparateImpactRemover
+#     params:
+#       sensitive: "sensitive"          # optional if config.sensitive has one
+#       features: ["score"]              # put real continuous features here
+#       repair_level: 0.6
+#       min_group_size: 30

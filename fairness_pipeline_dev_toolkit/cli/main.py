@@ -21,12 +21,14 @@ Examples:
 from __future__ import annotations
 
 import argparse
-import pathlib
+import json
 import sys
+from pathlib import Path
 from typing import List, Optional
 
 import numpy as np
 import pandas as pd
+import torch
 
 from fairness_pipeline_dev_toolkit.integration.reporting import to_markdown_report
 from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
@@ -38,6 +40,13 @@ from fairness_pipeline_dev_toolkit.pipeline.orchestration import (
 )
 from fairness_pipeline_dev_toolkit.stats.bootstrap import bootstrap_ci
 from fairness_pipeline_dev_toolkit.stats.effect_size import risk_ratio
+from fairness_pipeline_dev_toolkit.training import (
+    GroupFairnessCalibrator,
+    LagrangianFairnessTrainer,
+    ReductionsWrapper,
+    plot_pareto,
+    sweep_pareto,
+)
 
 # import yaml
 
@@ -410,7 +419,7 @@ def cmd_sample_check(args):
 def _write_artifact(path: Optional[str], content: str, mode: str = "w") -> None:
     if not path:
         return
-    p = pathlib.Path(path)
+    p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     with open(p, mode, encoding="utf-8") as f:
         f.write(content)
@@ -427,7 +436,7 @@ def cmd_pipeline_run(args: argparse.Namespace) -> int:
       6) write transformed CSV and optional JSON/Markdown reports
     """
     # 1) Load config
-    cfg = load_config(args.config)
+    cfg = load_config(args.config, profile=getattr(args, "profile", None))
 
     # 2) Load data
     df = pd.read_csv(args.csv)
@@ -480,6 +489,121 @@ def cmd_pipeline_run(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_train_sklearn_reduced(args):
+    import joblib
+    import pandas as pd
+    from fairlearn.reductions import DemographicParity, EqualizedOdds
+    from sklearn.linear_model import LogisticRegression
+
+    df = pd.read_csv(args.csv)
+    y = df[args.y].values
+    g = df[args.group].values
+    X = df.drop(columns=[args.y, args.group]).values
+    cons = DemographicParity() if args.constraint == "demographic_parity" else EqualizedOdds()
+    model = ReductionsWrapper(LogisticRegression(max_iter=1000), cons, eps=args.eps, T=args.T).fit(
+        X, y, sensitive_features=g
+    )
+    joblib.dump(model, args.out_model)
+    print(f"[ok] saved: {args.out_model}")
+
+
+def cmd_train_regularized(args):
+    """
+    Train a tiny demo NN with FairnessRegularizerLoss on CSV data.
+
+    Required CSV columns: features f0..f{d-1}, label 'y', sensitive 's'.
+    """
+    import pandas as pd
+
+    df = pd.read_csv(args.csv)
+    feature_cols = [c for c in df.columns if c.startswith("f")]
+    X = df[feature_cols].to_numpy(dtype=np.float32)
+    y = df["y"].to_numpy(dtype=np.int64)
+    s = df["s"].to_numpy(dtype=np.int64)
+
+    # simple split
+    n = X.shape[0]
+    cut = int(0.8 * n)
+    Xtr, Xv = X[:cut], X[cut:]
+    ytr, yv = y[:cut], y[cut:]
+    str_, sv = s[:cut], s[cut:]
+
+    pts = sweep_pareto(
+        Xtr,
+        ytr,
+        str_,
+        Xv,
+        yv,
+        sv,
+        etas=[float(e) for e in args.etas.split(",")],
+        epochs=args.epochs,
+        lr=args.lr,
+        device="cpu",
+    )
+    # write json + plot
+    Path(args.out_json).write_text(json.dumps(pts, indent=2))
+    if args.out_png:
+        plot_pareto(pts, save_path=args.out_png)
+    print("== Pareto Points ==")
+    for p in pts:
+        print(p)
+    return 0
+
+
+def cmd_train_lagrangian(args):
+    """
+    Train a tiny NN with Lagrangian fairness (DP or EO) on CSV.
+
+    Required CSV columns: f0.., 'y', 's'
+    """
+    import pandas as pd
+    import torch.nn as nn
+
+    df = pd.read_csv(args.csv)
+    feature_cols = [c for c in df.columns if c.startswith("f")]
+    X = torch.tensor(df[feature_cols].to_numpy(dtype=np.float32))
+    y = torch.tensor(df["y"].to_numpy(dtype=np.int64))
+    s = torch.tensor(df["s"].to_numpy(dtype=np.int64))
+
+    model = nn.Sequential(nn.Linear(len(feature_cols), 32), nn.ReLU(), nn.Linear(32, 1))
+    trainer = LagrangianFairnessTrainer(
+        model=model,
+        fairness=args.fairness,
+        dp_tolerance=args.dp_tol,
+        eo_tolerance=args.eo_tol,
+        model_lr=args.model_lr,
+        lambda_lr=args.lambda_lr,
+        device="cpu",
+    )
+    hist = trainer.fit(X, y, s, epochs=args.epochs, batch_size=args.batch_size, verbose=True)
+    Path(args.out_json).write_text(json.dumps(hist, indent=2))
+    return 0
+
+
+def cmd_calibrate(args):
+    """
+    Fit group-specific calibrators and transform scores.
+
+    Required CSV columns: 'score' (0..1), 'y' (0/1), 'g' (group id)
+    """
+    import pandas as pd
+
+    df = pd.read_csv(args.csv)
+    scores = df["score"].to_numpy()
+    labels = df["y"].to_numpy()
+    groups = df["g"].to_numpy()
+
+    cal = GroupFairnessCalibrator(method=args.method, min_samples=args.min_samples).fit(
+        scores, labels, groups
+    )
+    out = cal.transform(scores, groups)
+
+    out_df = pd.DataFrame({"score_raw": scores, "score_cal": out, "y": labels, "g": groups})
+    out_df.to_csv(args.out_csv, index=False)
+    print(f"Wrote calibrated scores -> {args.out_csv}")
+    return 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(prog="fairpipe", description="Fairness Toolkit CLI")
     sub = parser.add_subparsers(dest="cmd")
@@ -523,12 +647,54 @@ def main(argv: Optional[List[str]] = None) -> int:
     # Pipeline
     p_pipe = sub.add_parser("pipeline", help="Run detectors + apply configured pipeline on a CSV")
     p_pipe.add_argument("--config", required=True, help="Path to pipeline.config.yml")
+    p_pipe.add_argument(
+        "--profile", required=False, help="Config profile name (if YAML has profiles)"
+    )
     p_pipe.add_argument("--csv", required=True, help="Input CSV")
     p_pipe.add_argument("--out-csv", help="Write transformed CSV here")
     p_pipe.add_argument("--detector-json", help="Write detector findings JSON here")
     p_pipe.add_argument("--report-md", help="Write a brief Markdown run report here")
     p_pipe.add_argument("--no-detectors", action="store_true", help="Skip detector stage")
     p_pipe.set_defaults(func=cmd_pipeline_run)
+
+    # Training
+
+    # --- NEW parser: train-regularized ---
+    p_tr = sub.add_parser(
+        "train-regularized", help="Train NN with FairnessRegularizerLoss and sweep η."
+    )
+    p_tr.add_argument("--csv", required=True, help="CSV with columns f0.., y, s")
+    p_tr.add_argument("--etas", default="0.0,0.2,0.5,1.0", help="Comma-separated η values")
+    p_tr.add_argument("--epochs", type=int, default=10)
+    p_tr.add_argument("--lr", type=float, default=1e-3)
+    p_tr.add_argument("--out-json", required=True)
+    p_tr.add_argument("--out-png", default="", help="Optional path to save Pareto plot")
+    p_tr.set_defaults(func=cmd_train_regularized)
+
+    # --- NEW parser: train-lagrangian ---
+    p_lg = sub.add_parser("train-lagrangian", help="Train NN with Lagrangian fairness (DP/EO).")
+    p_lg.add_argument("--csv", required=True, help="CSV with columns f0.., y, s")
+    p_lg.add_argument(
+        "--fairness",
+        choices=["demographic_parity", "equal_opportunity"],
+        default="demographic_parity",
+    )
+    p_lg.add_argument("--dp-tol", type=float, default=0.02)
+    p_lg.add_argument("--eo-tol", type=float, default=0.02)
+    p_lg.add_argument("--model-lr", type=float, default=1e-3)
+    p_lg.add_argument("--lambda-lr", type=float, default=1e-2)
+    p_lg.add_argument("--epochs", type=int, default=10)
+    p_lg.add_argument("--batch-size", type=int, default=128)
+    p_lg.add_argument("--out-json", required=True)
+    p_lg.set_defaults(func=cmd_train_lagrangian)
+
+    # --- NEW parser: calibrate ---
+    p_cal = sub.add_parser("calibrate", help="Group-specific Platt/Isotonic calibration.")
+    p_cal.add_argument("--csv", required=True, help="CSV with cols: score,y,g")
+    p_cal.add_argument("--method", choices=["platt", "isotonic"], default="platt")
+    p_cal.add_argument("--min-samples", type=int, default=20)
+    p_cal.add_argument("--out-csv", required=True)
+    p_cal.set_defaults(func=cmd_calibrate)
 
     args = parser.parse_args(argv)
     if not hasattr(args, "func"):
