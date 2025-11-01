@@ -22,3 +22,20 @@ pre-commit>=3.7
 types-python-dateutil
 
 PyYAML>=6.0
+
+fairlearn>=0.10
+matplotlib>=3.8
+# PyTorch for fairness-aware training
+# ----------------------------------------------------------------
+# macOS / CPU-only (default):
+#   pip install --index-url https://download.pytorch.org/whl/cpu torch>=2.2
+# ----------------------------------------------------------------
+# Linux (CUDA 11.8 example):
+#   pip install torch>=2.2+cu118 torchvision torchaudio \
+#       --index-url https://download.pytorch.org/whl/cu118
+# ----------------------------------------------------------------
+# Windows:
+#   pip install torch>=2.2 torchvision torchaudio
+#   (auto-detects CUDA/CPU)
+# ----------------------------------------------------------------
+torch>=2.2
