@@ -1,7 +1,7 @@
 # Fairness Pipeline Development Toolkit
 
-A unified, statistically-rigorous framework for **detecting**, **mitigating**, and **validating** bias in ML workflows.  
-The toolkit provides modular components for fairness **measurement** and **pipeline integration**, enabling teams to move from ad-hoc fairness checks to automated, continuous validation within CI/CD.
+A unified, statistically-rigorous framework for **detecting**, **mitigating**, **training**, and **validating** fairness in ML workflows.  
+The toolkit provides modular components spanning data-to-model fairness — enabling teams to move from ad-hoc checks to automated, continuous fairness assurance in CI/CD.
 
 ---
 
@@ -12,11 +12,10 @@ Implements fairness **metrics**, **statistical validation**, and **MLflow/pytest
 
 **Features**
 - Unified `FairnessAnalyzer` API with adapters for Fairlearn and Aequitas.  
-- Classification and regression metrics (e.g., demographic parity, equalized odds, MAE parity).  
-- Intersectional group analysis with `min_group_size`.  
-- Statistical validation: bootstrap CIs (95%), effect sizes (risk ratios).  
-- Integrated workflow: MLflow logging + pytest assertions.  
-- CLI command: `validate` for quick fairness audits.
+- Metrics: demographic parity, equalized odds, MAE parity.  
+- Intersectional analysis with `min_group_size`.  
+- Statistical validation via bootstrap CIs and effect sizes.  
+- CLI: `validate` for fairness audits.  
 
 ---
 
@@ -24,21 +23,45 @@ Implements fairness **metrics**, **statistical validation**, and **MLflow/pytest
 Automates **bias detection**, **feature mitigation**, and **CI/CD fairness checks** for data engineering teams.
 
 **Features**
-- Bias Detection Engine (representation, statistical, proxy analysis).  
-- Modular, sklearn-compatible transformers:  
-  - `InstanceReweighting`  
-  - `DisparateImpactRemover`  
-  - `ReweighingTransformer`  
-  - `ProxyDropper`  
-- Configurable YAML-based pipeline orchestration.  
-- Automated fairness validation in CI/CD (pytest + GitHub Actions).  
-- Generates `BiasReport` JSON + Markdown summary.
+- Bias Detection Engine (representation, statistical, and proxy analysis).  
+- sklearn-compatible transformers:
+  - `InstanceReweighting`
+  - `DisparateImpactRemover`
+  - `ReweighingTransformer`
+  - `ProxyDropper`
+- YAML-based orchestration with multiple profiles (`pipeline`, `training`).  
+- CLI: `pipeline` for end-to-end mitigation and artifact generation.  
 
 ---
 
-## ⚙️ Installation
+### **3. Training Module**
+Enables **fair model training** by embedding fairness objectives directly into learning algorithms.
 
-```bash
+**Features**
+- **ReductionsWrapper (scikit-learn):** wraps any estimator with `fairlearn.reductions.ExponentiatedGradient` for constraint-based training (e.g., Demographic Parity).  
+- **FairnessRegularizer (PyTorch):** integrates fairness penalties (e.g., statistical dependence) into differentiable loss functions.  
+- **LagrangianFairnessTrainer (PyTorch):** enforces fairness constraints via dual optimization (Lagrange multipliers).  
+- **GroupFairnessCalibrator:** applies Platt Scaling or Isotonic Regression post-training to balance probabilities across groups.  
+- **ParetoFrontier Visualization Tool:** visualizes the fairness–accuracy trade-off to guide stakeholder decisions.
+
+**Usage Example (PyTorch Regularizer)**
+```python
+from fairness_pipeline_dev_toolkit.training.torch_.losses import FairnessRegularizerLoss
+from fairness_pipeline_dev_toolkit.training.torch_.lagrangian import LagrangianFairnessTrainer
+```
+
+### CLI Example
+
+```
+python -m fairness_pipeline_dev_toolkit.cli.main train \
+  --config fairness_pipeline_dev_toolkit/pipeline/pipeline.config.yml \
+  --csv dev_sample.csv \
+  --profile training \
+  --out-csv artifacts/training_output.csv
+```
+
+### Installation
+```
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -46,142 +69,82 @@ pip install -e .
 pre-commit install
 ```
 
-## 🚀 CLI Usage
-
-### 1️⃣ Fairness Measurement (from Measurement Module)
-
-Validate metrics on any CSV dataset:
+## CLI Usage
+### 1️⃣ Fairness Validation
 
 ```console
 python -m fairness_pipeline_dev_toolkit.cli.main validate \
-  --csv dev_sample.csv \
-  --y-true y_true \
-  --y-pred y_pred \
-  --sensitive sensitive \
-  --backend native \
-  --min-group-size 2 \
-  --with-ci --ci-level 0.95 --bootstrap-B 1000 \
-  --with-effects \
-  --out artifacts/report_with_ci.md
+  --csv dev_sample.csv --y-true y_true --y-pred y_pred \
+  --sensitive sensitive --backend native \
+  --with-ci --ci-level 0.95 --with-effects
 ```
 
-
-**Example Output**
-```console
-
-| Metric | Value | CI (95%) | Effect Size | n_per_group |
-|---------|--------|----------|--------------|--------------|
-| demographic_parity_difference | 0.300 | [0.0282, 0.0967] | 2.50 | {"A": 98, "B": 62, "C": 40} |
-| equalized_odds_difference | 0.3956 | [0.1424, 0.1832] | 3.77 | {"A": 98, "B": 62, "C": 40} |
-
-```
-
-### 2️⃣ Fair Pipeline Execution (from Pipeline Module)
-
-Run full detection → transformation → report generation:
-
+### 2️⃣ Fair Pipeline Execution
 ```console
 python -m fairness_pipeline_dev_toolkit.cli.main pipeline \
   --config fairness_pipeline_dev_toolkit/pipeline/pipeline.config.yml \
-  --csv dev_sample.csv \
-  --out-csv artifacts/sample.transformed.csv \
+  --csv dev_sample.csv --out-csv artifacts/sample.transformed.csv \
   --detector-json artifacts/detectors.json \
   --report-md artifacts/pipeline_run.md
 ```
 
-
-Produces:
-
-Transformed dataset (`sample.transformed.csv`)
-
-Detector JSON (`detectors.json`) with top-level `"meta"` and `"body"`
-
-Markdown report summarizing representation bias, disparities, and proxies
-
-🧱 Repository Structure
+### 3️⃣ Fair Model Training
 ```console
-fairness_pipeline_dev_toolkit/
-├── cli/                        # CLI entrypoints (validate / pipeline)
-├── measurement/                # Measurement module core
-├── metrics/                    # Fairness metrics & adapters
-├── stats/                      # Statistical validation (bootstrap, effect size)
-├── pipeline/
-│   ├── config/                 # YAML loader and schema
-│   ├── detectors/              # Bias detection engines + BiasReport
-│   ├── transformers/           # sklearn-compatible mitigation transforms
-│   ├── orchestration/          # Build + execute pipelines
-│   └── pipeline.config.yml     # Example configuration
-├── tests/                      # Unit + system tests
-│   ├── pipeline/
-│   └── system/
-└── artifacts/                  # Generated reports & transformed outputs
+python -m fairness_pipeline_dev_toolkit.cli.main train \
+  --config fairness_pipeline_dev_toolkit/pipeline/pipeline.config.yml \
+  --csv dev_sample.csv --profile training
 ```
 
-## 🧪 Testing & Validation
+## Testing & Validation
 
-Run full suite:
+Run all tests:
 
 ```console
 pytest -q
 ```
 
 
-Run CI smoke (simulates GitHub Actions):
+System test for pipeline:
 
 ```console
 pytest tests/system/test_cli_e2e_pipeline.py::test_cli_pipeline_e2e[native] -q
 ```
 
-### Example Configuration
 
-```markdown
-sensitive: ["group"]
-alpha: 0.05
-proxy_threshold: 0.30
-report_out: "artifacts/detectors.json"
-benchmarks:
-  group: {A: 0.5, B: 0.5}
-pipeline:
-  - name: reweigh
-    transformer: "InstanceReweighting"
-    params: {}
-  - name: di
-    transformer: "DisparateImpactRemover"
-    params:
-      features: ["x1"]
-      sensitive: "group"
-      repair_level: 0.8
+Training module tests:
+
+```console
+pytest tests/training -q
+
 ```
 
+## Repository Structure
 
-### BiasReport JSON Schema
-```json
-{
-  "meta": {
-    "phase": "0",
-    "alpha": 0.05,
-    "proxy_threshold": 0.3
-  },
-  "body": {
-    "summary": {...},
-    "representation": [...],
-    "disparities": [...],
-    "proxies": [...]
-  }
-}
+```
+fairness_pipeline_dev_toolkit/
+├── cli/
+├── measurement/
+├── metrics/
+├── stats/
+├── pipeline/
+│   ├── config/
+│   ├── detectors/
+│   ├── orchestration/
+│   ├── transformers/
+│   └── pipeline.config.yml
+├── training/
+│   ├── sklearn_/              # ReductionsWrapper
+│   ├── torch_/                # Loss + LagrangianTrainer
+│   ├── postproc/              # GroupFairnessCalibrator
+│   ├── viz/                   # Pareto Frontier Visualization
+│   └── __init__.py
+├── tests/
+│   ├── training/
+│   ├── pipeline/
+│   └── system/
+└── artifacts/
 ```
 
-### 📈 Changelog Highlights (v0.1.0 → v0.2.0)
-Added
+## Next Phase: Monitoring Module
 
-- Pipeline Module: bias detection + mitigation integration.
-
-- sklearn transformers (InstanceReweighting, DisparateImpactRemover, ReweighingTransformer, ProxyDropper).
-
-- BiasReport JSON structure with meta and body.
-
-- CLI command: pipeline – end-to-end data fairness orchestration.
-
-- CI/CD automation + system tests for full pipeline validation.
-
-- Demo notebook (demo.ipynb) showing combined workflow.
+The next release (v0.5.0) will introduce Monitoring — continuous drift detection, fairness drift tracking, and automated alerting over time windows.

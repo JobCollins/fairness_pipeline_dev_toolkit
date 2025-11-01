@@ -1,5 +1,28 @@
 # Changelog
-<!-- A simple changelog for your first release candidate. Helps clients and teammates track what’s in v0.1.0. -->
+
+## [v0.4.0] — 2025-11-01
+### Added
+- **Training Module**
+  - Introduced a new module enabling fairness-aware **model training**, bridging fair data pipelines with fair models.
+  - Added components:
+    - **ReductionsWrapper (scikit-learn)** — integrates `fairlearn.reductions.ExponentiatedGradient` for training under fairness constraints (e.g., Demographic Parity).
+    - **FairnessRegularizer (PyTorch)** — introduces fairness penalties directly into loss functions for differentiable fairness optimization.
+    - **LagrangianFairnessTrainer (PyTorch)** — performs constrained optimization via Lagrange multipliers to enforce Demographic Parity or Equal Opportunity.
+    - **GroupFairnessCalibrator** — post-training correction of prediction probabilities using Platt Scaling or Isotonic Regression.
+    - **ParetoFrontier Visualization Tool** — plots the fairness–accuracy trade-off across varying regularization strengths.
+  - Fully compatible with Python **3.12.5** and macOS environments.
+
+### Improved
+- Unified CLI configuration and profile loading (`pipeline.config.yml`) to support both *pipeline* and *training* profiles.
+- Refined exception handling for `ExponentiatedGradient` compatibility and PyTorch gradient tracking.
+- Expanded automated test coverage under `tests/training/` for sklearn, torch, postproc, and visualization submodules.
+- Streamlined documentation to include CLI commands and developer setup for the new module.
+
+### Purpose
+Phase 6 extends the toolkit’s capabilities beyond data-level fairness by embedding fairness constraints directly into **model training workflows**, ensuring equitable outcomes by design.
+
+---
+
 ## [v0.3.0-rc1] — 2025-10-31
 ### Added
 - **System Test:** End-to-end CLI test (`tests/system/test_cli_e2e_pipeline.py`) verifying full pipeline execution and artifact generation.
@@ -12,96 +35,4 @@
 - Test reliability for pipeline and detector integration.
 
 ### Purpose
-Phase 5 finalizes the first release candidate by validating the entire fairness pipeline through automated tests and a reproducible demo.
-
-
-## [v0.2.0] — 2025-10-31
-### Added
-- **Pipeline Module (Phases 3 & 4)**
-  - Implemented YAML-driven configuration (`pipeline.config.yml`) for sensitive attributes, benchmarks, and pipeline steps.
-  - Integrated a **Bias Detection Engine** (representation, disparity, and proxy analysis) returning typed `BiasReport` objects.
-  - Added orchestration engine for end-to-end execution (`run_detectors`, `build_pipeline`, `apply_pipeline`).
-  - Introduced scikit-learn compatible transformers:
-    - `InstanceReweighting`
-    - `DisparateImpactRemover`
-    - `ReweighingTransformer`
-    - `ProxyDropper`
-  - Expanded transformer registry for safer instantiation and automatic default injection.
-
-### Changed
-- Enhanced CLI command `pipeline` to support:
-  - `--config`, `--csv`, `--out-csv`, `--detector-json`, and `--report-md` arguments.
-  - Full execution of bias detection → transformation → artifact generation.
-- Refactored engine logic for compatibility with `BiasReport.to_dict()` serialization.
-- Improved validation for YAML configs and transformer parameters.
-
-### Fixed
-- Resolved serialization errors (`BiasReport` JSON conversion).
-- Fixed import path consistency across installed and editable environments.
-- Eliminated “Unknown transformer” and missing parameter errors by unifying registry defaults.
-
-### Deliverables
-- CLI workflow validated:
-  ```bash
-  python -m fairness_pipeline_dev_toolkit.cli.main pipeline \
-    --config fairness_pipeline_dev_toolkit/pipeline/pipeline.config.yml \
-    --csv dev_sample.csv \
-    --out-csv artifacts/sample.transformed.csv \
-    --detector-json artifacts/detectors.json \
-    --report-md artifacts/pipeline_run.md
-  ```
-
-## [v0.1.0] — 2025-10-30
-
-### 🎯 Summary
-First full release candidate of the **Fairness Pipeline Development Toolkit — Measurement Module**.  
-Implements end-to-end fairness measurement, validation, and workflow integration.
-
----
-
-### 🧩 Added
-- **Metrics Engine**
-  - Implemented `demographic_parity_difference`, `equalized_odds_difference`, and `mae_parity_difference`.
-  - Supports intersectional groups with `min_group_size` filtering.
-  - Unified `FairnessAnalyzer` wrapper for multiple libraries (Fairlearn, Aequitas, Native).
-
-- **Statistical Validation**
-  - Bootstrap confidence intervals (percentile, BCa).
-  - Bayesian credible intervals for small-n.
-  - Effect sizes (`risk_ratio`, `cohen_d`) to quantify disparity magnitude.
-
-- **Workflow Integration**
-  - `MLflow` logging of fairness metrics and structured artifacts.
-  - `pytest` plugin with `assert_fairness()` for automated CI checks.
-  - Command-line interface (`fairpipe validate`) for CSV-based validation.
-  - Markdown reporting utility (`to_markdown_report()`).
-
-- **Infrastructure**
-  - Multi-environment CI (Ubuntu, macOS, Windows) for Python 3.10–3.12.
-  - Linting (Ruff, Black, isort) and coverage reporting integrated into GitHub Actions.
-  - Pre-commit hooks for code quality and optional fairness smoke checks.
-
-- **Testing & Documentation**
-  - End-to-end system tests validating full pipeline (`run → log → CI → report`).
-  - Synthetic fixtures and coverage benchmarks.
-  - `demo.ipynb` demonstrating metric computation, confidence intervals, and MLflow tracking.
-  - Updated `README.md` and architecture record (`ADR-001-architecture.md`).
-
----
-
-### 🧱 Structure
-
-```markdown
-fairness_pipeline_dev_toolkit/
-├── measurement/ # Unified API entrypoint
-├── metrics/ # Core metrics & adapters
-├── stats/ # Bootstrap, Bayesian, effect sizes
-├── integration/ # MLflow, pytest, reporting
-├── cli/ # CLI (fairpipe)
-└── utils/ # Validation & intersectional tools
-```
-
-### ✅ Status
-**Release Candidate:** v0.1.0  
-Validated via system tests, demo, and CI/CD pipeline.  
-Ready for client pilot deployment and UX feedback collection.
+Phase 5 finalized the first release candidate by validating the entire fairness pipeline through automated tests and a reproducible demo.
