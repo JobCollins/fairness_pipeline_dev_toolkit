@@ -90,11 +90,11 @@ class FairnessAnalyzer:
         intersectional: bool = False,
         attrs_df: Optional[pd.DataFrame] = None,
         columns: Optional[List[str]] = None,
-        with_ci: bool = False,
+        with_ci: bool = True,
         ci_level: float = 0.95,
         ci_method: str = "percentile",
         ci_samples: int = 1000,
-        with_effect_size: bool = False,
+        with_effect_size: bool = True,
     ):
         yp = np.asarray(y_pred)
 
@@ -171,11 +171,11 @@ class FairnessAnalyzer:
         intersectional: bool = False,
         attrs_df: Optional[pd.DataFrame] = None,
         columns: Optional[List[str]] = None,
-        with_ci: bool = False,
+        with_ci: bool = True,
         ci_level: float = 0.95,
         ci_method: str = "percentile",
         ci_samples: int = 1000,
-        with_effect_size: bool = False,  # note: effect size less canonical here; we omit or set None
+        with_effect_size: bool = True,  # note: effect size less canonical here; we omit or set None
     ):
         yt = np.asarray(y_true)
         yp = np.asarray(y_pred)
@@ -285,11 +285,11 @@ class FairnessAnalyzer:
         intersectional: bool = False,
         attrs_df: Optional[pd.DataFrame] = None,
         columns: Optional[List[str]] = None,
-        with_ci: bool = False,
+        with_ci: bool = True,
         ci_level: float = 0.95,
         ci_method: str = "percentile",
         ci_samples: int = 1000,
-        with_effect_size: bool = False,  # If desired, Cohen's d on absolute errors pairwise is possible
+        with_effect_size: bool = True,  # If desired, Cohen's d on absolute errors pairwise is possible
     ):
         yt = np.asarray(y_true)
         yp = np.asarray(y_pred)

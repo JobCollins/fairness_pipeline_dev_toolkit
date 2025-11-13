@@ -1,6 +1,7 @@
 import numpy as np
 
 from fairness_pipeline_dev_toolkit.stats.bayesian import beta_binomial_interval
+from fairness_pipeline_dev_toolkit.stats.bootstrap import _percentile_ci
 
 
 def two_sample_percentile_ci(A, B, level=0.90, B_reps=1000, rng_seed=None):
@@ -34,6 +35,14 @@ def test_bootstrap_percentile_coverage_simple():
     est_coverage = covered / sims
     # Allow some slack due to Monte Carlo error
     assert 0.85 <= est_coverage <= 0.95
+
+
+def test_percentile_ci_matches_numpy_percentiles():
+    samples = np.linspace(-5, 5, 1001)
+    lower, upper = _percentile_ci(samples, 0.95)
+    expected = np.percentile(samples, [2.5, 97.5])
+    assert np.isclose(lower, expected[0])
+    assert np.isclose(upper, expected[1])
 
 
 def test_beta_binomial_interval_small_n_monotonic():

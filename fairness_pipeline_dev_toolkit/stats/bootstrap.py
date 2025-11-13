@@ -7,8 +7,8 @@ import numpy as np
 
 def _percentile_ci(samples: np.ndarray, level: float) -> Tuple[float, float]:
     alpha = (1 - level) / 2
-    lower = np.percentile(samples, alpha)
-    upper = np.percentile(samples, 1 - alpha)
+    lower = np.percentile(samples, alpha * 100)
+    upper = np.percentile(samples, (1 - alpha) * 100)
     return float(lower), float(upper)
 
 
