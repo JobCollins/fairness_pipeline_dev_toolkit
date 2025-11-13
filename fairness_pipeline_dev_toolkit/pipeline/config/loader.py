@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 import os.path as osp
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence
 
 import yaml
 
@@ -24,6 +24,102 @@ class PipelineConfig:
     proxy_threshold: float = 0.30
     report_out: Optional[str] = None
     pipeline: List[PipelineStep] = field(default_factory=list)
+
+
+class ConfigValidationError(ValueError):
+    """Raised when the pipeline config does not meet minimal schema expectations."""
+
+
+def _ensure_list_of_strings(value: Any, field_name: str) -> List[str]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
+        raise ConfigValidationError(f"Config field '{field_name}' must be a list of strings.")
+    cleaned: List[str] = []
+    for item in value:
+        if not isinstance(item, str) or not item.strip():
+            raise ConfigValidationError(
+                f"Config field '{field_name}' expects non-empty string entries; got {item!r}."
+            )
+        cleaned.append(item.strip())
+    if not cleaned:
+        raise ConfigValidationError(f"Config field '{field_name}' must not be empty.")
+    return cleaned
+
+
+def _validate_benchmarks(benchmarks: Any) -> None:
+    if benchmarks is None:
+        return
+    if not isinstance(benchmarks, dict):
+        raise ConfigValidationError(
+            "Config field 'benchmarks' must be a mapping of attr -> values."
+        )
+    for attr, group_map in benchmarks.items():
+        if not isinstance(attr, str):
+            raise ConfigValidationError("Benchmark keys must be attribute names (strings).")
+        if not isinstance(group_map, dict):
+            raise ConfigValidationError(
+                f"Benchmark entry for '{attr}' must be a mapping of group -> proportion."
+            )
+        for group, value in group_map.items():
+            if not isinstance(group, str):
+                raise ConfigValidationError(
+                    f"Benchmark group names must be strings; got {group!r} under '{attr}'."
+                )
+            try:
+                float(value)
+            except (TypeError, ValueError):
+                raise ConfigValidationError(
+                    f"Benchmark value for '{attr}.{group}' must be numeric; got {value!r}."
+                ) from None
+
+
+def _validate_pipeline_steps(raw_steps: Any) -> None:
+    if raw_steps is None:
+        return
+    if not isinstance(raw_steps, list):
+        raise ConfigValidationError("Config field 'pipeline' must be a list of step mappings.")
+    for idx, step in enumerate(raw_steps):
+        if not isinstance(step, dict):
+            raise ConfigValidationError(f"Pipeline step #{idx + 1} must be a mapping.")
+        transformer = step.get("transformer") or step.get("kind")
+        if not isinstance(transformer, str) or not transformer.strip():
+            raise ConfigValidationError(
+                f"Pipeline step #{idx + 1} requires a 'transformer' string."
+            )
+        params = step.get("params")
+        if params is not None and not isinstance(params, dict):
+            raise ConfigValidationError(
+                f"Pipeline step '{transformer}' params must be a mapping if provided."
+            )
+
+
+def _validate_flat_config(raw: Dict[str, Any]) -> Dict[str, Any]:
+    """Return sanitized fields and raise informative errors if schema mismatches."""
+    cleaned = dict(raw or {})
+
+    sensitive = cleaned.get("sensitive")
+    cleaned["sensitive"] = _ensure_list_of_strings(sensitive or [], "sensitive")
+
+    _validate_benchmarks(cleaned.get("benchmarks"))
+    _validate_pipeline_steps(cleaned.get("pipeline") or cleaned.get("steps"))
+
+    for float_field in ("alpha", "proxy_threshold"):
+        if float_field not in cleaned or cleaned[float_field] is None:
+            continue
+        value = cleaned[float_field]
+        try:
+            cleaned[float_field] = float(value)
+        except (TypeError, ValueError):
+            raise ConfigValidationError(
+                f"Config field '{float_field}' must be numeric; got {value!r}."
+            ) from None
+
+    report_out = cleaned.get("report_out")
+    if report_out is not None and not isinstance(report_out, str):
+        raise ConfigValidationError(
+            "Config field 'report_out' must be a string path when provided."
+        )
+
+    return cleaned
 
 
 def _parse_steps(raw_steps: Optional[List[dict]]) -> List[PipelineStep]:
@@ -49,6 +145,7 @@ def _parse_steps(raw_steps: Optional[List[dict]]) -> List[PipelineStep]:
 
 def _as_cfg(raw: Dict[str, Any]) -> PipelineConfig:
     """Convert a flat raw dict (already resolved for a profile) into PipelineConfig."""
+    raw = _validate_flat_config(raw)
     # accept either 'pipeline' (current) or legacy 'steps'
     raw_steps = raw.get("pipeline")
     if raw_steps is None:
@@ -101,7 +198,13 @@ def _auto_choose_profile(profiles: Dict[str, Any]) -> Optional[str]:
     return None
 
 
-def load_config(path: str, profile: Optional[str] = None) -> PipelineConfig:
+def load_config(
+    path: Optional[str] = None,
+    *,
+    text: Optional[str] = None,
+    obj: Optional[Dict[str, Any]] = None,
+    profile: Optional[str] = None,
+) -> PipelineConfig:
     """
     Load YAML config with optional 'profiles' support.
 
@@ -116,8 +219,20 @@ def load_config(path: str, profile: Optional[str] = None) -> PipelineConfig:
     shared defaults (e.g., sensitive/alpha/benchmarks) still apply.
     If 'profiles' is absent, treat the YAML as a single flat config (back-compatible).
     """
-    with open(path, "r", encoding="utf-8") as f:
-        root = yaml.safe_load(f) or {}
+    provided = sum(x is not None for x in (path, text, obj))
+    if provided != 1:
+        raise ValueError("Provide exactly one of: path=, text=, or obj=.")
+
+    if path is not None:
+        with open(path, "r", encoding="utf-8") as f:
+            root = yaml.safe_load(f) or {}
+    elif text is not None:
+        root = yaml.safe_load(text) or {}
+    else:
+        root = obj or {}
+
+    if not isinstance(root, dict):
+        raise TypeError("Config must parse to a mapping/dict.")
 
     # Legacy single-config path (no profiles)
     if "profiles" not in root:

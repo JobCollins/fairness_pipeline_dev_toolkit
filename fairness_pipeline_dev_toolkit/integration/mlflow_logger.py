@@ -81,7 +81,8 @@ def log_fairness_metrics(
         for key in ("ci", "effect_size", "n_per_group"):
             if key in res_dict and res_dict[key] is not None:
                 mlflow.log_param(
-                    f"{prefix}.{name}.{key}", json.dumps(res_dict[key], ensure_ascii=False)
+                    f"{prefix}.{name}.{key}",
+                    json.dumps(res_dict[key], ensure_ascii=False),
                 )
         aggregate_results[name] = res_dict
 

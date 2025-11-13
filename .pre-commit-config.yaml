@@ -1,30 +1,18 @@
 repos:
-- repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.6.9
-  hooks:
-    - id: ruff
-      args: ["--fix"]
-- repo: https://github.com/psf/black
-  rev: 24.8.0
-  hooks:
-    - id: black
-- repo: https://github.com/pycqa/isort
-  rev: 5.13.2
-  hooks:
-    - id: isort
-# - repo: local
-#   hooks:
-#     - id: fairness-sample-check
-#       name: Fairness sample check (non‑blocking)
-#       entry: .venv/bin/python -m fairness_pipeline_dev_toolkit.cli.main sample-check --config fairpipe.yaml
-#       language: system
-#       pass_filenames: false
-#       stages: [commit]
-# - repo: local
-#   hooks:
-    # - id: quick-fairness-check
-    #   name: quick fairness check (smoke)
-    #   entry: python scripts/quick_fairness_check.py --csv dev_sample.csv --y-true y_true --y-pred y_pred --sensitive group --threshold 0.15 --min-group-size 10 # change this when there is real data
-    #   language: system
-    #   pass_filenames: false
-    #   stages: [pre-commit]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.4
+    hooks:
+      - id: ruff            # lint only
+        args: ["--fix"]     # optional auto-fix for lint issues
+  - repo: https://github.com/psf/black
+    rev: 24.8.0
+    hooks:
+      - id: black
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.7.1
+    hooks:
+      - id: nbstripout
