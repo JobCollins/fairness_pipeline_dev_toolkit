@@ -93,6 +93,7 @@ class FairnessAnalyzer:
         with_ci: bool = False,
         ci_level: float = 0.95,
         ci_method: str = "percentile",
+        ci_samples: int = 1000,
         with_effect_size: bool = False,
     ):
         yp = np.asarray(y_pred)
@@ -127,6 +128,10 @@ class FairnessAnalyzer:
 
         # CI via bootstrap: resample within each group
         if with_ci and len(groups) >= 2 and np.isfinite(res.value):
+            if ci_samples <= 0:
+                raise ValueError(
+                    "ci_samples must be positive when requesting confidence intervals."
+                )
             idx_by_group = {
                 g: np.where(
                     (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
@@ -145,7 +150,7 @@ class FairnessAnalyzer:
                 return np.nan if len(rates) < 2 else (max(rates) - min(rates))
 
             dummy = np.arange(sum(len(v) for v in idx_by_group.values()))
-            res.ci = bootstrap_ci(dummy, stat_fn, B=2000, level=ci_level, method=ci_method)
+            res.ci = bootstrap_ci(dummy, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
 
         # Effect size: risk ratio of max-rate/min-rate
         if with_effect_size and len(rates_dict) >= 2:
@@ -169,6 +174,7 @@ class FairnessAnalyzer:
         with_ci: bool = False,
         ci_level: float = 0.95,
         ci_method: str = "percentile",
+        ci_samples: int = 1000,
         with_effect_size: bool = False,  # note: effect size less canonical here; we omit or set None
     ):
         yt = np.asarray(y_true)
@@ -194,7 +200,28 @@ class FairnessAnalyzer:
 
         # For CI, we need to recompute TPR/FPR per resample
         groups = [g for g, n in (res.n_per_group or {}).items() if n >= self.min_group_size]
+        tprs: List[float] = []
+        fprs: List[float] = []
+        for g in groups:
+            idx = np.where(
+                (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
+            )[0]
+            if idx.size == 0:
+                continue
+            yt_g = yt[idx]
+            yp_g = yp[idx]
+            pos = yt_g == 1
+            neg = yt_g == 0
+            tpr = float((yp_g[pos] == 1).mean()) if pos.any() else np.nan
+            fpr = float((yp_g[neg] == 1).mean()) if neg.any() else np.nan
+            tprs.append(tpr)
+            fprs.append(fpr)
+
         if with_ci and len(groups) >= 2 and np.isfinite(res.value):
+            if ci_samples <= 0:
+                raise ValueError(
+                    "ci_samples must be positive when requesting confidence intervals."
+                )
             idx_by_group = {
                 g: np.where(
                     (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
@@ -226,10 +253,25 @@ class FairnessAnalyzer:
                 return np.nanmax([tpr_gap, fpr_gap])
 
             dummy = np.arange(sum(len(v) for v in idx_by_group.values()))
-            res.ci = bootstrap_ci(dummy, stat_fn, B=2000, level=ci_level, method=ci_method)
+            res.ci = bootstrap_ci(dummy, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
 
-        # Effect size for EODD is not standard (two components: TPR & FPR gaps).
-        # We leave res.effect_size = None to avoid misinterpretation.
+        if with_effect_size:
+            ratios: List[float] = []
+
+            def _max_ratio(values: List[float]) -> Optional[float]:
+                vals = [v for v in values if np.isfinite(v) and v > 0]
+                if len(vals) < 2:
+                    return None
+                hi, lo = max(vals), min(vals)
+                if lo == 0.0:
+                    return None
+                return hi / lo
+
+            for candidate in (_max_ratio(tprs), _max_ratio(fprs)):
+                if candidate is not None:
+                    ratios.append(candidate)
+            res.effect_size = max(ratios) if ratios else None
+
         return res
 
     # ---------- MAE parity (regression) ----------
@@ -246,6 +288,7 @@ class FairnessAnalyzer:
         with_ci: bool = False,
         ci_level: float = 0.95,
         ci_method: str = "percentile",
+        ci_samples: int = 1000,
         with_effect_size: bool = False,  # If desired, Cohen's d on absolute errors pairwise is possible
     ):
         yt = np.asarray(y_true)
@@ -273,6 +316,10 @@ class FairnessAnalyzer:
         abs_err = np.abs(yt - yp)
 
         if with_ci and len(groups) >= 2 and np.isfinite(res.value):
+            if ci_samples <= 0:
+                raise ValueError(
+                    "ci_samples must be positive when requesting confidence intervals."
+                )
             idx_by_group = {
                 g: np.where(
                     (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
@@ -291,7 +338,7 @@ class FairnessAnalyzer:
                 return np.nan if len(maes) < 2 else (max(maes) - min(maes))
 
             dummy = np.arange(sum(len(v) for v in idx_by_group.values()))
-            res.ci = bootstrap_ci(dummy, stat_fn, B=2000, level=ci_level, method=ci_method)
+            res.ci = bootstrap_ci(dummy, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
 
         # (Optional) A continuous effect size could be Cohen's d between extreme groups' absolute errors.
         # We omit by default to avoid arbitrary group pair choices; set with_effect_size=True to compute:

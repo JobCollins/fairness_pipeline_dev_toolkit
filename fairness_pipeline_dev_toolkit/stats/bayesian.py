@@ -7,7 +7,12 @@ from scipy.stats import beta as beta_dist
 
 
 def beta_binomial_interval(
-    successes: int, trials: int, *, level: float = 0.95, alpha: float = 1.0, beta: float = 1.0
+    successes: int,
+    trials: int,
+    *,
+    level: float = 0.95,
+    alpha: float = 1.0,
+    beta: float = 1.0,
 ) -> Tuple[float, float]:
     """
     Bayesian credible interval for a Bernoulli proportion using a Beta prior.

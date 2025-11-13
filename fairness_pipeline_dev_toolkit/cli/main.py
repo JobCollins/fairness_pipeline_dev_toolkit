@@ -23,12 +23,12 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
 
 import numpy as np
 import pandas as pd
-import torch
 
 from fairness_pipeline_dev_toolkit.integration.reporting import to_markdown_report
 from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
@@ -37,15 +37,6 @@ from fairness_pipeline_dev_toolkit.pipeline.orchestration import (
     apply_pipeline,
     build_pipeline,
     run_detectors,
-)
-from fairness_pipeline_dev_toolkit.stats.bootstrap import bootstrap_ci
-from fairness_pipeline_dev_toolkit.stats.effect_size import risk_ratio
-from fairness_pipeline_dev_toolkit.training import (
-    GroupFairnessCalibrator,
-    LagrangianFairnessTrainer,
-    ReductionsWrapper,
-    plot_pareto,
-    sweep_pareto,
 )
 
 # import yaml
@@ -81,139 +72,17 @@ def _normalize_sensitive_arg(sens_arg) -> list[str]:
         return [p.strip() for p in str(sens_arg).split(",") if p.strip()]
 
 
-def _bootstrap_metric_ci(n, stat_fn, B=1000, level=0.95):
-    """
-    Generic bootstrap over row indices. stat_fn(idx: np.ndarray[int]) -> float
-    """
-    idx = np.arange(n, dtype=int)
-
-    def stat_from_idx(sample_idx):
-        return float(stat_fn(sample_idx))
-
-    return bootstrap_ci(idx, stat_from_idx, B=B, level=level, method="percentile")
+@dataclass
+class ValidationInputs:
+    sensitive: np.ndarray
+    sensitive_columns: List[str]
+    attrs_df: Optional[pd.DataFrame]
+    y_true: Optional[np.ndarray]
+    y_pred: Optional[np.ndarray]
+    scores: Optional[np.ndarray]
 
 
-def _dp_risk_ratio(
-    y_pred: np.ndarray, sensitive: np.ndarray, min_group_size: int
-) -> Optional[float]:
-    # selection rates per group
-    s = pd.Series(sensitive)
-    yp = np.asarray(y_pred)
-    counts = s.value_counts()
-    valid_mask = s.map(counts).to_numpy() >= min_group_size
-    if valid_mask.sum() == 0:
-        return None
-    s = s[valid_mask].to_numpy()
-    yp = yp[valid_mask]
-    groups = np.unique(s)
-    if len(groups) < 2:
-        return None
-    rates = []
-    for g in groups:
-        m = s == g
-        rates.append(yp[m].mean())
-    hi = float(np.max(rates))
-    lo = float(np.min(rates))
-    if hi == 0.0 or lo == 0.0:
-        return None
-    return risk_ratio(hi, lo)
-
-
-def _eod_ratio(
-    y_true: np.ndarray, y_pred: np.ndarray, sensitive: np.ndarray, min_group_size: int
-) -> Optional[float]:
-    """
-    Compute a single 'effect size' proxy for EOD: the max of (TPR ratio, FPR ratio)
-    across groups (largest ratio across all group pairs). Returns None if undefined.
-    """
-    s = pd.Series(sensitive)
-    yt = np.asarray(y_true)
-    yp = np.asarray(y_pred)
-    counts = s.value_counts()
-    valid_mask = s.map(counts).to_numpy() >= min_group_size
-    if valid_mask.sum() == 0:
-        return None
-    s = s[valid_mask].to_numpy()
-    yt = yt[valid_mask]
-    yp = yp[valid_mask]
-    groups = np.unique(s)
-    if len(groups) < 2:
-        return None
-
-    # per-group TPR/FPR
-    tprs, fprs = [], []
-    for g in groups:
-        m = s == g
-        yt_g, yp_g = yt[m], yp[m]
-        pos = yt_g == 1
-        neg = yt_g == 0
-        tpr = float(yp_g[pos].mean()) if pos.any() else np.nan
-        fpr = float(yp_g[neg].mean()) if neg.any() else np.nan
-        tprs.append(tpr)
-        fprs.append(fpr)
-
-    def _max_ratio(arr):
-        vals = [v for v in arr if not np.isnan(v) and v > 0]
-        if len(vals) < 2:
-            return None
-        hi, lo = max(vals), min(vals)
-        if lo == 0.0:
-            return None
-        return hi / lo
-
-    candidates = [r for r in (_max_ratio(tprs), _max_ratio(fprs)) if r is not None]
-    return max(candidates) if candidates else None
-
-
-def _cohens_d_between_groups(
-    y_true: np.ndarray, y_pred: np.ndarray, sensitive: np.ndarray, min_group_size: int
-) -> Optional[float]:
-    """
-    Cohen's d between residuals of groups with max vs min MAE.
-    """
-    s = pd.Series(sensitive)
-    yt = np.asarray(y_true)
-    yp = np.asarray(y_pred)
-    counts = s.value_counts()
-    valid_mask = s.map(counts).to_numpy() >= min_group_size
-    if valid_mask.sum() == 0:
-        return None
-    s = s[valid_mask].to_numpy()
-    yt = yt[valid_mask]
-    yp = yp[valid_mask]
-    groups = np.unique(s)
-    if len(groups) < 2:
-        return None
-
-    maes = {}
-    residuals_by_group = {}
-    res = np.abs(yt - yp)
-    for g in groups:
-        m = s == g
-        maes[str(g)] = float(res[m].mean())
-        residuals_by_group[str(g)] = res[m].astype(float)
-
-    if len(maes) < 2:
-        return None
-    g_max = max(maes, key=maes.get)
-    g_min = min(maes, key=maes.get)
-    a, b = residuals_by_group[g_max], residuals_by_group[g_min]
-    # pooled SD
-    sa, sb = a.std(ddof=1), b.std(ddof=1)
-    na, nb = len(a), len(b)
-    if na < 2 or nb < 2:
-        return None
-    sp = np.sqrt(((na - 1) * sa**2 + (nb - 1) * sb**2) / (na + nb - 2))
-    if sp == 0:
-        return None
-    return float((a.mean() - b.mean()) / sp)
-
-
-def cmd_validate(args: argparse.Namespace) -> int:
-    # 1) Load
-    df = pd.read_csv(args.csv)
-
-    # 2) Basic arg checks
+def _prepare_validation_inputs(df: pd.DataFrame, args: argparse.Namespace) -> ValidationInputs:
     if not args.y_true:
         raise SystemExit("--y-true is required")
     if (args.y_pred is None) == (args.score is None):
@@ -221,178 +90,125 @@ def cmd_validate(args: argparse.Namespace) -> int:
     if not args.sensitive:
         raise SystemExit("--sensitive is required (single col or comma-separated)")
 
-    # 3) Resolve sensitive columns (supports comma-separated)
     sens_cols = _normalize_sensitive_arg(args.sensitive)
     missing = [c for c in sens_cols if c not in df.columns]
     if missing:
         raise SystemExit(f"--sensitive columns not found: {missing}")
 
-    # 4) Build sensitive vector and (optional) attrs_df
-    if len(sens_cols) == 1:
-        sensitive_col = df[sens_cols[0]].to_numpy().ravel()
-        attrs_df = None  # or df[[sens_cols[0]]] if you need a DF elsewhere
-    else:
-        # intersectional labels like "race_gender_age"
-        sensitive_col = df[sens_cols].astype(str).agg("_".join, axis=1).to_numpy().ravel()
-        attrs_df = df[sens_cols].copy()
-
-    # 5) Targets / predictions
-    if args.y_true not in df.columns:
-        raise SystemExit(f"--y-true column not found: {args.y_true}")
-    y_true = df[args.y_true].to_numpy().ravel()
-
-    y_pred = None
-    scores = None
+    required_cols = [args.y_true] + sens_cols
     if args.y_pred:
         if args.y_pred not in df.columns:
             raise SystemExit(f"--y-pred column not found: {args.y_pred}")
-        y_pred = df[args.y_pred].to_numpy().ravel()
-
+        required_cols.append(args.y_pred)
     if args.score:
         if args.score not in df.columns:
             raise SystemExit(f"--score column not found: {args.score}")
-        scores = df[args.score].to_numpy().ravel()
+        required_cols.append(args.score)
 
-    # 6) Optional: drop rows with any missing among required columns
-    required = (
-        [args.y_true]
-        + sens_cols
-        + ([args.y_pred] if args.y_pred else [])
-        + ([args.score] if args.score else [])
-    )
-    mask = df[required].notna().all(axis=1)
-    if not mask.all():
-        # down-select arrays consistently
-        y_true = y_true[mask.values]
-        sensitive_col = sensitive_col[mask.values]
-        if y_pred is not None:
-            y_pred = y_pred[mask.values]
-        if scores is not None:
-            scores = scores[mask.values]
-        if attrs_df is not None:
-            attrs_df = attrs_df.loc[mask.values]
-
-    # 7) Length alignment check (defensive)
-    n = len(y_true)
-    if (
-        len(sensitive_col) != n
-        or (y_pred is not None and len(y_pred) != n)
-        or (scores is not None and len(scores) != n)
-    ):
-        raise SystemExit(
-            "Mismatched lengths among inputs after filtering — check your CSV and column choices."
-        )
-
-    # 8) Analyzer
-    fa = FairnessAnalyzer(min_group_size=args.min_group_size, backend=args.backend)
-
-    results = {}
-
-    # 9) Classification metrics (if y_pred present)
-    if y_pred is not None:
-        results["demographic_parity_difference"] = fa.demographic_parity_difference(
-            y_pred=y_pred, sensitive=sensitive_col
-        )
-        # Only include EO if your implementation is ready/needed
-        results["equalized_odds_difference"] = fa.equalized_odds_difference(
-            y_true=y_true, y_pred=y_pred, sensitive=sensitive_col
-        )
-
-    # 10) Regression metric (scores + y_true)
-    if scores is not None:
-        results["mae_parity_difference"] = fa.mae_parity_difference(
-            y_true=y_true, y_pred=scores, sensitive=sensitive_col
-        )
-
-    # Parse sensitive (support single or multiple)
-    if isinstance(args.sensitive, list):
-        sens_cols = args.sensitive
+    filtered = df[required_cols].notna().all(axis=1)
+    if not filtered.all():
+        df = df.loc[filtered].copy()
     else:
-        sens_cols = [c.strip() for c in str(args.sensitive).split(",") if c.strip()]
+        df = df.copy()
+
+    if len(df) == 0:
+        raise SystemExit("No rows remaining after dropping rows with missing required values.")
+
     if len(sens_cols) == 1:
-        sensitive_col = df[sens_cols[0]].to_numpy().ravel()
-        attrs_df = df[[sens_cols[0]]]
+        sensitive = df[sens_cols[0]].to_numpy().ravel()
+        attrs_df: Optional[pd.DataFrame] = None
     else:
-        attrs_df = df[sens_cols]
-        sensitive_col = attrs_df.apply(lambda r: "_".join(map(str, r.values)), axis=1).to_numpy()
+        attrs_df = df[sens_cols].copy()
+        sensitive = attrs_df.astype(str).agg("_".join, axis=1).to_numpy().ravel()
 
     y_true = df[args.y_true].to_numpy().ravel() if args.y_true else None
     y_pred = df[args.y_pred].to_numpy().ravel() if args.y_pred else None
     scores = df[args.score].to_numpy().ravel() if args.score else None
 
-    fa = FairnessAnalyzer(min_group_size=args.min_group_size, backend=args.backend)
-    n = len(df)
-    results = {}
-
-    # 1) DPD (classification) if y_pred present
-    if y_pred is not None:
-        r = fa.demographic_parity_difference(y_pred=y_pred, sensitive=sensitive_col)
-        # CI (bootstrap over indices)
-        if args.with_ci:
-
-            def stat_fn(idx):
-                idx = np.asarray(idx, dtype=int)
-                return fa.demographic_parity_difference(
-                    y_pred=y_pred[idx], sensitive=sensitive_col[idx]
-                ).value
-
-            r.ci = _bootstrap_metric_ci(n, stat_fn, B=args.bootstrap_B, level=args.ci_level)
-
-        # Effect size: risk ratio of selection rates
-        if args.with_effects:
-            r.effect_size = _dp_risk_ratio(y_pred, sensitive_col, args.min_group_size)
-
-        results["demographic_parity_difference"] = r
-
-    # 2) EOD (classification) if y_pred and y_true
-    if (y_pred is not None) and (y_true is not None):
-        r = fa.equalized_odds_difference(
-            y_true=y_true, y_pred=y_pred, sensitive=sensitive_col, attrs_df=attrs_df
-        )
-        if args.with_ci:
-
-            def stat_fn(idx):
-                idx = np.asarray(idx, dtype=int)
-                return fa.equalized_odds_difference(
-                    y_true=y_true[idx],
-                    y_pred=y_pred[idx],
-                    sensitive=sensitive_col[idx],
-                    attrs_df=attrs_df.iloc[idx] if attrs_df is not None else None,
-                ).value
-
-            r.ci = _bootstrap_metric_ci(n, stat_fn, B=args.bootstrap_B, level=args.ci_level)
-
-        if args.with_effects:
-            r.effect_size = _eod_ratio(y_true, y_pred, sensitive_col, args.min_group_size)
-
-        results["equalized_odds_difference"] = r
-
-    # 3) MAE parity (regression-ish) if scores + y_true
-    if (scores is not None) and (y_true is not None):
-        r = fa.mae_parity_difference(
-            y_true=y_true, y_pred=scores, sensitive=sensitive_col, attrs_df=attrs_df
-        )
-        if args.with_ci:
-
-            def stat_fn(idx):
-                idx = np.asarray(idx, dtype=int)
-                return fa.mae_parity_difference(
-                    y_true=y_true[idx],
-                    y_pred=scores[idx],
-                    sensitive=sensitive_col[idx],
-                    attrs_df=attrs_df.iloc[idx] if attrs_df is not None else None,
-                ).value
-
-            r.ci = _bootstrap_metric_ci(n, stat_fn, B=args.bootstrap_B, level=args.ci_level)
-
-        if args.with_effects:
-            r.effect_size = _cohens_d_between_groups(
-                y_true, scores, sensitive_col, args.min_group_size
+    n = len(sensitive)
+    for name, arr in (("y_true", y_true), ("y_pred", y_pred), ("score", scores)):
+        if arr is not None and len(arr) != n:
+            raise SystemExit(
+                f"Mismatched lengths between '{name}' and sensitive columns after filtering."
             )
 
-        results["mae_parity_difference"] = r
+    return ValidationInputs(
+        sensitive=sensitive,
+        sensitive_columns=sens_cols,
+        attrs_df=attrs_df,
+        y_true=y_true,
+        y_pred=y_pred,
+        scores=scores,
+    )
 
-    # 11) Markdown report
+
+def _evaluate_metrics(
+    analyzer: FairnessAnalyzer,
+    data: ValidationInputs,
+    *,
+    with_ci: bool,
+    ci_level: float,
+    ci_samples: int,
+    with_effects: bool,
+) -> dict[str, object]:
+    results: dict[str, object] = {}
+    columns = data.sensitive_columns if len(data.sensitive_columns) > 1 else None
+
+    if data.y_pred is not None:
+        results["demographic_parity_difference"] = analyzer.demographic_parity_difference(
+            y_pred=data.y_pred,
+            sensitive=data.sensitive,
+            with_ci=with_ci,
+            ci_level=ci_level,
+            ci_samples=ci_samples,
+            with_effect_size=with_effects,
+        )
+
+        if data.y_true is not None:
+            results["equalized_odds_difference"] = analyzer.equalized_odds_difference(
+                y_true=data.y_true,
+                y_pred=data.y_pred,
+                sensitive=data.sensitive,
+                attrs_df=data.attrs_df,
+                columns=columns,
+                with_ci=with_ci,
+                ci_level=ci_level,
+                ci_samples=ci_samples,
+                with_effect_size=with_effects,
+            )
+
+    if data.scores is not None and data.y_true is not None:
+        results["mae_parity_difference"] = analyzer.mae_parity_difference(
+            y_true=data.y_true,
+            y_pred=data.scores,
+            sensitive=data.sensitive,
+            attrs_df=data.attrs_df,
+            columns=columns,
+            with_ci=with_ci,
+            ci_level=ci_level,
+            ci_samples=ci_samples,
+            with_effect_size=with_effects,
+        )
+
+    return results
+
+
+def cmd_validate(args: argparse.Namespace) -> int:
+    df = pd.read_csv(args.csv)
+    inputs = _prepare_validation_inputs(df, args)
+
+    backend = None if args.backend in (None, "auto") else args.backend
+    analyzer = FairnessAnalyzer(min_group_size=args.min_group_size, backend=backend)
+
+    results = _evaluate_metrics(
+        analyzer,
+        inputs,
+        with_ci=args.with_ci,
+        ci_level=args.ci_level,
+        ci_samples=args.bootstrap_B,
+        with_effects=args.with_effects,
+    )
+
     md = to_markdown_report(results, title="Fairness Validation Report (CLI)")
     print(md)
 
@@ -403,7 +219,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_sample_check(args):
+def cmd_sample_check(args: argparse.Namespace) -> int:
     """Placeholder for sample check (non-blocking pre-commit)."""
     print("Running fairness sample check (placeholder)...")
     # lightweight smoke logic here, e.g. check for existence of dev_sample.csv
@@ -489,11 +305,13 @@ def cmd_pipeline_run(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_train_sklearn_reduced(args):
+def cmd_train_sklearn_reduced(args: argparse.Namespace) -> int:
     import joblib
     import pandas as pd
     from fairlearn.reductions import DemographicParity, EqualizedOdds
     from sklearn.linear_model import LogisticRegression
+
+    from fairness_pipeline_dev_toolkit.training import ReductionsWrapper
 
     df = pd.read_csv(args.csv)
     y = df[args.y].values
@@ -505,15 +323,18 @@ def cmd_train_sklearn_reduced(args):
     )
     joblib.dump(model, args.out_model)
     print(f"[ok] saved: {args.out_model}")
+    return 0
 
 
-def cmd_train_regularized(args):
+def cmd_train_regularized(args: argparse.Namespace) -> int:
     """
     Train a tiny demo NN with FairnessRegularizerLoss on CSV data.
 
     Required CSV columns: features f0..f{d-1}, label 'y', sensitive 's'.
     """
     import pandas as pd
+
+    from fairness_pipeline_dev_toolkit.training import plot_pareto, sweep_pareto
 
     df = pd.read_csv(args.csv)
     feature_cols = [c for c in df.columns if c.startswith("f")]
@@ -550,14 +371,17 @@ def cmd_train_regularized(args):
     return 0
 
 
-def cmd_train_lagrangian(args):
+def cmd_train_lagrangian(args: argparse.Namespace) -> int:
     """
     Train a tiny NN with Lagrangian fairness (DP or EO) on CSV.
 
     Required CSV columns: f0.., 'y', 's'
     """
     import pandas as pd
+    import torch
     import torch.nn as nn
+
+    from fairness_pipeline_dev_toolkit.training import LagrangianFairnessTrainer
 
     df = pd.read_csv(args.csv)
     feature_cols = [c for c in df.columns if c.startswith("f")]
@@ -580,13 +404,15 @@ def cmd_train_lagrangian(args):
     return 0
 
 
-def cmd_calibrate(args):
+def cmd_calibrate(args: argparse.Namespace) -> int:
     """
     Fit group-specific calibrators and transform scores.
 
     Required CSV columns: 'score' (0..1), 'y' (0/1), 'g' (group id)
     """
     import pandas as pd
+
+    from fairness_pipeline_dev_toolkit.training import GroupFairnessCalibrator
 
     df = pd.read_csv(args.csv)
     scores = df["score"].to_numpy()
@@ -636,7 +462,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--ci-level", type=float, default=0.95, help="Confidence level (default 0.95)"
     )
     p_val.add_argument(
-        "--bootstrap-B", type=int, default=1000, help="Bootstrap resamples (default 1000)"
+        "--bootstrap-B",
+        type=int,
+        default=1000,
+        help="Bootstrap resamples (default 1000)",
     )
     p_val.add_argument("--with-effects", action="store_true", help="Compute effect sizes")
 

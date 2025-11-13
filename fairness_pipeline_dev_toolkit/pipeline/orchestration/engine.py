@@ -20,6 +20,7 @@ from ..transformers.disparate_impact import DisparateImpactRemover
 from ..transformers.instance_reweighting import InstanceReweighting
 from ..transformers.proxy_dropper import ProxyDropper
 from ..transformers.reweighing import ReweighingTransformer
+from .registry import get_transformer_class
 
 
 def run_detectors(df: pd.DataFrame, cfg: PipelineConfig) -> BiasReport:
@@ -31,7 +32,12 @@ def run_detectors(df: pd.DataFrame, cfg: PipelineConfig) -> BiasReport:
     disp = StatisticalDisparityDetector(alpha=cfg.alpha)
     prox = ProxyVariableDetector(threshold=cfg.proxy_threshold)
 
-    report: Dict[str, Any] = {"summary": {}, "representation": [], "disparities": [], "proxies": []}
+    report: Dict[str, Any] = {
+        "summary": {},
+        "representation": [],
+        "disparities": [],
+        "proxies": [],
+    }
 
     for attr in cfg.sensitive:
         # 1) Representation vs. optional benchmarks
@@ -79,28 +85,16 @@ def run_detectors(df: pd.DataFrame, cfg: PipelineConfig) -> BiasReport:
     return bias_report
 
 
-# Registry only includes transformers that exist in your tree right now
-_TRANSFORMER_REGISTRY = {
-    "InstanceReweighting": InstanceReweighting,
-    "DisparateImpactRemover": DisparateImpactRemover,
-    "ReweighingTransformer": ReweighingTransformer,
-    "ProxyDropper": ProxyDropper,
-}
-
-
 def _make_step(step: PipelineStep, cfg: PipelineConfig):
     """
     Map config step into an instantiated transformer.
     We inject sensible defaults from cfg when parameters are omitted.
     """
-    if step.transformer not in _TRANSFORMER_REGISTRY:
-        raise ValueError(f"Unknown transformer '{step.transformer}'.")
-
-    cls = _TRANSFORMER_REGISTRY[step.transformer]
+    cls = get_transformer_class(step.transformer)
     params = dict(step.params or {})
 
     # Smart defaults from cfg
-    if cls is InstanceReweighting:
+    if cls in (InstanceReweighting, ReweighingTransformer):
         params.setdefault("sensitive", cfg.sensitive)
         params.setdefault("benchmarks", cfg.benchmarks)
     elif cls is DisparateImpactRemover:
@@ -114,6 +108,9 @@ def _make_step(step: PipelineStep, cfg: PipelineConfig):
             params["sensitive"] = cfg.sensitive[0]
         if "features" not in params:
             raise ValueError("DisparateImpactRemover step requires 'features': list[str].")
+
+    if cls is ProxyDropper:
+        params.setdefault("sensitive", cfg.sensitive)
 
     return (step.name, cls(**params))
 
