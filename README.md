@@ -32,6 +32,25 @@ Automates **bias detection**, **feature mitigation**, and **CI/CD fairness check
 - YAML-based orchestration with multiple profiles (`pipeline`, `training`).  
 - CLI: `pipeline` for end-to-end mitigation and artifact generation.  
 
+#### Minimal Pipeline YAML
+```yaml
+sensitive: ["sensitive"]
+alpha: 0.05
+pipeline:
+  - name: reweigh
+    transformer: InstanceReweighting
+  - name: repair
+    transformer: DisparateImpactRemover
+    params:
+      features: ["score"]
+```
+
+#### Config Schema Highlights
+- `sensitive` (required): list of column names used for fairness analysis.
+- `benchmarks` (optional): mapping of attribute → group → expected proportion.
+- `pipeline`: ordered steps; each step needs a `transformer` key and optional `params` dict.
+- Profiles are shallow-merged over top-level defaults; validation errors surface with helpful messages when keys are missing or mis-typed.
+
 ---
 
 ### **3. Training Module**
@@ -61,13 +80,37 @@ python -m fairness_pipeline_dev_toolkit.cli.main train \
 ```
 
 ### Installation
-```
+```bash
 python -m venv .venv
 source .venv/bin/activate
+pip install -e .[adapters]
+# Optional extras
+pip install -e .[training,monitoring]
+```
+
+To install developer tooling without pins:
+```bash
+pip install -r requirements-dev.in
+```
+
+To generate pinned requirements with `pip-tools`:
+```bash
+pip install pip-tools
+pip-compile --extra training --extra monitoring --extra adapters \
+    --output-file=requirements.txt requirements-dev.in
 pip install -r requirements.txt
-pip install -e .
+```
+
+> ⚠️ PyTorch wheels depend on platform/accelerator support. Follow the commands from [pytorch.org/get-started](https://pytorch.org/get-started/locally/) before enabling the `training` extra.
+
+pre-commit hooks ensure consistent formatting:
+```bash
 pre-commit install
 ```
+
+### Pre-commit Hooks
+- The repository includes `.pre-commit-config.yaml` with `ruff`, `black`, `isort`, and `nbstripout`.
+- Run `pre-commit install` once per clone (see installation above) to enable auto-formatting and notebook sanitisation on every commit.
 
 ## CLI Usage
 ### 1️⃣ Fairness Validation

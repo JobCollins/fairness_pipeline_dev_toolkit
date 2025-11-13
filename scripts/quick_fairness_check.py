@@ -54,7 +54,9 @@ def main() -> int:
         help="Predicted label or score-binarized column (default: yhat)",
     )
     ap.add_argument(
-        "--sensitive", default="sensitive", help="Sensitive attribute column (default: group)"
+        "--sensitive",
+        default="sensitive",
+        help="Sensitive attribute column (default: group)",
     )
     ap.add_argument(
         "--threshold",
@@ -63,7 +65,10 @@ def main() -> int:
         help="Max allowed demographic parity diff (default: 0.10)",
     )
     ap.add_argument(
-        "--min-group-size", type=int, default=30, help="Minimum per-group size (default: 30)"
+        "--min-group-size",
+        type=int,
+        default=30,
+        help="Minimum per-group size (default: 30)",
     )
     ap.add_argument("--out-md", default=None, help="Optional path to write a markdown summary")
     ap.add_argument("--out-json", default=None, help="Optional path to write a JSON summary")
@@ -121,7 +126,11 @@ def main() -> int:
         "value": None if val != val else val,
         "threshold": args.threshold,
         "status": status,
-        "columns": {"y_true": args.y_true, "y_pred": args.y_pred, "sensitive": args.sensitive},
+        "columns": {
+            "y_true": args.y_true,
+            "y_pred": args.y_pred,
+            "sensitive": args.sensitive,
+        },
         "csv": args.csv,
         "min_group_size": args.min_group_size,
     }

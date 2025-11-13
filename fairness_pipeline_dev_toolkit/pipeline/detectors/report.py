@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, ItemsView, Iterator, KeysView, Optional, ValuesView
+from typing import (
+    Any,
+    Dict,
+    ItemsView,
+    Iterator,
+    KeysView,
+    Mapping,
+    Optional,
+    ValuesView,
+)
 
 
 @dataclass

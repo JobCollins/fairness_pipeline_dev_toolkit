@@ -74,7 +74,10 @@ class RepresentationBiasDetector:
         self.alpha = alpha
 
     def run(
-        self, df: pd.DataFrame, attribute: str, benchmark: Optional[Dict[str, float]] = None
+        self,
+        df: pd.DataFrame,
+        attribute: str,
+        benchmark: Optional[Dict[str, float]] = None,
     ) -> RepresentationResult:
         s = df[attribute].dropna().astype("category")
         counts = s.value_counts().to_dict()
@@ -233,7 +236,13 @@ class ProxyVariableDetector:
                     continue
                 v = _cramers_v(table)
                 results.append(
-                    ProxyResult(feat, attribute, "cramers_v", float(v), bool(v >= self.threshold))
+                    ProxyResult(
+                        feat,
+                        attribute,
+                        "cramers_v",
+                        float(v),
+                        bool(v >= self.threshold),
+                    )
                 )
             else:
                 groups = [y[g == cat].to_numpy() for cat in g.cat.categories]
@@ -242,7 +251,11 @@ class ProxyVariableDetector:
                 eta2 = _eta_squared_from_anova(groups)
                 results.append(
                     ProxyResult(
-                        feat, attribute, "eta_squared", float(eta2), bool(eta2 >= self.threshold)
+                        feat,
+                        attribute,
+                        "eta_squared",
+                        float(eta2),
+                        bool(eta2 >= self.threshold),
                     )
                 )
 
