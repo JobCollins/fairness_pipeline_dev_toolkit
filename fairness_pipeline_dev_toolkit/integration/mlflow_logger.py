@@ -17,8 +17,9 @@ Typical usage:
 
 from __future__ import annotations
 
-import io
 import json
+import os
+import tempfile
 from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, Mapping, Optional
 
@@ -87,22 +88,34 @@ def log_fairness_metrics(
         aggregate_results[name] = res_dict
 
     # Log a single JSON artifact with all results
-    json_bytes = json.dumps(aggregate_results, indent=2, ensure_ascii=False).encode("utf-8")
-    with io.BytesIO(json_bytes) as artifact_file:
-        mlflow.log_artifact_local = getattr(mlflow, "log_artifact_local", None)
-        # use log_text when available (mlflow >-2.8. has it)
+    artifact_filename = f"{prefix}results.json" if prefix else "results.json"
+    log_dict = getattr(mlflow, "log_dict", None)
+    if callable(log_dict):
+        log_dict(aggregate_results, artifact_filename)
+    else:
+        payload = json.dumps(aggregate_results, indent=2, ensure_ascii=False)
         log_text = getattr(mlflow, "log_text", None)
-        if log_text is not None:
-            log_text(json_bytes.decode("utf-8"), artifact_file or f"{prefix}_results.json")
+        if callable(log_text):
+            log_text(payload, artifact_filename)
         else:
-            # Fallback: write a temporary file via mlflow's log_artifact - requires a file path
-            # users with older mlflow versions may skip this step; metrics/params still logged
-            pass
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
+                tmp.write(payload)
+                tmp.flush()
+                tmp_path = tmp.name
+            log_artifact = getattr(mlflow, "log_artifact", None)
+            try:
+                if callable(log_artifact):
+                    log_artifact(tmp_path, artifact_path=None)
+            finally:
+                try:
+                    os.remove(tmp_path)
+                except OSError:
+                    pass
 
     # Optionally log a human-readable md report as artifact
     if artifact_name and artifact_content is not None:
         log_text = getattr(mlflow, "log_text", None)
-        if log_text is not None:
+        if callable(log_text):
             log_text(artifact_content, artifact_file=artifact_name)
 
     return True
