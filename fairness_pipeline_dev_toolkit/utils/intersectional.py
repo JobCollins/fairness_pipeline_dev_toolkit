@@ -19,10 +19,16 @@ def build_intersectional_labels(
         attrs_df (pd.DataFrame): Must align 1:1 with y_true/y_pred index/length.
         columns (Optional[List[str]]): List of column names to use for intersectional labels.
                                        If None, all columns in attrs_df are used.
-        sep (str): Separator used to join attribute values in the label (avoid characters present in values).
-        include_na (bool): Whether to include rows with NaN values in any of the selected columns.
-                           If False, rows with NaN values will be excluded from the output.
-                           If True, NaN values will be represented as the string "NaN" in the labels.
+
+        sep (str): Separator used to join attribute values in the label
+        (avoid characters present in values).
+
+        include_na (bool): Whether to include rows with NaN values
+        in any of the selected columns.
+        If False, rows with NaN values
+        will be excluded from the output.
+        If True, NaN values will be represented
+        as the string "NaN" in the labels.
 
     Returns:
         pd.Series: A Series of dtype 'category'

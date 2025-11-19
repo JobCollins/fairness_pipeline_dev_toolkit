@@ -33,6 +33,7 @@ def test_eo_handles_no_positives_or_negatives():
 
 
 def test_mae_parity_with_missing_attrs_intersectional():
+    """Test MAE parity with missing attributes in intersectional analysis."""
     fa = FairnessAnalyzer(min_group_size=2, backend="native", nan_policy="include")
     y_true = np.array([3.0, 2.5, 4.0, 5.0, 3.5, 4.5])
     y_pred = np.array([2.5, 2.0, 4.5, 5.0, 3.0, 4.0])
@@ -42,6 +43,7 @@ def test_mae_parity_with_missing_attrs_intersectional():
             "gender": ["M", "F", "M", None, "F", "F"],
         }
     )
+    # Test that intersectional analysis works with missing attributes
     res = fa.mae_parity_difference(
         y_true, y_pred, sensitive=None, intersectional=True, attrs_df=attrs
     )

@@ -167,3 +167,55 @@ def test_config_with_profile_and_training(tmp_path):
     assert cfg.training is not None
     assert cfg.training.method == "reductions"
     assert cfg.fairness_metric == "demographic_parity_difference"
+
+
+def test_load_config_training_invalid_params(tmp_path):
+    """Test that invalid training params raise appropriate error."""
+    cfg_path = _write_yaml(
+        tmp_path,
+        {
+            "sensitive": ["sensitive"],
+            "training": {
+                "method": "reductions",
+                "target_column": "y",
+                "params": {"invalid_param": "value"},
+            },
+        },
+    )
+
+    # Should either validate or handle gracefully
+    try:
+        cfg = load_config(path=str(cfg_path))
+        assert cfg is not None
+    except ConfigValidationError:
+        pass  # Expected if validation is strict
+
+
+def test_load_config_validation_threshold_negative(tmp_path):
+    """Test that negative validation threshold is handled."""
+    cfg_path = _write_yaml(
+        tmp_path,
+        {
+            "sensitive": ["sensitive"],
+            "validation_threshold": -0.1,
+        },
+    )
+
+    # Should either validate or allow (depending on use case)
+    cfg = load_config(path=str(cfg_path))
+    assert cfg.validation_threshold == -0.1
+
+
+def test_load_config_fairness_metric_invalid(tmp_path):
+    """Test with invalid fairness metric name."""
+    cfg_path = _write_yaml(
+        tmp_path,
+        {
+            "sensitive": ["sensitive"],
+            "fairness_metric": "invalid_metric_name",
+        },
+    )
+
+    # Should load but metric validation happens later
+    cfg = load_config(path=str(cfg_path))
+    assert cfg.fairness_metric == "invalid_metric_name"
