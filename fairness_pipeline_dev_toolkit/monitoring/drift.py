@@ -77,19 +77,45 @@ class FairnessDriftAndAlertEngine:
         ref_points: int = 48,
     ) -> List[AlertEvent]:
         """
-        metrics_ts: tidy frame with columns [timestamp, metric, group_key, value, n]
+        metrics_ts: tidy frame with DatetimeIndex and columns [metric, group_key, value, n]
+        Supports backward compatibility with timestamp column format.
         """
         if metrics_ts.empty:
             return []
 
         metrics_ts = metrics_ts.copy()
-        metrics_ts["timestamp"] = pd.to_datetime(metrics_ts["timestamp"])
+        # Handle DatetimeIndex: if timestamp is the index, reset it to a column for processing
+        # Otherwise, handle as column (backward compatibility)
+        if isinstance(metrics_ts.index, pd.DatetimeIndex) and metrics_ts.index.name == "timestamp":
+            metrics_ts = metrics_ts.reset_index()
+            metrics_ts["timestamp"] = pd.to_datetime(metrics_ts["timestamp"])
+        elif "timestamp" in metrics_ts.columns:
+            metrics_ts["timestamp"] = pd.to_datetime(metrics_ts["timestamp"])
+        else:
+            # If no timestamp column/index, try to infer from index
+            if isinstance(metrics_ts.index, pd.DatetimeIndex):
+                metrics_ts = metrics_ts.reset_index()
+                metrics_ts["timestamp"] = pd.to_datetime(metrics_ts["timestamp"])
+            else:
+                raise ValueError("metrics_ts must have timestamp as DatetimeIndex or column")
+
         alerts: List[AlertEvent] = []
 
         for (metric, group_key), sub in metrics_ts.groupby(["metric", "group_key"]):
             sub = sub.sort_values("timestamp")
             vals = sub["value"].astype(float).to_numpy()
             ts = sub["timestamp"].to_numpy()
+            # Extract group size (n) - use mean of recent window for severity scoring
+            n_vals = (
+                sub["n"].astype(float).to_numpy()
+                if "n" in sub.columns
+                else np.array([100] * len(sub))
+            )
+            n_recent = (
+                int(np.nanmean(n_vals[-window_points:]))
+                if len(n_vals) >= window_points
+                else int(np.nanmean(n_vals)) if len(n_vals) > 0 else 100
+            )
 
             if len(vals) < (ref_points + window_points + 2):
                 continue
@@ -107,9 +133,9 @@ class FairnessDriftAndAlertEngine:
                 max_score = max(max_score, score)
                 pmin = min(pmin, p)
 
-            # severity scoring
+            # severity scoring - now includes group size
             mag = np.nanmean(cur) if np.isfinite(cur).any() else 0.0
-            sev = self._severity(metric, mag, max_score)
+            sev = self._severity(metric, mag, max_score, n_recent)
 
             # persistence check (simple: last k points beyond thresholds)
             persistent = False
@@ -134,11 +160,35 @@ class FairnessDriftAndAlertEngine:
         self.events.extend(alerts)
         return alerts
 
-    def _severity(self, metric: str, magnitude: float, drift_score: float) -> str:
+    def _severity(self, metric: str, magnitude: float, drift_score: float, group_size: int) -> str:
+        """
+        Compute severity score incorporating group size.
+        Smaller groups reduce confidence, which may affect severity assessment.
+        """
         base = self.cfg.severity_weights.get("EO" if metric.startswith("EO") else "DP", 1.0)
-        score = base * (0.6 * magnitude + 0.4 * drift_score)
-        if score > 0.35:
+
+        # Confidence factor based on group size: larger groups = higher confidence
+        # Use a sigmoid-like function: confidence increases with n, but plateaus
+        # For n < 30: low confidence (penalize), n >= 100: full confidence
+        min_n = 30
+        optimal_n = 100
+        if group_size < min_n:
+            # Penalize small groups: reduce confidence significantly
+            confidence_factor = max(0.3, group_size / min_n * 0.7)
+        elif group_size < optimal_n:
+            # Gradual increase in confidence
+            confidence_factor = 0.7 + 0.3 * (group_size - min_n) / (optimal_n - min_n)
+        else:
+            # Full confidence for large groups
+            confidence_factor = 1.0
+
+        # Base score from magnitude and drift
+        base_score = base * (0.6 * magnitude + 0.4 * drift_score)
+        # Apply confidence factor: smaller groups reduce severity to avoid false alarms
+        adjusted_score = base_score * confidence_factor
+
+        if adjusted_score > 0.35:
             return "CRITICAL"
-        if score > 0.20:
+        if adjusted_score > 0.20:
             return "HIGH"
         return "LOW"
