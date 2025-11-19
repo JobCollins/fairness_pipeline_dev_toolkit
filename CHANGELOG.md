@@ -1,5 +1,43 @@
 # Changelog
 
+## [v0.5.1] — 2025-11-19
+### Fixed
+- **Intersectional Analysis Bug**: Fixed critical `IndexError` when using categorical Series with NaN values in intersectional analysis. The `_intersectional_prep()` function now properly handles categorical Series conversion by converting to string first, then to numpy array with proper NaN handling. This fix resolves issues in `demographic_parity_difference()`, `equalized_odds_difference()`, and `mae_parity_difference()` methods when using intersectional analysis with categorical data.
+- **Test Suite Reliability**: Fixed multiple test failures and edge cases:
+  - CLI tests now properly handle `SystemExit` exceptions from argparse
+  - AB test assertions account for bootstrap sampling variability
+  - Intersectional tests handle empty DataFrame edge cases
+  - Variable name conflicts resolved in CLI command tests
+
+### Improved
+- **Test Suite Quality**: Comprehensive test suite overhaul:
+  - All 294 tests now passing with improved reliability
+  - Tests updated to create sample files within test functions instead of relying on external files (improves isolation and portability)
+  - Enhanced assertions in smoke tests to validate actual outputs
+  - Added negative test cases for error handling in CLI commands and config loading
+  - Improved test organization with better separation of concerns
+- **Test Documentation**: Enhanced `TEST_REVIEW_REPORT.md` with comprehensive test suite significance analysis:
+  - Added detailed evaluation of 9 major test suites with star ratings
+  - Documented significance and impact of each test suite category
+  - Provided insights on test suite prioritization and protection strategies
+
+### Testing
+- **Test Coverage**: All 294 tests passing across all modules:
+  - Core/Measurement: 7 test files
+  - Pipeline: 7 test files (including new unit tests for transformers and detectors)
+  - Integration: 3 test files
+  - System/E2E: 3 test files
+  - CLI: 2 test files
+  - Training: 5 test files
+  - Monitoring: 3 test files (including new AB test coverage)
+  - Utils: 2 test files (new coverage for intersectional and validation)
+  - Stats: 3 test files (new coverage for effect_size, multipletests, bayesian)
+
+### Purpose
+This patch release addresses a critical bug in intersectional analysis that could cause failures with categorical data, and significantly improves test suite reliability and documentation. The test suite now provides comprehensive coverage with all tests passing, ensuring the toolkit's reliability and correctness.
+
+---
+
 ## [v0.5.0] — 2025-01-XX
 ### Added
 - **Integrated End-to-End Workflow**

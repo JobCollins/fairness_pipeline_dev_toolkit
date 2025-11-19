@@ -78,7 +78,15 @@ class FairnessAnalyzer:
         labels = build_intersectional_labels(
             attrs_df, columns=columns, include_na=(self.nan_policy != "exclude")
         )
-        return np.asarray(labels)
+        # Convert categorical Series to numpy array, handling NaN values properly
+        # If labels is categorical, convert to string first to avoid indexing issues
+        if pd.api.types.is_categorical_dtype(labels):
+            labels = labels.astype(str)
+        # Convert to numpy array, replacing NaN strings with actual NaN
+        labels_array = np.asarray(labels, dtype=object)
+        # Replace 'nan' strings (from categorical conversion) with actual NaN
+        labels_array = np.where(labels_array == "nan", np.nan, labels_array)
+        return labels_array
 
     # ---------- DPD ----------
 
@@ -105,7 +113,10 @@ class FairnessAnalyzer:
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
                 return Result("demographic_parity_difference", np.nan, n_per_group={})
-            sens = labels[mask]
+            # Ensure mask is boolean numpy array for proper indexing
+            mask = np.asarray(mask, dtype=bool)
+            # Use boolean indexing - ensure labels is a proper array
+            sens = np.asarray(labels)[mask]
             yp = yp[mask]
         else:
             sens = np.asarray(sensitive)
@@ -187,7 +198,10 @@ class FairnessAnalyzer:
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
                 return Result("equalized_odds_difference", np.nan, n_per_group={})
-            sens = labels[mask]
+            # Ensure mask is boolean numpy array for proper indexing
+            mask = np.asarray(mask, dtype=bool)
+            # Use boolean indexing - ensure labels is a proper array
+            sens = np.asarray(labels)[mask]
             yt = yt[mask]
             yp = yp[mask]
         else:
@@ -301,7 +315,10 @@ class FairnessAnalyzer:
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
                 return Result("mae_parity_difference", np.nan, n_per_group={})
-            sens = labels[mask]
+            # Ensure mask is boolean numpy array for proper indexing
+            mask = np.asarray(mask, dtype=bool)
+            # Use boolean indexing - ensure labels is a proper array
+            sens = np.asarray(labels)[mask]
             yt = yt[mask]
             yp = yp[mask]
         else:
