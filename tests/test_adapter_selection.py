@@ -1,6 +1,11 @@
+"""
+Tests for adapter/backend selection in fairness metrics.
+
+Tests automatic backend selection and forced backend usage.
+"""
+
 import numpy as np
 
-# from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
 from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
 
 

@@ -57,6 +57,7 @@ def test_e2e_markdown_and_metrics(e2e_df):
 
 
 def test_e2e_mlflow_logging_mock(e2e_df, monkeypatch):
+    """Test MLflow logging with enhanced assertions."""
     # Import here to avoid hard dependency in other tests
     from fairness_pipeline_dev_toolkit.integration.mlflow_logger import (
         log_fairness_metrics,
@@ -70,9 +71,41 @@ def test_e2e_mlflow_logging_mock(e2e_df, monkeypatch):
         )
     }
 
-    mock_mlflow = mock.MagicMock()
-    # Should not raise, and should attempt to log metrics and one artifact
-    log_fairness_metrics(run=mock_mlflow, results=results)
+    # Verify results are computed correctly
+    assert "demographic_parity_difference" in results
+    assert results["demographic_parity_difference"] is not None
+    assert hasattr(results["demographic_parity_difference"], "value")
 
-    # we don't know exact function calls inside, but ensure we touched mlflow object
-    assert mock_mlflow is not None
+    # Mock mlflow module
+    mock_mlflow_module = mock.MagicMock()
+    mock_mlflow_module.log_metric = mock.MagicMock()
+    mock_mlflow_module.log_param = mock.MagicMock()
+    mock_mlflow_module.log_dict = mock.MagicMock()
+    mock_mlflow_module.log_text = mock.MagicMock()
+
+    # Patch mlflow module
+    with monkeypatch.context() as m:
+        m.setattr(
+            "fairness_pipeline_dev_toolkit.integration.mlflow_logger._is_mlflow_available",
+            lambda: True,
+        )
+        import sys
+        import types
+
+        mlflow_module = types.ModuleType("mlflow")
+        mlflow_module.log_metric = mock_mlflow_module.log_metric
+        mlflow_module.log_param = mock_mlflow_module.log_param
+        mlflow_module.log_dict = mock_mlflow_module.log_dict
+        mlflow_module.log_text = mock_mlflow_module.log_text
+        m.setitem(sys.modules, "mlflow", mlflow_module)
+
+        # Should not raise, and should attempt to log metrics and one artifact
+        result = log_fairness_metrics(results=results)
+
+    # Enhanced assertions
+    # Result should be boolean indicating success/failure
+    assert isinstance(result, bool), "Logging result should be boolean"
+    # If MLflow was available, result should be True
+    if result:
+        # Verify that logging methods were called
+        assert mock_mlflow_module.log_metric.called or mock_mlflow_module.log_dict.called

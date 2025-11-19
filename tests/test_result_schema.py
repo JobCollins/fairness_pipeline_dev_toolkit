@@ -1,3 +1,9 @@
+"""
+Tests for result schema structure.
+
+Verifies that metric results have the required fields and structure.
+"""
+
 import numpy as np
 
 from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer

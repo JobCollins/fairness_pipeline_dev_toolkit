@@ -1,3 +1,7 @@
+"""
+Tests for MLflow metrics logging (legacy log_fairness_metrics function).
+"""
+
 import sys
 import types
 from dataclasses import asdict
@@ -7,6 +11,7 @@ from fairness_pipeline_dev_toolkit.metrics.base import MetricResult
 
 
 def test_log_fairness_metrics_uses_string_payloads(monkeypatch):
+    """Test that log_fairness_metrics correctly logs metrics with string payloads."""
     log_metrics = []
     log_params = []
     log_dict_calls = []

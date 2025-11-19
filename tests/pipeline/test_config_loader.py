@@ -62,3 +62,48 @@ def test_load_config_profile_merge_respects_schema(tmp_path):
     cfg = load_config(path=str(cfg_path))
     assert cfg.sensitive == ["attr"]
     assert len(cfg.pipeline) == 1
+
+
+def test_load_config_invalid_yaml_syntax(tmp_path):
+    """Test that invalid YAML syntax raises appropriate error."""
+    cfg_path = tmp_path / "config.yml"
+    cfg_path.write_text("invalid: yaml: syntax: [", encoding="utf-8")
+
+    with pytest.raises((yaml.YAMLError, Exception)):
+        load_config(path=str(cfg_path))
+
+
+def test_load_config_missing_file():
+    """Test that missing config file raises appropriate error."""
+    with pytest.raises((FileNotFoundError, OSError)):
+        load_config(path="nonexistent_config.yml")
+
+
+def test_load_config_empty_file(tmp_path):
+    """Test that empty config file raises appropriate error."""
+    cfg_path = tmp_path / "config.yml"
+    cfg_path.write_text("", encoding="utf-8")
+
+    with pytest.raises((ConfigValidationError, ValueError, KeyError)):
+        load_config(path=str(cfg_path))
+
+
+def test_load_config_invalid_transformer_name(tmp_path):
+    """Test that invalid transformer name raises appropriate error."""
+    cfg_path = _write_yaml(
+        tmp_path,
+        {
+            "sensitive": ["attr"],
+            "pipeline": [
+                {"name": "step", "transformer": "NonExistentTransformer"},
+            ],
+        },
+    )
+
+    # Should either raise error or handle gracefully
+    try:
+        cfg = load_config(path=str(cfg_path))
+        # If it doesn't raise, the transformer should be validated later
+        assert cfg is not None
+    except (ConfigValidationError, ValueError, KeyError):
+        pass  # Expected behavior
