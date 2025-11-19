@@ -21,6 +21,7 @@ import json
 import os
 import tempfile
 from dataclasses import asdict, is_dataclass
+from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
 
@@ -117,5 +118,144 @@ def log_fairness_metrics(
         log_text = getattr(mlflow, "log_text", None)
         if callable(log_text):
             log_text(artifact_content, artifact_file=artifact_name)
+
+    return True
+
+
+def log_workflow_results(
+    workflow_result: Any,
+    *,
+    config_path: Optional[str] = None,
+    experiment_name: Optional[str] = None,
+    run_name: Optional[str] = None,
+) -> bool:
+    """
+    Log complete workflow results to MLflow, including accuracy, model, and config.
+
+    Args:
+        workflow_result: WorkflowResult object from execute_workflow
+        config_path: Path to config.yml file to log as artifact
+        experiment_name: MLflow experiment name (creates new run in this experiment)
+        run_name: Optional name for the MLflow run
+
+    Returns:
+        bool: True if MLflow was available and logging was performed
+    """
+    if not _is_mlflow_available():
+        return False
+
+    import mlflow
+
+    # Set experiment if specified
+    if experiment_name:
+        try:
+            mlflow.set_experiment(experiment_name)
+        except Exception:
+            # Experiment might not exist, create it
+            mlflow.create_experiment(experiment_name)
+            mlflow.set_experiment(experiment_name)
+
+    # Start run
+    with mlflow.start_run(run_name=run_name):
+        # Log baseline metrics with prefix
+        if workflow_result.baseline_metrics:
+            log_fairness_metrics(workflow_result.baseline_metrics, prefix="baseline_")
+
+        # Log final metrics with prefix
+        if workflow_result.final_metrics:
+            log_fairness_metrics(workflow_result.final_metrics, prefix="final_")
+
+        # Log primary fairness metric (if specified in config)
+        if workflow_result.final_metrics:
+            # Extract primary metric value
+            for metric_name, metric_value in workflow_result.final_metrics.items():
+                res_dict = _coerce_result_to_dict(metric_value)
+                if "value" in res_dict and isinstance(res_dict["value"], (int, float)):
+                    mlflow.log_metric("primary_fairness_metric", float(res_dict["value"]))
+
+        # Log accuracy (primary performance metric)
+        # Compute accuracy from predictions if we have y_test
+        if hasattr(workflow_result, "y_test") and workflow_result.y_test is not None:
+            import numpy as np
+
+            y_test = workflow_result.y_test
+            predictions = workflow_result.predictions
+            if len(y_test) == len(predictions):
+                accuracy = float(np.mean(y_test == predictions))
+                mlflow.log_metric("accuracy", accuracy)
+
+        # Log validation result
+        if workflow_result.validation_result:
+            vr = workflow_result.validation_result
+            mlflow.log_metric("validation_passed", 1.0 if vr.passed else 0.0)
+            mlflow.log_metric("baseline_metric_value", vr.baseline_metric_value)
+            mlflow.log_metric("final_metric_value", vr.final_metric_value)
+            mlflow.log_metric("improvement", vr.improvement)
+            if vr.threshold is not None:
+                mlflow.log_metric("validation_threshold", vr.threshold)
+            mlflow.log_param("validation_message", vr.message)
+
+        # Log model artifact
+        if workflow_result.model:
+            try:
+                import joblib
+
+                if hasattr(workflow_result.model, "predict") and not hasattr(
+                    workflow_result.model, "state_dict"
+                ):
+                    # sklearn-compatible or reductions wrapper
+                    with tempfile.NamedTemporaryFile(suffix=".pkl", delete=False) as tmp:
+                        joblib.dump(workflow_result.model, tmp.name)
+                        tmp_path = tmp.name
+                    try:
+                        mlflow.log_artifact(tmp_path, artifact_path="model")
+                    finally:
+                        try:
+                            os.remove(tmp_path)
+                        except OSError:
+                            pass
+                elif hasattr(workflow_result.model, "state_dict"):
+                    # PyTorch model
+                    try:
+                        import torch
+
+                        with tempfile.NamedTemporaryFile(suffix=".pt", delete=False) as tmp:
+                            torch.save(workflow_result.model.state_dict(), tmp.name)
+                            tmp_path = tmp.name
+                        try:
+                            mlflow.log_artifact(tmp_path, artifact_path="model")
+                        finally:
+                            try:
+                                os.remove(tmp_path)
+                            except OSError:
+                                pass
+                    except ImportError:
+                        pass  # PyTorch not available
+            except Exception as e:
+                # Log warning but continue
+                print(f"Warning: Could not log model artifact: {e}")
+
+        # Log config.yml as artifact
+        if config_path and Path(config_path).exists():
+            mlflow.log_artifact(config_path, artifact_path="config")
+
+        # Log workflow results JSON
+        if hasattr(workflow_result, "artifacts"):
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
+                json.dump(
+                    workflow_result.artifacts,
+                    tmp,
+                    indent=2,
+                    default=str,
+                    ensure_ascii=False,
+                )
+                tmp_path = tmp.name
+            try:
+                mlflow.log_artifact(tmp_path, artifact_path="workflow")
+            finally:
+                try:
+                    os.remove(tmp_path)
+                except OSError:
+                    pass
 
     return True

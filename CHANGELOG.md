@@ -1,5 +1,40 @@
 # Changelog
 
+## [v0.5.0] — 2025-01-XX
+### Added
+- **Integrated End-to-End Workflow**
+  - Introduced unified three-step workflow orchestrator combining Measurement, Pipeline, and Training modules
+  - **New CLI Command**: `fairpipe run-pipeline` executes complete workflow:
+    1. Baseline Measurement - audit raw data for fairness issues
+    2. Transform Data + Train Model - apply bias mitigation and train fairness-aware model
+    3. Final Validation - compare metrics to baseline and validate against threshold
+  - **Extended Config Schema**: Added `training`, `fairness_metric`, and `validation_threshold` fields to support integrated workflow
+  - **Complete MLflow Integration**: Logs accuracy, fairness metrics, model artifacts, and config.yml to MLflow
+  - **Integrated Demo Notebook**: Created `demo_integrated.ipynb` demonstrating the complete workflow
+
+### Improved
+- **Config System**: Extended `PipelineConfig` to support training method selection (reductions, regularized, lagrangian) with method-specific parameters
+- **MLflow Logger**: Enhanced to log complete workflow results including baseline/final metrics, validation status, and all artifacts
+- **Orchestrator**: Handles sensitive attribute encoding for PyTorch models and proper feature matrix construction
+- **Documentation**: Added architecture diagram (Mermaid) and comprehensive integrated configuration guide to README
+
+### Fixed
+- **Feature Matrix Construction**: Sensitive attributes are now properly excluded from feature matrices before training
+- **Result Object Handling**: Validation function now correctly handles both Result objects and dict formats
+- **Sensitive Attribute Encoding**: String sensitive attributes are automatically encoded as integers for PyTorch models
+
+### Testing
+- **Test Coverage**: Comprehensive integration test suite (22 new tests):
+  - Config schema validation with training section (8 tests)
+  - Orchestrator workflow functions (9 tests)
+  - MLflow workflow logging (5 tests)
+  - CLI end-to-end integration (3 tests)
+
+### Purpose
+This major update transforms the toolkit from modular components into a unified, integrated system. Users can now execute a complete fairness workflow from raw data to validated model with a single command, with automatic baseline comparison and threshold validation.
+
+---
+
 ## [v0.4.2] — 2025-01-XX
 ### Fixed
 - **RealTimeFairnessTracker**: Fixed to use `DatetimeIndex` instead of timestamp column, ensuring proper time-series format as required. Metrics are now stored with timestamp as the index, improving time-series analysis capabilities.

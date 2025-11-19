@@ -430,6 +430,86 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_run_pipeline(args: argparse.Namespace) -> int:
+    """
+    Execute integrated three-step workflow:
+    1. Baseline Measurement - audit raw data
+    2. Transform Data + Train Model - apply pipeline, train model
+    3. Final Validation - compare to baseline, check threshold
+    """
+    import pandas as pd
+
+    from fairness_pipeline_dev_toolkit.integration.orchestrator import execute_workflow
+    from fairness_pipeline_dev_toolkit.pipeline.config import load_config
+
+    # Load config
+    cfg = load_config(args.config, profile=getattr(args, "profile", None))
+
+    if cfg.training is None:
+        print("Error: Config must include a 'training' section for integrated workflow.")
+        print("Use 'fairpipe pipeline' for pipeline-only execution.")
+        return 1
+
+    # Load data
+    df = pd.read_csv(args.csv)
+
+    # Execute workflow
+    try:
+        result = execute_workflow(
+            config=cfg,
+            df=df,
+            output_dir=args.output_dir,
+            min_group_size=args.min_group_size,
+            train_size=args.train_size,
+        )
+
+        # Print results
+        print("\n" + "=" * 60)
+        print("WORKFLOW RESULTS")
+        print("=" * 60)
+        print(f"\nValidation: {result.validation_result.message}")
+        print("\nBaseline Metrics:")
+        for metric_name, metric_value in result.baseline_metrics.items():
+            if hasattr(metric_value, "value"):
+                print(f"  {metric_name}: {metric_value.value:.4f}")
+            else:
+                print(f"  {metric_name}: {metric_value}")
+        print("\nFinal Metrics:")
+        for metric_name, metric_value in result.final_metrics.items():
+            if hasattr(metric_value, "value"):
+                print(f"  {metric_name}: {metric_value.value:.4f}")
+            else:
+                print(f"  {metric_name}: {metric_value}")
+
+        if args.output_dir:
+            print(f"\nArtifacts saved to: {args.output_dir}")
+
+        # MLflow logging if requested
+        if args.mlflow_experiment:
+            from fairness_pipeline_dev_toolkit.integration.mlflow_logger import (
+                log_workflow_results,
+            )
+
+            logged = log_workflow_results(
+                result,
+                config_path=args.config,
+                experiment_name=args.mlflow_experiment,
+                run_name=args.mlflow_run_name,
+            )
+            if logged:
+                print(f"\nResults logged to MLflow experiment: {args.mlflow_experiment}")
+
+        # Return exit code based on validation result
+        return 0 if result.validation_result.passed else 1
+
+    except Exception as e:
+        print(f"Error executing workflow: {e}")
+        import traceback
+
+        traceback.print_exc()
+        return 1
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(prog="fairpipe", description="Fairness Toolkit CLI")
     sub = parser.add_subparsers(dest="cmd")
@@ -524,6 +604,29 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_cal.add_argument("--min-samples", type=int, default=20)
     p_cal.add_argument("--out-csv", required=True)
     p_cal.set_defaults(func=cmd_calibrate)
+
+    # --- NEW parser: run-pipeline ---
+    p_run = sub.add_parser(
+        "run-pipeline",
+        help="Execute integrated three-step workflow (baseline → transform+train → validate)",
+    )
+    p_run.add_argument("--config", required=True, help="Path to config.yml with training section")
+    p_run.add_argument(
+        "--profile", required=False, help="Config profile name (if YAML has profiles)"
+    )
+    p_run.add_argument("--csv", required=True, help="Input CSV data")
+    p_run.add_argument(
+        "--output-dir", help="Directory to save artifacts (workflow_results.json, model, etc.)"
+    )
+    p_run.add_argument("--min-group-size", type=int, default=30, help="Minimum group size")
+    p_run.add_argument(
+        "--train-size", type=float, default=0.8, help="Proportion of data for training"
+    )
+    p_run.add_argument(
+        "--mlflow-experiment", help="MLflow experiment name (enables MLflow logging)"
+    )
+    p_run.add_argument("--mlflow-run-name", help="MLflow run name (optional)")
+    p_run.set_defaults(func=cmd_run_pipeline)
 
     args = parser.parse_args(argv)
     if not hasattr(args, "func"):
