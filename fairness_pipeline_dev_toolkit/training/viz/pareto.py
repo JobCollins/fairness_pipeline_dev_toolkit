@@ -37,16 +37,46 @@ def sweep_pareto(
     epochs: int = 10,
     lr: float = 1e-3,
     device: str = "cpu",
+    save_path: Optional[str] = None,
 ) -> List[Dict[str, float]]:
     """
     Train simple NN with FairnessRegularizerLoss for multiple eta values
     and report accuracy and demographic parity difference.
 
-    Returns a list of dicts: [{"eta": ..., "accuracy": ..., "dp_diff": ...}, ...]
+    Parameters
+    ----------
+    X_train : np.ndarray
+        Training features.
+    y_train : np.ndarray
+        Training labels.
+    s_train : np.ndarray
+        Training sensitive attributes.
+    X_val : np.ndarray
+        Validation features.
+    y_val : np.ndarray
+        Validation labels.
+    s_val : np.ndarray
+        Validation sensitive attributes.
+    etas : Iterable[float]
+        Fairness penalty strengths to sweep.
+    epochs : int
+        Number of training epochs per eta.
+    lr : float
+        Learning rate.
+    device : str
+        Device to use ("cpu" or "cuda").
+    save_path : Optional[str]
+        If provided, automatically generate and save the Pareto plot to this path.
+
+    Returns
+    -------
+    List[Dict[str, float]]
+        List of dicts: [{"eta": ..., "accuracy": ..., "dp_diff": ...}, ...]
 
     Notes
     -----
     - Aligns with Training Module requirement #5 (Pareto frontier).
+    - If save_path is provided, the Pareto plot will be automatically generated and saved.
     """
     Xtr = torch.tensor(X_train, dtype=torch.float32, device=device)
     ytr = torch.tensor(y_train, dtype=torch.long, device=device)
@@ -83,6 +113,10 @@ def sweep_pareto(
             dpd = _dp_diff_from_logits(logits_v, sv)
 
         out.append({"eta": float(eta), "accuracy": acc, "dp_diff": dpd})
+
+    # Automatically generate and save plot if save_path is provided
+    if save_path is not None:
+        plot_pareto(out, save_path=save_path)
 
     return out
 

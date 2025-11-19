@@ -45,11 +45,14 @@ class ReductionsWrapper(BaseEstimator, ClassifierMixin):
 
     def fit(self, X, y, sensitive_features):
         base = clone(self.base_estimator)
+        kwargs = self.kwargs or {}
+        # Pass T as max_iter to ExponentiatedGradient (standard fairlearn parameter)
+        kwargs.setdefault("max_iter", self.T)
         self._wrapper_ = ExponentiatedGradient(
             estimator=base,
             constraints=self.constraint,
             eps=self.eps,
-            **(self.kwargs or {}),
+            **kwargs,
         )
         self._wrapper_.fit(X, y, sensitive_features=sensitive_features)
         # classes_ for sklearn compatibility
