@@ -1,9 +1,28 @@
 # Fairness Pipeline Development Toolkit
 
-**Version:** 0.4.2
+**Version:** 0.5.0
 
 A unified, statistically-rigorous framework for **detecting**, **mitigating**, **training**, and **validating** fairness in ML workflows.  
-The toolkit provides modular components spanning data-to-model fairness — enabling teams to move from ad-hoc checks to automated, continuous fairness assurance in CI/CD.
+The toolkit provides both **modular components** and an **integrated end-to-end workflow** spanning data-to-model fairness — enabling teams to move from ad-hoc checks to automated, continuous fairness assurance in CI/CD.
+
+## 🚀 Quick Start: Integrated Workflow
+
+The fastest way to get started is with the integrated three-step workflow:
+
+```bash
+fairpipe run-pipeline \
+    --config config.yml \
+    --csv data.csv \
+    --output-dir artifacts/ \
+    --mlflow-experiment fairness_workflow
+```
+
+This single command:
+1. Measures baseline fairness on raw data
+2. Applies bias mitigation and trains a fairness-aware model
+3. Validates the final model against your threshold
+
+See the [Integrated Workflow Architecture](#-integrated-workflow-architecture) section below for details, or check out `demo_integrated.ipynb` for a complete example.
 
 ---
 
@@ -108,6 +127,217 @@ drift_engine = FairnessDriftAndAlertEngine(DriftConfig())
 alerts = drift_engine.analyze(tracker.metrics_ts)
 ```
 
+---
+
+## 🏗️ Integrated Workflow Architecture
+
+The toolkit provides an integrated end-to-end workflow that combines all modules into a unified three-step process:
+
+### Architecture Diagram
+
+```mermaid
+graph TD
+    A[Input CSV Data] --> B[Step 1: Baseline Measurement]
+    B --> C[FairnessAnalyzer]
+    C --> D[Baseline Metrics]
+    
+    A --> E[Step 2: Transform + Train]
+    E --> F[Pipeline Transformers]
+    F --> G[Bias Mitigation]
+    G --> H[Training Module]
+    H --> I[Fairness-Aware Model]
+    I --> J[Model Predictions]
+    
+    D --> K[Step 3: Final Validation]
+    J --> K
+    K --> L[Compare Metrics]
+    L --> M{Threshold Met?}
+    M -->|Yes| N[Validation PASSED]
+    M -->|No| O[Validation FAILED]
+    
+    N --> P[MLflow Logging]
+    O --> P
+    P --> Q[Artifacts: Model, Config, Metrics]
+    
+    style B fill:#e1f5ff
+    style E fill:#fff4e1
+    style K fill:#e8f5e9
+    style P fill:#f3e5f5
+```
+
+### Three-Step Workflow
+
+1. **Baseline Measurement**: Audit raw data for fairness issues before any transformations
+2. **Transform Data + Train Model**: Apply bias mitigation pipeline, then train fairness-aware model
+3. **Final Validation**: Compare post-training metrics to baseline and validate against threshold
+
+### Quick Start: Integrated Workflow
+
+```bash
+fairpipe run-pipeline \
+    --config config.yml \
+    --csv data.csv \
+    --output-dir artifacts/ \
+    --mlflow-experiment fairness_workflow
+```
+
+See `demo_integrated.ipynb` for a complete example.
+
+---
+
+## 📋 Integrated Configuration Guide
+
+The integrated workflow requires a configuration file that specifies pipeline transformations, training method, and validation criteria.
+
+### Complete Config Schema
+
+```yaml
+# Required: Sensitive attributes
+sensitive: ["sensitive"]  # or ["gender", "race"] for multiple
+
+# Optional: Population benchmarks for representation checks
+benchmarks:
+  sensitive:
+    A: 0.5
+    B: 0.5
+
+# Statistical test parameters
+alpha: 0.05
+proxy_threshold: 0.30
+
+# Pipeline: Bias mitigation transformers (applied in order)
+pipeline:
+  - name: reweigh
+    transformer: "InstanceReweighting"
+    params: {}
+  - name: repair
+    transformer: "DisparateImpactRemover"
+    params:
+      features: ["f0", "f1", "f2"]
+      sensitive: "sensitive"
+      repair_level: 0.8
+
+# Training: Fairness-aware model training (required for integrated workflow)
+training:
+  method: "reductions"  # Options: "reductions", "regularized", "lagrangian"
+  target_column: "y"   # Target variable column name
+  params:
+    # Method-specific parameters (see below)
+
+# Validation: Primary fairness metric and threshold
+fairness_metric: "demographic_parity_difference"  # or "equalized_odds_difference"
+validation_threshold: 0.05  # Maximum allowed unfairness (absolute value)
+```
+
+### Training Method Options
+
+#### 1. Reductions (scikit-learn)
+
+Uses Fairlearn's ExponentiatedGradient for constraint-based training.
+
+```yaml
+training:
+  method: "reductions"
+  target_column: "y"
+  params:
+    constraint: "demographic_parity"  # or "equalized_odds"
+    eps: 0.01                        # Constraint tolerance
+    T: 50                            # Max iterations
+    base_estimator: null             # Default: LogisticRegression
+```
+
+#### 2. Regularized (PyTorch)
+
+Integrates fairness penalties into loss function.
+
+```yaml
+training:
+  method: "regularized"
+  target_column: "y"
+  params:
+    eta: 0.5          # Fairness regularization strength
+    epochs: 10
+    lr: 0.001
+    device: "cpu"     # or "cuda"
+```
+
+#### 3. Lagrangian (PyTorch)
+
+Enforces fairness constraints via dual optimization.
+
+```yaml
+training:
+  method: "lagrangian"
+  target_column: "y"
+  params:
+    fairness: "demographic_parity"  # or "equal_opportunity"
+    dp_tol: 0.02                    # Demographic parity tolerance
+    eo_tol: 0.02                    # Equal opportunity tolerance
+    model_lr: 0.001
+    lambda_lr: 0.01
+    epochs: 10
+    batch_size: 128
+    device: "cpu"
+```
+
+### Validation Threshold Guidelines
+
+- **Demographic Parity Difference**: Typically aim for < 0.05 (5% difference in selection rates)
+- **Equalized Odds Difference**: Typically aim for < 0.10 (10% difference in TPR/FPR)
+- **Threshold selection**: Consider your use case, legal requirements, and stakeholder input
+
+### Example Configurations
+
+**Minimal Config (Reductions Method):**
+```yaml
+sensitive: ["sensitive"]
+pipeline:
+  - name: reweigh
+    transformer: "InstanceReweighting"
+training:
+  method: "reductions"
+  target_column: "y"
+  params:
+    constraint: "demographic_parity"
+fairness_metric: "demographic_parity_difference"
+validation_threshold: 0.05
+```
+
+**Full Config (Lagrangian Method):**
+```yaml
+sensitive: ["gender", "race"]
+benchmarks:
+  gender: {M: 0.5, F: 0.5}
+alpha: 0.05
+pipeline:
+  - name: reweigh
+    transformer: "InstanceReweighting"
+  - name: repair
+    transformer: "DisparateImpactRemover"
+    params:
+      features: ["score", "age"]
+      sensitive: "gender"
+      repair_level: 0.8
+training:
+  method: "lagrangian"
+  target_column: "y_true"
+  params:
+    fairness: "demographic_parity"
+    dp_tol: 0.02
+    epochs: 50
+    batch_size: 128
+fairness_metric: "equalized_odds_difference"
+validation_threshold: 0.10
+```
+
+### Backward Compatibility
+
+Configs without a `training` section continue to work for pipeline-only execution:
+- Use `fairpipe pipeline` command for pipeline-only workflows
+- Use `fairpipe run-pipeline` for integrated workflows (requires training section)
+
+---
+
 ### Installation
 ```bash
 python -m venv .venv
@@ -143,7 +373,22 @@ pre-commit install
 
 ## Quick Start
 
-After installation, run a quick fairness validation:
+### Option 1: Integrated Workflow (Recommended)
+
+Run the complete three-step workflow with a single command:
+
+```bash
+# Create a config.yml with training section (see Integrated Configuration Guide)
+fairpipe run-pipeline \
+    --config config.yml \
+    --csv data.csv \
+    --output-dir artifacts/ \
+    --mlflow-experiment fairness_workflow
+```
+
+### Option 2: Individual Module Commands
+
+Use individual commands for specific tasks:
 
 ```bash
 # Check version
@@ -157,7 +402,7 @@ fairpipe validate \
   --sensitive gender \
   --with-ci --with-effects
 
-# Run bias detection and mitigation pipeline
+# Run bias detection and mitigation pipeline (pipeline only, no training)
 fairpipe pipeline \
   --config pipeline.config.yml \
   --csv data.csv \
@@ -167,6 +412,30 @@ fairpipe pipeline \
 ## CLI Usage
 
 > **Note:** The `fairpipe` command is available as a shorthand entry point. You can also use the full form: `python -m fairness_pipeline_dev_toolkit.cli.main <command>`. The entry point is defined in `pyproject.toml`.
+
+### 0️⃣ Integrated Workflow (Recommended)
+
+Execute the complete three-step workflow:
+
+```console
+fairpipe run-pipeline \
+  --config config.yml \
+  --csv data.csv \
+  --output-dir artifacts/workflow \
+  --mlflow-experiment fairness_workflow \
+  --min-group-size 30 \
+  --train-size 0.8
+```
+
+**What it does:**
+- Runs baseline measurement on raw data
+- Applies pipeline transformations and trains fairness-aware model
+- Validates final metrics against threshold
+- Saves all artifacts (model, metrics, reports) and logs to MLflow
+
+**Exit codes:**
+- `0`: Validation passed (metrics meet threshold)
+- `1`: Validation failed (metrics exceed threshold) or error occurred
 
 ### 1️⃣ Fairness Validation
 
@@ -183,7 +452,7 @@ fairpipe validate \
   --out report.md
 ```
 
-### 2️⃣ Fair Pipeline Execution
+### 2️⃣ Fair Pipeline Execution (Pipeline Only)
 
 ```console
 fairpipe pipeline \
@@ -194,7 +463,7 @@ fairpipe pipeline \
   --report-md artifacts/pipeline_run.md
 ```
 
-### 3️⃣ Fair Model Training
+### 3️⃣ Fair Model Training (Training Only)
 
 **Train with Regularizer (Pareto Frontier):**
 ```console
@@ -248,31 +517,42 @@ Run all tests:
 pytest -q
 ```
 
+**Test Coverage:**
+- **90 tests** total, including:
+  - Integration tests: config schema, orchestrator, MLflow logging (22 tests)
+  - System tests: CLI end-to-end workflows (3 tests)
+  - Module tests: measurement, pipeline, training, monitoring
 
-System test for pipeline:
-
-```console
-pytest tests/system/test_cli_e2e_pipeline.py::test_cli_pipeline_e2e[native] -q
-```
-
-
-Training module tests:
+Run specific test suites:
 
 ```console
-pytest tests/training -q
+# Integration tests
+pytest tests/integration/ -q
 
+# System tests
+pytest tests/system/ -q
+
+# Pipeline tests
+pytest tests/pipeline/ -q
+
+# Training tests
+pytest tests/training/ -q
 ```
 
 ## Repository Structure
 
 ```
 fairness_pipeline_dev_toolkit/
-├── cli/
+├── cli/                       # CLI commands including run-pipeline
+├── integration/               # Integrated workflow orchestrator
+│   ├── orchestrator.py        # Three-step workflow execution
+│   ├── mlflow_logger.py       # Complete MLflow logging
+│   └── reporting.py           # Report generation
 ├── measurement/
 ├── metrics/
 ├── stats/
 ├── pipeline/
-│   ├── config/
+│   ├── config/                # Config loader with training support
 │   ├── detectors/
 │   ├── orchestration/
 │   ├── transformers/
@@ -293,10 +573,12 @@ fairness_pipeline_dev_toolkit/
 │   ├── monitoring_streamlit_app.py
 │   └── monitoring_dash_app.py
 ├── tests/
+│   ├── integration/           # Integration tests (orchestrator, MLflow)
 │   ├── training/
 │   ├── pipeline/
 │   ├── monitoring/
-│   └── system/
+│   └── system/                # System tests including CLI e2e
+├── demo_integrated.ipynb      # Integrated workflow demo
 └── artifacts/
 ```
 
