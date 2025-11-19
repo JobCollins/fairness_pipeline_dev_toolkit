@@ -1,5 +1,25 @@
 # Changelog
 
+## [v0.4.1] — 2025-11-19
+### Fixed
+- **ReductionsWrapper**: Fixed `T` parameter not being passed to `ExponentiatedGradient`. The parameter is now correctly forwarded as `max_iter` to control iteration limits.
+
+### Improved
+- **Pareto Visualization**: Enhanced `sweep_pareto()` to automatically save plots when `save_path` is provided, streamlining the workflow for generating and saving Pareto frontier visualizations.
+- **Test Coverage**: Expanded test suite with comprehensive edge case testing:
+  - ReductionsWrapper: T parameter verification, kwargs override, multiple constraint types
+  - Pareto Visualization: save_path functionality, plot generation
+  - FairnessRegularizerLoss: single group scenarios, eta edge cases, invalid mode handling
+  - GroupFairnessCalibrator: small groups, missing groups, multiple groups, empty inputs
+
+### Added
+- **Training Module Demo**: Created `demo_training.ipynb` providing comprehensive examples demonstrating all Training Module components with synthetic data generation, visualizations, and usage patterns.
+
+### Purpose
+This update addresses critical gaps identified in the Training Module assessment, ensuring all components are properly documented, tested, and functional.
+
+---
+
 ## [v0.4.0] — 2025-11-01
 ### Added
 - **Training Module**
