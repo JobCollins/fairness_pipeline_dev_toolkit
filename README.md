@@ -412,6 +412,8 @@ fairpipe pipeline \
 ## CLI Usage
 
 > **Note:** The `fairpipe` command is available as a shorthand entry point. You can also use the full form: `python -m fairness_pipeline_dev_toolkit.cli.main <command>`. The entry point is defined in `pyproject.toml`.
+>
+> **Troubleshooting:** If you encounter `ModuleNotFoundError` when using `fairpipe`, try using the full form: `python -m fairness_pipeline_dev_toolkit.cli.main <command>`. This is especially useful after reinstalling the package in editable mode.
 
 ### 0️⃣ Integrated Workflow (Recommended)
 
