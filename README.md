@@ -1,6 +1,6 @@
 # Fairness Pipeline Development Toolkit
 
-**Version:** 0.2.0
+**Version:** 0.4.2
 
 A unified, statistically-rigorous framework for **detecting**, **mitigating**, **training**, and **validating** fairness in ML workflows.  
 The toolkit provides modular components spanning data-to-model fairness — enabling teams to move from ad-hoc checks to automated, continuous fairness assurance in CI/CD.
