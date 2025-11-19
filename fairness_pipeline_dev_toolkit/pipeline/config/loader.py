@@ -17,6 +17,13 @@ class PipelineStep:
 
 
 @dataclass
+class TrainingConfig:
+    method: str  # "reductions" | "regularized" | "lagrangian"
+    target_column: str  # e.g., "y" or "y_true"
+    params: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
 class PipelineConfig:
     sensitive: List[str]
     benchmarks: Optional[Dict[str, Dict[str, float]]] = None
@@ -24,6 +31,13 @@ class PipelineConfig:
     proxy_threshold: float = 0.30
     report_out: Optional[str] = None
     pipeline: List[PipelineStep] = field(default_factory=list)
+    training: Optional[TrainingConfig] = None
+    fairness_metric: Optional[str] = (
+        None  # e.g., "demographic_parity_difference", "equalized_odds_difference"
+    )
+    validation_threshold: Optional[float] = (
+        None  # maximum allowed value for primary fairness metric
+    )
 
 
 class ConfigValidationError(ValueError):
@@ -92,6 +106,31 @@ def _validate_pipeline_steps(raw_steps: Any) -> None:
             )
 
 
+def _validate_training_config(training: Any) -> None:
+    if training is None:
+        return
+    if not isinstance(training, dict):
+        raise ConfigValidationError("Config field 'training' must be a mapping.")
+    method = training.get("method")
+    if not isinstance(method, str) or not method.strip():
+        raise ConfigValidationError(
+            "Config field 'training.method' must be a non-empty string. "
+            "Valid values: 'reductions', 'regularized', 'lagrangian'."
+        )
+    if method not in ("reductions", "regularized", "lagrangian"):
+        raise ConfigValidationError(
+            f"Config field 'training.method' must be one of: 'reductions', 'regularized', 'lagrangian'. Got: {method!r}."
+        )
+    target_column = training.get("target_column")
+    if not isinstance(target_column, str) or not target_column.strip():
+        raise ConfigValidationError(
+            "Config field 'training.target_column' must be a non-empty string."
+        )
+    params = training.get("params")
+    if params is not None and not isinstance(params, dict):
+        raise ConfigValidationError("Config field 'training.params' must be a mapping if provided.")
+
+
 def _validate_flat_config(raw: Dict[str, Any]) -> Dict[str, Any]:
     """Return sanitized fields and raise informative errors if schema mismatches."""
     cleaned = dict(raw or {})
@@ -101,8 +140,9 @@ def _validate_flat_config(raw: Dict[str, Any]) -> Dict[str, Any]:
 
     _validate_benchmarks(cleaned.get("benchmarks"))
     _validate_pipeline_steps(cleaned.get("pipeline") or cleaned.get("steps"))
+    _validate_training_config(cleaned.get("training"))
 
-    for float_field in ("alpha", "proxy_threshold"):
+    for float_field in ("alpha", "proxy_threshold", "validation_threshold"):
         if float_field not in cleaned or cleaned[float_field] is None:
             continue
         value = cleaned[float_field]
@@ -117,6 +157,12 @@ def _validate_flat_config(raw: Dict[str, Any]) -> Dict[str, Any]:
     if report_out is not None and not isinstance(report_out, str):
         raise ConfigValidationError(
             "Config field 'report_out' must be a string path when provided."
+        )
+
+    fairness_metric = cleaned.get("fairness_metric")
+    if fairness_metric is not None and not isinstance(fairness_metric, str):
+        raise ConfigValidationError(
+            "Config field 'fairness_metric' must be a string when provided."
         )
 
     return cleaned
@@ -143,6 +189,17 @@ def _parse_steps(raw_steps: Optional[List[dict]]) -> List[PipelineStep]:
     return steps
 
 
+def _parse_training_config(raw_training: Optional[Dict[str, Any]]) -> Optional[TrainingConfig]:
+    """Parse training config from raw dict."""
+    if raw_training is None:
+        return None
+    return TrainingConfig(
+        method=str(raw_training.get("method", "")),
+        target_column=str(raw_training.get("target_column", "")),
+        params=dict(raw_training.get("params", {})),
+    )
+
+
 def _as_cfg(raw: Dict[str, Any]) -> PipelineConfig:
     """Convert a flat raw dict (already resolved for a profile) into PipelineConfig."""
     raw = _validate_flat_config(raw)
@@ -158,6 +215,9 @@ def _as_cfg(raw: Dict[str, Any]) -> PipelineConfig:
         proxy_threshold=float(raw.get("proxy_threshold", 0.30)),
         report_out=raw.get("report_out"),
         pipeline=_parse_steps(raw_steps),
+        training=_parse_training_config(raw.get("training")),
+        fairness_metric=raw.get("fairness_metric"),
+        validation_threshold=raw.get("validation_threshold"),
     )
 
 
