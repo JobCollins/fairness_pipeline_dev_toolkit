@@ -25,7 +25,8 @@ def build_intersectional_labels(
                            If True, NaN values will be represented as the string "NaN" in the labels.
 
     Returns:
-        pd.Series: A Series of dtype 'category' representing intersectional group labels.
+        pd.Series: A Series of dtype 'category'
+        representing intersectional group labels.
     """
     if columns is None:
         columns = list(attrs_df.columns)
@@ -45,12 +46,13 @@ def build_intersectional_labels(
 
 def min_group_mask(labels: Iterable, min_group_size: int) -> np.ndarray:
     """
-    Return a boolean mask slecting rows whose group appears >= min_group_size times."""
+    Return a boolean mask slecting rows
+    whose group appears >= min_group_size times."""
     s = pd.Series(labels)
 
     # ensure categoricals are not compared againsts ints
     if pd.api.types.is_categorical_dtype(s.dtype):
-        s = s.astype(object)  # or astype("string") but object is fastest/neutral here
+        s = s.astype(object)  # or astype("string")
 
     group_counts = s.value_counts(dropna=False)
     # valid_groups = s.map(group_counts) >= min_group_size
@@ -62,7 +64,8 @@ def min_group_mask(labels: Iterable, min_group_size: int) -> np.ndarray:
 
 def group_sizes(labels: Iterable) -> Dict[str, int]:
     """
-    Return a dictionary of group -> size, helpful in reporting n_per_group outputs.
+    Return a dictionary of group -> size,
+    helpful in reporting n_per_group outputs.
     Only counts non-NaN labels.
     """
     s = pd.Series(labels)
