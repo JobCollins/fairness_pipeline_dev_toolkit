@@ -50,7 +50,16 @@ if uploaded:
 
     # Show latest metrics
     try:
-        mts = pd.read_csv(f"{art_dir}/metrics_timeseries.csv")
+        # Load CSV and set DatetimeIndex if timestamp column exists, or use index if already DatetimeIndex
+        mts = pd.read_csv(f"{art_dir}/metrics_timeseries.csv", index_col=0, parse_dates=True)
+        # If index is not DatetimeIndex, try to set it from timestamp column
+        if not isinstance(mts.index, pd.DatetimeIndex):
+            if "timestamp" in mts.columns:
+                mts = mts.set_index("timestamp")
+            elif mts.index.name == "timestamp":
+                mts.index = pd.to_datetime(mts.index)
+        # Ensure index name is "timestamp"
+        mts.index.name = "timestamp"
         st.subheader("Metrics Time Series")
         st.dataframe(mts.tail(50))
         settings = MonitoringSettings(artifacts_dir=art_dir)

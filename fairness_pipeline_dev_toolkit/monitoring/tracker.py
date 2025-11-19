@@ -49,10 +49,11 @@ class RealTimeFairnessTracker:
         self.artifacts_dir = artifacts_dir
         self._buffer: deque[pd.DataFrame] = deque()
         self._n: int = 0
+        # Initialize with DatetimeIndex as required
         self.metrics_ts = pd.DataFrame(
-            columns=["timestamp", "metric", "group_key", "value", "n"]
-        ).astype({"timestamp": "datetime64[ns]"})
-        self.metrics_ts.set_index("timestamp", inplace=False)
+            columns=["metric", "group_key", "value", "n"],
+            index=pd.DatetimeIndex([], name="timestamp"),
+        )
 
     def _append_to_window(self, df: pd.DataFrame) -> pd.DataFrame:
         """Maintain a ring buffer with at most window_size rows."""
@@ -146,11 +147,13 @@ class RealTimeFairnessTracker:
             return
         out = rows.copy()
         out.insert(0, "metric", metric)
-        out.insert(0, "timestamp", ts)
-        self.metrics_ts = pd.concat([self.metrics_ts, out], ignore_index=True)
-        # persist incrementally
+        # Set timestamp as index for each row
+        out.index = [ts] * len(out)
+        out.index.name = "timestamp"
+        self.metrics_ts = pd.concat([self.metrics_ts, out])
+        # persist incrementally - preserve DatetimeIndex
         path = f"{self.artifacts_dir}/metrics_timeseries.csv"
-        self.metrics_ts.to_csv(path, index=False)
+        self.metrics_ts.to_csv(path, index=True)
 
     def process_batch(self, batch: pd.DataFrame, cmap: ColumnMap) -> pd.DataFrame:
         """

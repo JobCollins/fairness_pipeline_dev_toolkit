@@ -1,5 +1,38 @@
 # Changelog
 
+## [v0.4.2] — 2025-01-XX
+### Fixed
+- **RealTimeFairnessTracker**: Fixed to use `DatetimeIndex` instead of timestamp column, ensuring proper time-series format as required. Metrics are now stored with timestamp as the index, improving time-series analysis capabilities.
+- **FairnessDriftAndAlertEngine**: Enhanced alert severity scoring to incorporate group size (n) from metrics. Smaller groups now reduce confidence in drift detection, preventing false alarms from statistically unreliable samples.
+- **FairnessReportingDashboard**: Updated to handle `DatetimeIndex` format with backward compatibility for timestamp column format.
+
+### Improved
+- **FairnessReportingDashboard**: Converted intersectional visualization from bar chart to heatmap (`go.Heatmap`) for better visualization of fairness metrics across intersectional subgroups. Heatmap uses diverging colormap (RdYlBu_r) to highlight disparities.
+- **FairnessDriftAndAlertEngine**: Severity scoring now considers group size with confidence factors:
+  - Groups with n < 30: Reduced confidence (penalized severity)
+  - Groups with 30 ≤ n < 100: Gradual confidence increase
+  - Groups with n ≥ 100: Full confidence
+- **Monitoring Apps**: Updated Streamlit and Dash apps to properly load CSV files with `DatetimeIndex`, maintaining compatibility with new format.
+
+### Added
+- **Monitoring Module Demo**: Created `demo_monitoring.ipynb` that simulates a production stream and demonstrates all monitoring components working together:
+  - RealTimeFairnessTracker processing batches over time
+  - FairnessDriftAndAlertEngine detecting drift and generating alerts
+  - FairnessReportingDashboard visualizing trends and intersectional metrics
+  - FairnessABTestAnalyzer for A/B testing scenarios
+- **Test Coverage**: Added comprehensive test suite for monitoring module:
+  - `tests/monitoring/test_tracker.py`: Tests for tracker DatetimeIndex usage, CSV persistence, sliding window, and metric computation
+  - Updated `tests/monitoring/test_dashboard_and_drift.py`: Tests for DatetimeIndex handling, heatmap visualization, and severity scoring with group size
+
+### Purpose
+This update addresses critical gaps identified in the Monitoring Module assessment, ensuring:
+- Proper time-series format with DatetimeIndex
+- Complete alert prioritization logic including group size
+- Comprehensive demo notebook demonstrating all components
+- Improved visualization with heatmap for intersectional analysis
+
+---
+
 ## [v0.4.1] — 2025-11-19
 ### Fixed
 - **ReductionsWrapper**: Fixed `T` parameter not being passed to `ExponentiatedGradient`. The parameter is now correctly forwarded as `max_iter` to control iteration limits.

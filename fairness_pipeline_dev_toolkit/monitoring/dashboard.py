@@ -49,7 +49,21 @@ class FairnessReportingDashboard:
         Line chart over time for a chosen fairness metric (e.g., "DP[gender]" or "EO[race]").
         """
         df = metrics_ts.copy()
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        # Handle DatetimeIndex: if timestamp is the index, reset it to a column
+        # Otherwise, handle as column (backward compatibility)
+        if isinstance(df.index, pd.DatetimeIndex) and df.index.name == "timestamp":
+            df = df.reset_index()
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+        elif "timestamp" in df.columns:
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+        else:
+            # If no timestamp column/index, try to infer from index
+            if isinstance(df.index, pd.DatetimeIndex):
+                df = df.reset_index()
+                df["timestamp"] = pd.to_datetime(df["timestamp"])
+            else:
+                raise ValueError("metrics_ts must have timestamp as DatetimeIndex or column")
+
         df = df[df["metric"].str.startswith(metric_prefix)]
         if groups:
             df = df[df["group_key"].isin(groups)]
@@ -77,11 +91,25 @@ class FairnessReportingDashboard:
         self, metrics_ts: pd.DataFrame, metric_prefix: str, latest_only: bool = True
     ) -> go.Figure:
         """
-        Bar/heat style snapshot across intersectional subgroups.
+        Heatmap visualization across intersectional subgroups.
         We show the latest timestamp per (metric, group_key), with k-anonymity suppression.
         """
         df = metrics_ts.copy()
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        # Handle DatetimeIndex: if timestamp is the index, reset it to a column
+        # Otherwise, handle as column (backward compatibility)
+        if isinstance(df.index, pd.DatetimeIndex) and df.index.name == "timestamp":
+            df = df.reset_index()
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+        elif "timestamp" in df.columns:
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+        else:
+            # If no timestamp column/index, try to infer from index
+            if isinstance(df.index, pd.DatetimeIndex):
+                df = df.reset_index()
+                df["timestamp"] = pd.to_datetime(df["timestamp"])
+            else:
+                raise ValueError("metrics_ts must have timestamp as DatetimeIndex or column")
+
         df = df[df["metric"].str.startswith(metric_prefix)]
         if latest_only:
             idx = df.groupby(["metric", "group_key"])["timestamp"].idxmax()
@@ -90,21 +118,35 @@ class FairnessReportingDashboard:
         # suppress small groups
         df = df[df["n"] >= self.cfg.k_anonymity]
 
+        if df.empty:
+            # Return empty figure if no data
+            return go.Figure()
+
+        # Create pivot table for heatmap: metric as rows, group_key as columns
+        pivot_df = df.pivot_table(
+            index="metric", columns="group_key", values="value", aggfunc="first"
+        )
+
+        # Create heatmap
         fig = go.Figure(
-            data=[
-                go.Bar(
-                    x=df["group_key"],
-                    y=df["value"],
-                    text=df["value"].round(3),
-                    textposition="auto",
-                )
-            ]
+            data=go.Heatmap(
+                z=pivot_df.values,
+                x=pivot_df.columns.tolist(),
+                y=pivot_df.index.tolist(),
+                colorscale="RdYlBu_r",  # Diverging colormap: red (high disparity) to blue (low disparity)
+                text=pivot_df.values.round(3),
+                texttemplate="%{text:.3f}",
+                textfont={"size": 10},
+                colorbar=dict(title="Metric Value"),
+                hovertemplate="Metric=%{y}<br>Group=%{x}<br>Value=%{z:.3f}<extra></extra>",
+            )
         )
         fig.update_layout(
             title=f"Intersectional snapshot: {metric_prefix}",
-            xaxis_title="Intersection",
-            yaxis_title="Metric value",
+            xaxis_title="Intersectional Group",
+            yaxis_title="Metric",
             template="plotly_white",
+            height=max(400, len(pivot_df.index) * 40),  # Adjust height based on number of metrics
         )
         return fig
 
@@ -148,7 +190,19 @@ _This report summarizes fairness metrics, recent drift, and active alerts._
 - DP threshold: difference > 0.10 flagged; EO threshold: > 0.10 flagged.
 """
         )
-        latest = metrics_ts["timestamp"].max() if not metrics_ts.empty else "N/A"
+        # Handle DatetimeIndex for latest timestamp extraction
+        if metrics_ts.empty:
+            latest = "N/A"
+        elif (
+            isinstance(metrics_ts.index, pd.DatetimeIndex) and metrics_ts.index.name == "timestamp"
+        ):
+            latest = str(metrics_ts.index.max())
+        elif "timestamp" in metrics_ts.columns:
+            latest = str(metrics_ts["timestamp"].max())
+        elif isinstance(metrics_ts.index, pd.DatetimeIndex):
+            latest = str(metrics_ts.index.max())
+        else:
+            latest = "N/A"
         md = tpl.render(
             title=summary_title,
             n_points=len(metrics_ts),
