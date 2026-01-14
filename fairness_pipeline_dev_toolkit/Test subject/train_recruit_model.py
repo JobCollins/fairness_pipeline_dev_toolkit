@@ -13,24 +13,29 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from torch.utils.data import DataLoader, Dataset
 
-from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
-from fairness_pipeline_dev_toolkit.pipeline.detectors import (
-    ProxyVariableDetector,
-    RepresentationBiasDetector,
-    StatisticalDisparityDetector,
-)
-from fairness_pipeline_dev_toolkit.pipeline.transformers.instance_reweighting import (
-    InstanceReweighting,
-)
-from fairness_pipeline_dev_toolkit.training import LagrangianFairnessTrainer
-
-# Add project root to Python path for imports
+# Add project root to Python path for imports BEFORE other imports
 # File is at: fairness_pipeline_dev_toolkit/Test subject/train_recruit_model.py
 # Need to go up 3 levels to reach project root
 project_root = Path(__file__).resolve().parent.parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
+
+from fairness_pipeline_dev_toolkit.integration.reporting import (  # noqa: E402
+    generate_training_fairness_report,
+)
+from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer  # noqa: E402
+from fairness_pipeline_dev_toolkit.pipeline.detectors import (  # noqa: E402
+    ProxyVariableDetector,
+    RepresentationBiasDetector,
+    StatisticalDisparityDetector,
+)
+from fairness_pipeline_dev_toolkit.pipeline.transformers.instance_reweighting import (  # noqa: E402
+    InstanceReweighting,
+)
+from fairness_pipeline_dev_toolkit.training import (  # noqa: E402
+    LagrangianFairnessTrainer,
+)
 
 # -----------------------------
 # 1. Config
@@ -277,10 +282,16 @@ def main():
     disp_detector = StatisticalDisparityDetector(alpha=0.05)
     proxy_detector = ProxyVariableDetector(threshold=0.30)
 
+    # Store detector results for report
+    representation_bias_results = {}
+    statistical_disparities_results = {}
+    proxy_variables_results = {}
+
     # Run detection on training data
     print("\n--- Representation Bias ---")
     for attr in SENSITIVE_COLS:
         result = rep_detector.run(train_df_orig, attr, benchmark=None)
+        representation_bias_results[attr] = result
         pval_str = f"{result.chi2_pvalue:.4f}" if result.chi2_pvalue is not None else "N/A"
         print(f"{attr}: flagged={result.flagged}, p-value={pval_str}")
         print(f"  Counts: {result.counts}")
@@ -289,6 +300,7 @@ def main():
     print("\n--- Statistical Disparities ---")
     for attr in SENSITIVE_COLS:
         disparities = disp_detector.run(train_df_orig, attr)
+        statistical_disparities_results[attr] = disparities
         flagged_count = sum(1 for d in disparities if d.flagged)
         print(f"{attr}: {flagged_count} features flagged")
         for d in disparities[:3]:  # Show first 3
@@ -297,6 +309,7 @@ def main():
     print("\n--- Proxy Variables ---")
     for attr in SENSITIVE_COLS:
         proxies = proxy_detector.run(train_df_orig, attr)
+        proxy_variables_results[attr] = proxies
         flagged_count = sum(1 for p in proxies if p.flagged)
         print(f"{attr}: {flagged_count} proxies flagged")
         for p in proxies[:3]:  # Show first 3
@@ -480,6 +493,8 @@ def main():
     # Fairness threshold check
     FAIRNESS_THRESHOLD = 0.05  # Maximum allowed demographic parity difference
 
+    threshold_status = "pass" if dp_result.value <= FAIRNESS_THRESHOLD else "fail"
+
     if dp_result.value <= FAIRNESS_THRESHOLD:
         print(
             f"\n✓ Fairness threshold met: DP difference ({dp_result.value:.4f}) <= {FAIRNESS_THRESHOLD}"
@@ -498,6 +513,53 @@ def main():
             model.load_state_dict(best_state_dict)
             torch.save(model.state_dict(), "recruitment_model_best.pt")
             print("Model saved with warning.")
+
+    # Generate comprehensive fairness report
+    print("\n" + "=" * 60)
+    print("Generating Comprehensive Fairness Report")
+    print("=" * 60)
+
+    # Prepare report data with raw inputs (function will auto-compute metrics)
+    report_data = {
+        "metadata": {
+            "model_name": "RecruitmentNet",
+            "sensitive_attributes": SENSITIVE_COLS,
+            "fairness_threshold": FAIRNESS_THRESHOLD,
+        },
+        "data_stage": {
+            "representation_bias": representation_bias_results,
+            "statistical_disparities": statistical_disparities_results,
+            "proxy_variables": proxy_variables_results,
+        },
+        "baseline_metrics": baseline_metrics,
+        "mitigation": {
+            "instance_reweighting": {
+                "sample_weights": sample_weights,  # Pass raw weights, function will compute stats
+            },
+            "lagrangian_training": {
+                "history": training_history,  # Pass raw history, function will compute convergence
+            },
+        },
+        "final_metrics": final_metrics,
+        "y_true": val_labels,  # Raw labels for auto-computing performance metrics
+        "y_pred": val_predictions,  # Raw predictions for auto-computing performance metrics
+        "comparison": {
+            "improvement": improvement,
+            "threshold_status": threshold_status,
+        },
+    }
+
+    # Generate and save report
+    artifacts_dir = project_root / "artifacts"
+    markdown_report, json_data, file_paths = generate_training_fairness_report(
+        report_data,
+        output_dir=artifacts_dir,
+    )
+
+    if file_paths:
+        print("\n✅ Comprehensive fairness report saved:")
+        print(f"   - Markdown: {file_paths['markdown']}")
+        print(f"   - JSON: {file_paths['json']}")
 
 
 if __name__ == "__main__":

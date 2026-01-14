@@ -1,0 +1,520 @@
+{
+  "metadata": {
+    "model_name": "RecruitmentNet",
+    "sensitive_attributes": [
+      "race",
+      "gender"
+    ],
+    "fairness_threshold": 0.05,
+    "timestamp": "2026-01-14 14:07:21.947272"
+  },
+  "executive_summary": {
+    "status": "fail",
+    "key_metrics": {
+      "demographic_parity_difference": 0.06589199501127678,
+      "equalized_odds_difference": 0.06080763461561174
+    },
+    "threshold": 0.05
+  },
+  "data_stage": {
+    "representation_bias": {
+      "race": {
+        "attribute": "race",
+        "counts": {
+          "White": 2802,
+          "Black": 2035,
+          "Asian": 1527,
+          "Hispanic": 1233,
+          "Other": 403
+        },
+        "proportions": {
+          "White": 0.35025,
+          "Black": 0.254375,
+          "Asian": 0.190875,
+          "Hispanic": 0.154125,
+          "Other": 0.050375
+        },
+        "benchmark": null,
+        "chi2_pvalue": null,
+        "flagged": false
+      },
+      "gender": {
+        "attribute": "gender",
+        "counts": {
+          "Male": 3891,
+          "Female": 3775,
+          "Non-binary": 334
+        },
+        "proportions": {
+          "Male": 0.486375,
+          "Female": 0.471875,
+          "Non-binary": 0.04175
+        },
+        "benchmark": null,
+        "chi2_pvalue": null,
+        "flagged": false
+      }
+    },
+    "statistical_disparities": {
+      "race": [
+        {
+          "feature": "years_experience",
+          "attribute": "race",
+          "test": "anova",
+          "pvalue": 0.3916815483495312,
+          "flagged": false
+        },
+        {
+          "feature": "num_roles",
+          "attribute": "race",
+          "test": "chi2",
+          "pvalue": 0.39638887472462914,
+          "flagged": false
+        },
+        {
+          "feature": "education_level",
+          "attribute": "race",
+          "test": "chi2",
+          "pvalue": 0.43907962354232616,
+          "flagged": false
+        },
+        {
+          "feature": "skill_score",
+          "attribute": "race",
+          "test": "anova",
+          "pvalue": 0.4174226313278975,
+          "flagged": false
+        },
+        {
+          "feature": "interview_score",
+          "attribute": "race",
+          "test": "anova",
+          "pvalue": 0.4471671380199247,
+          "flagged": false
+        },
+        {
+          "feature": "previous_company_tier",
+          "attribute": "race",
+          "test": "chi2",
+          "pvalue": 0.5855162238239819,
+          "flagged": false
+        },
+        {
+          "feature": "gender",
+          "attribute": "race",
+          "test": "chi2",
+          "pvalue": 0.9434549013686777,
+          "flagged": false
+        },
+        {
+          "feature": "hired",
+          "attribute": "race",
+          "test": "chi2",
+          "pvalue": 2.703822054493912e-07,
+          "flagged": true
+        }
+      ],
+      "gender": [
+        {
+          "feature": "years_experience",
+          "attribute": "gender",
+          "test": "anova",
+          "pvalue": 0.17213956921644294,
+          "flagged": false
+        },
+        {
+          "feature": "num_roles",
+          "attribute": "gender",
+          "test": "chi2",
+          "pvalue": 0.21557900313592637,
+          "flagged": false
+        },
+        {
+          "feature": "education_level",
+          "attribute": "gender",
+          "test": "chi2",
+          "pvalue": 0.7115124716543637,
+          "flagged": false
+        },
+        {
+          "feature": "skill_score",
+          "attribute": "gender",
+          "test": "anova",
+          "pvalue": 0.670667282135121,
+          "flagged": false
+        },
+        {
+          "feature": "interview_score",
+          "attribute": "gender",
+          "test": "anova",
+          "pvalue": 0.23205231030298784,
+          "flagged": false
+        },
+        {
+          "feature": "previous_company_tier",
+          "attribute": "gender",
+          "test": "chi2",
+          "pvalue": 0.6087457313811071,
+          "flagged": false
+        },
+        {
+          "feature": "race",
+          "attribute": "gender",
+          "test": "chi2",
+          "pvalue": 0.9434549013686777,
+          "flagged": false
+        },
+        {
+          "feature": "hired",
+          "attribute": "gender",
+          "test": "chi2",
+          "pvalue": 0.26195454419653624,
+          "flagged": false
+        }
+      ]
+    },
+    "proxy_variables": {
+      "race": [
+        {
+          "feature": "years_experience",
+          "attribute": "race",
+          "measure": "eta_squared",
+          "strength": 0.0005135351098023967,
+          "flagged": false
+        },
+        {
+          "feature": "num_roles",
+          "attribute": "race",
+          "measure": "cramers_v",
+          "strength": 0.04262547083904288,
+          "flagged": false
+        },
+        {
+          "feature": "education_level",
+          "attribute": "race",
+          "measure": "cramers_v",
+          "strength": 0.022437381468290614,
+          "flagged": false
+        },
+        {
+          "feature": "skill_score",
+          "attribute": "race",
+          "measure": "eta_squared",
+          "strength": 0.0004896889632390209,
+          "flagged": false
+        },
+        {
+          "feature": "interview_score",
+          "attribute": "race",
+          "measure": "eta_squared",
+          "strength": 0.0004634489976989332,
+          "flagged": false
+        },
+        {
+          "feature": "previous_company_tier",
+          "attribute": "race",
+          "measure": "cramers_v",
+          "strength": 0.020237913062306986,
+          "flagged": false
+        },
+        {
+          "feature": "gender",
+          "attribute": "race",
+          "measure": "cramers_v",
+          "strength": 0.013344741133584474,
+          "flagged": false
+        },
+        {
+          "feature": "hired",
+          "attribute": "race",
+          "measure": "cramers_v",
+          "strength": 0.06721538376698856,
+          "flagged": false
+        }
+      ],
+      "gender": [
+        {
+          "feature": "years_experience",
+          "attribute": "gender",
+          "measure": "eta_squared",
+          "strength": 0.0004399306329851017,
+          "flagged": false
+        },
+        {
+          "feature": "num_roles",
+          "attribute": "gender",
+          "measure": "cramers_v",
+          "strength": 0.045801566647448284,
+          "flagged": false
+        },
+        {
+          "feature": "education_level",
+          "attribute": "gender",
+          "measure": "cramers_v",
+          "strength": 0.015293434264143849,
+          "flagged": false
+        },
+        {
+          "feature": "skill_score",
+          "attribute": "gender",
+          "measure": "eta_squared",
+          "strength": 9.990300454456718e-05,
+          "flagged": false
+        },
+        {
+          "feature": "interview_score",
+          "attribute": "gender",
+          "measure": "eta_squared",
+          "strength": 0.0003652683882425867,
+          "flagged": false
+        },
+        {
+          "feature": "previous_company_tier",
+          "attribute": "gender",
+          "measure": "cramers_v",
+          "strength": 0.012996826494964121,
+          "flagged": false
+        },
+        {
+          "feature": "race",
+          "attribute": "gender",
+          "measure": "cramers_v",
+          "strength": 0.013344741133584474,
+          "flagged": false
+        },
+        {
+          "feature": "hired",
+          "attribute": "gender",
+          "measure": "cramers_v",
+          "strength": 0.018300165885219332,
+          "flagged": false
+        }
+      ]
+    }
+  },
+  "baseline_metrics": {
+    "race_demographic_parity": {
+      "metric": "demographic_parity_difference",
+      "value": 0.042413364389037755,
+      "ci": [
+        0.019814342061502288,
+        0.06285247318259726
+      ],
+      "effect_size": NaN,
+      "n_per_group": {
+        "0": 5198,
+        "1": 2802
+      }
+    },
+    "gender_demographic_parity": {
+      "metric": "demographic_parity_difference",
+      "value": 0.016991429698515526,
+      "ci": [
+        0.0013545198781670317,
+        0.03623013595282845
+      ],
+      "effect_size": NaN,
+      "n_per_group": {
+        "0": 4109,
+        "1": 3891
+      }
+    }
+  },
+  "mitigation": {
+    "instance_reweighting": {
+      "sample_weights": "[0.53779013 0.5543156  0.8875936  ... 0.914868   0.8875936  0.73872445]",
+      "weights_stats": {
+        "min": 0.3905791960013744,
+        "max": 31.636392563996495,
+        "mean": 1.0000000000000002
+      },
+      "impact": "high"
+    },
+    "lagrangian_training": {
+      "history": [
+        {
+          "epoch": 0,
+          "accuracy": 0.684249997138977,
+          "violation": 0.0,
+          "lambda": 0.0002493796497583389
+        },
+        {
+          "epoch": 1,
+          "accuracy": 0.699874997138977,
+          "violation": 0.0,
+          "lambda": 0.00431116633117199
+        },
+        {
+          "epoch": 2,
+          "accuracy": 0.7022500038146973,
+          "violation": 0.0,
+          "lambda": 0.009178511872887611
+        },
+        {
+          "epoch": 3,
+          "accuracy": 0.6996250152587891,
+          "violation": 0.0,
+          "lambda": 0.014370286464691163
+        },
+        {
+          "epoch": 4,
+          "accuracy": 0.7049999833106995,
+          "violation": 0.0,
+          "lambda": 0.018423559106886395
+        },
+        {
+          "epoch": 5,
+          "accuracy": 0.7041249871253967,
+          "violation": 0.0,
+          "lambda": 0.021987990289926537
+        },
+        {
+          "epoch": 6,
+          "accuracy": 0.7036250233650208,
+          "violation": 0.0,
+          "lambda": 0.02662694104015828
+        },
+        {
+          "epoch": 7,
+          "accuracy": 0.7051249742507935,
+          "violation": 0.0,
+          "lambda": 0.03249970719218255
+        },
+        {
+          "epoch": 8,
+          "accuracy": 0.7049999833106995,
+          "violation": 0.0,
+          "lambda": 0.03706622216850519
+        },
+        {
+          "epoch": 9,
+          "accuracy": 0.706250011920929,
+          "violation": 0.0,
+          "lambda": 0.041699482202529906
+        },
+        {
+          "epoch": 10,
+          "accuracy": 0.7085000276565552,
+          "violation": 0.0,
+          "lambda": 0.045478750392794594
+        },
+        {
+          "epoch": 11,
+          "accuracy": 0.7073749899864197,
+          "violation": 0.0,
+          "lambda": 0.049888270907104015
+        },
+        {
+          "epoch": 12,
+          "accuracy": 0.7053750157356262,
+          "violation": 0.0,
+          "lambda": 0.054601912386715405
+        },
+        {
+          "epoch": 13,
+          "accuracy": 0.7092499732971191,
+          "violation": 0.0,
+          "lambda": 0.05990671318024399
+        },
+        {
+          "epoch": 14,
+          "accuracy": 0.7052500247955322,
+          "violation": 0.0,
+          "lambda": 0.06602123826742172
+        },
+        {
+          "epoch": 15,
+          "accuracy": 0.7083749771118164,
+          "violation": 0.0,
+          "lambda": 0.0716040990501642
+        },
+        {
+          "epoch": 16,
+          "accuracy": 0.7112500071525574,
+          "violation": 0.0,
+          "lambda": 0.07835784338414667
+        },
+        {
+          "epoch": 17,
+          "accuracy": 0.7067499756813049,
+          "violation": 0.0,
+          "lambda": 0.08366784807294604
+        },
+        {
+          "epoch": 18,
+          "accuracy": 0.7116249799728394,
+          "violation": 0.0,
+          "lambda": 0.08973588760942221
+        },
+        {
+          "epoch": 19,
+          "accuracy": 0.7076249718666077,
+          "violation": 0.0,
+          "lambda": 0.0944484093785286
+        }
+      ],
+      "convergence": {
+        "converged": false,
+        "violation_trend": "stable",
+        "lambda_trend": "increasing",
+        "initial_violation": 0.0,
+        "final_violation": 0.0,
+        "initial_lambda": 0.0002493796497583389,
+        "final_lambda": 0.0944484093785286
+      },
+      "final_lambda": 0.0944484093785286
+    }
+  },
+  "final_metrics": {
+    "demographic_parity": {
+      "metric": "demographic_parity_difference",
+      "value": 0.06589199501127678,
+      "ci": [
+        0.03234027829079737,
+        0.09848382793250449
+      ],
+      "effect_size": NaN,
+      "n_per_group": {
+        "0": 1282,
+        "1": 718
+      }
+    },
+    "equalized_odds": {
+      "metric": "equalized_odds_difference",
+      "value": 0.06080763461561174,
+      "ci": [
+        0.037121518679315055,
+        0.12443056163850183
+      ],
+      "effect_size": 1.8921775898520083,
+      "n_per_group": {
+        "0": 1282,
+        "1": 718
+      }
+    }
+  },
+  "model_performance": {
+    "accuracy": 0.705,
+    "precision": 0.5734265734265734,
+    "recall": 0.25949367088607594,
+    "f1": 0.3572984749455338
+  },
+  "comparison": {
+    "improvement": -0.023478630622239025,
+    "threshold_status": "fail"
+  },
+  "recommendations": {
+    "data_stage": [
+      "Collect more balanced data for underrepresented groups. 'Other' represents only 5.0% of the sample.",
+      "Collect more balanced data for underrepresented groups. 'Non-binary' represents only 4.2% of the sample.",
+      "Investigate feature 'hired' showing significant differences across race groups (p=0.0000, test=chi2)."
+    ],
+    "training_stage": [
+      "Increase fairness constraint strength: reduce `dp_tolerance` from 0.02 to 0.01 or increase `lambda_lr` from 0.01 to 0.02 to better enforce demographic parity."
+    ],
+    "evaluation_stage": [],
+    "deployment_stage": [
+      "⚠️ DO NOT DEPLOY without additional mitigation. Current DP difference (0.0659) exceeds policy threshold (0.0500)."
+    ]
+  }
+}
