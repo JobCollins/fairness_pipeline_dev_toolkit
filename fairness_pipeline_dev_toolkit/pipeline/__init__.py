@@ -1,11 +1,33 @@
 """
-Pipeline Module package (Phase 0 scaffolding).
+Public API for pipeline utilities.
 
-Subpackages:
-- detectors: bias detection primitives
-- transformers: sklearn-compatible fairness mitigations
-- config: config loader & schema
-- orchestration: build pipelines from config
+Public exports:
+- PipelineConfig, load_config
+- build_pipeline, apply_pipeline, run_detectors
+- InstanceReweighting, DisparateImpactRemover, ReweighingTransformer, ProxyDropper
+
+Internal modules (do not import directly):
+- .orchestration.registry
+- .detectors.core
 """
 
-__all__ = ["detectors", "transformers", "config", "orchestration"]
+from .config import PipelineConfig, load_config
+from .orchestration import apply_pipeline, build_pipeline, run_detectors
+from .transformers import (
+    DisparateImpactRemover,
+    InstanceReweighting,
+    ProxyDropper,
+    ReweighingTransformer,
+)
+
+__all__ = [
+    "PipelineConfig",
+    "load_config",
+    "build_pipeline",
+    "apply_pipeline",
+    "run_detectors",
+    "InstanceReweighting",
+    "DisparateImpactRemover",
+    "ReweighingTransformer",
+    "ProxyDropper",
+]

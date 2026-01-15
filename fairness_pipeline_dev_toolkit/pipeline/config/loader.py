@@ -8,6 +8,8 @@ from typing import Any, Dict, List, Optional, Sequence
 
 import yaml
 
+from fairness_pipeline_dev_toolkit.exceptions import ConfigValidationError
+
 
 @dataclass
 class PipelineStep:
@@ -38,10 +40,6 @@ class PipelineConfig:
     validation_threshold: Optional[float] = (
         None  # maximum allowed value for primary fairness metric
     )
-
-
-class ConfigValidationError(ValueError):
-    """Raised when the pipeline config does not meet minimal schema expectations."""
 
 
 def _ensure_list_of_strings(value: Any, field_name: str) -> List[str]:
