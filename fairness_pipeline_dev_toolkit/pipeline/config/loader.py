@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 import os.path as osp
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 import yaml
@@ -227,6 +228,48 @@ def _shallow_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, 
     return out
 
 
+def find_config_file(
+    explicit_path: Optional[str] = None,
+    profile: Optional[str] = None,
+) -> Optional[Path]:
+    """
+    Discover configuration file in order of precedence:
+    1. explicit_path (if provided)
+    2. .fairpipe/config.yml (project-local)
+    3. ~/.fairpipe/config.yml (user-global)
+    4. None (not found)
+
+    Args:
+        explicit_path: Explicit path to config file (highest priority)
+        profile: Profile name (not used for discovery, but kept for API consistency)
+
+    Returns:
+        Path to config file if found, None otherwise
+    """
+    # 1. Explicit path (highest priority)
+    if explicit_path is not None:
+        path = Path(explicit_path)
+        if path.exists():
+            return path.resolve()
+        return None
+
+    # 2. Project-local: .fairpipe/config.yml
+    # Search from current directory up to filesystem root
+    current = Path.cwd()
+    for parent in [current] + list(current.parents):
+        config_path = parent / ".fairpipe" / "config.yml"
+        if config_path.exists():
+            return config_path.resolve()
+
+    # 3. User-global: ~/.fairpipe/config.yml
+    home_config = Path.home() / ".fairpipe" / "config.yml"
+    if home_config.exists():
+        return home_config.resolve()
+
+    # 4. Not found
+    return None
+
+
 def _auto_choose_profile(profiles: Dict[str, Any]) -> Optional[str]:
     """
     Robust auto-detection under pytest:
@@ -266,6 +309,12 @@ def load_config(
     """
     Load YAML config with optional 'profiles' support.
 
+    Configuration file discovery (when path=None and no text/obj provided):
+      1. explicit_path (if provided)
+      2. .fairpipe/config.yml (project-local, searched from current directory up)
+      3. ~/.fairpipe/config.yml (user-global)
+      4. None (raises error if no text/obj provided)
+
     Resolution order when 'profiles' is present:
       1) explicit 'profile' argument
       2) env var FPDT_PROFILE
@@ -276,10 +325,35 @@ def load_config(
     When a profile is chosen, it is shallow-merged over top-level keys so that
     shared defaults (e.g., sensitive/alpha/benchmarks) still apply.
     If 'profiles' is absent, treat the YAML as a single flat config (back-compatible).
+
+    Args:
+        path: Path to config file. If None and no text/obj provided, attempts discovery.
+        text: YAML config as string (alternative to path)
+        obj: Config as dict (alternative to path)
+        profile: Profile name to use (if config has profiles)
+
+    Returns:
+        PipelineConfig instance
+
+    Raises:
+        ValueError: If multiple sources provided or config file not found
+        ConfigValidationError: If config validation fails
     """
     provided = sum(x is not None for x in (path, text, obj))
-    if provided != 1:
+    if provided > 1:
         raise ValueError("Provide exactly one of: path=, text=, or obj=.")
+
+    # If no explicit source provided, attempt file discovery
+    if provided == 0:
+        discovered_path = find_config_file(explicit_path=path, profile=profile)
+        if discovered_path is None:
+            raise ValueError(
+                "No config source provided and no config file found.\n"
+                "Provide one of: path=, text=, or obj=, or place config at:\n"
+                "  - .fairpipe/config.yml (project-local)\n"
+                "  - ~/.fairpipe/config.yml (user-global)"
+            )
+        path = str(discovered_path)
 
     if path is not None:
         with open(path, "r", encoding="utf-8") as f:
