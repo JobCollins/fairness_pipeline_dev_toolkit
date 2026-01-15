@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -30,6 +31,12 @@ from typing import List, Optional
 import numpy as np
 import pandas as pd
 
+from fairness_pipeline_dev_toolkit.config.env import (
+    FAIRPIPE_CONFIG_PATH,
+    FAIRPIPE_MIN_GROUP_SIZE,
+    FAIRPIPE_MLFLOW_EXPERIMENT,
+    get_env_int,
+)
 from fairness_pipeline_dev_toolkit.integration.reporting import to_markdown_report
 from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
 from fairness_pipeline_dev_toolkit.pipeline.config import load_config
@@ -252,7 +259,11 @@ def cmd_pipeline_run(args: argparse.Namespace) -> int:
       6) write transformed CSV and optional JSON/Markdown reports
     """
     # 1) Load config
-    cfg = load_config(args.config, profile=getattr(args, "profile", None))
+    config_path = args.config or os.getenv(FAIRPIPE_CONFIG_PATH)
+    if not config_path:
+        print("Error: --config is required or set FAIRPIPE_CONFIG_PATH environment variable")
+        return 1
+    cfg = load_config(config_path, profile=getattr(args, "profile", None))
 
     # 2) Load data
     df = pd.read_csv(args.csv)
@@ -439,11 +450,16 @@ def cmd_run_pipeline(args: argparse.Namespace) -> int:
     """
     import pandas as pd
 
+    from fairness_pipeline_dev_toolkit.config.env import FAIRPIPE_CONFIG_PATH
     from fairness_pipeline_dev_toolkit.integration.orchestrator import execute_workflow
     from fairness_pipeline_dev_toolkit.pipeline.config import load_config
 
     # Load config
-    cfg = load_config(args.config, profile=getattr(args, "profile", None))
+    config_path = args.config or os.getenv(FAIRPIPE_CONFIG_PATH)
+    if not config_path:
+        print("Error: --config is required or set FAIRPIPE_CONFIG_PATH environment variable")
+        return 1
+    cfg = load_config(config_path, profile=getattr(args, "profile", None))
 
     if cfg.training is None:
         print("Error: Config must include a 'training' section for integrated workflow.")
@@ -527,7 +543,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_val.add_argument(
         "--sensitive", nargs="+", required=True, help="Sensitive attribute column(s)"
     )
-    p_val.add_argument("--min-group-size", type=int, default=30, help="Minimum group size")
+    p_val.add_argument(
+        "--min-group-size",
+        type=int,
+        default=get_env_int(FAIRPIPE_MIN_GROUP_SIZE, default=30),
+        help="Minimum group size (default: 30, or FAIRPIPE_MIN_GROUP_SIZE env var)",
+    )
     p_val.add_argument(
         "--backend",
         choices=["auto", "native", "fairlearn", "aequitas"],
@@ -555,7 +576,12 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # Pipeline
     p_pipe = sub.add_parser("pipeline", help="Run detectors + apply configured pipeline on a CSV")
-    p_pipe.add_argument("--config", required=True, help="Path to pipeline.config.yml")
+    p_pipe.add_argument(
+        "--config",
+        required=False,
+        default=os.getenv(FAIRPIPE_CONFIG_PATH),
+        help="Path to pipeline.config.yml (or set FAIRPIPE_CONFIG_PATH env var)",
+    )
     p_pipe.add_argument(
         "--profile", required=False, help="Config profile name (if YAML has profiles)"
     )
@@ -618,12 +644,25 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_run.add_argument(
         "--output-dir", help="Directory to save artifacts (workflow_results.json, model, etc.)"
     )
-    p_run.add_argument("--min-group-size", type=int, default=30, help="Minimum group size")
+    p_run.add_argument(
+        "--config",
+        required=False,
+        default=os.getenv(FAIRPIPE_CONFIG_PATH),
+        help="Path to config.yml with training section (or set FAIRPIPE_CONFIG_PATH env var)",
+    )
+    p_run.add_argument(
+        "--min-group-size",
+        type=int,
+        default=get_env_int(FAIRPIPE_MIN_GROUP_SIZE, default=30),
+        help="Minimum group size (default: 30, or FAIRPIPE_MIN_GROUP_SIZE env var)",
+    )
     p_run.add_argument(
         "--train-size", type=float, default=0.8, help="Proportion of data for training"
     )
     p_run.add_argument(
-        "--mlflow-experiment", help="MLflow experiment name (enables MLflow logging)"
+        "--mlflow-experiment",
+        default=os.getenv(FAIRPIPE_MLFLOW_EXPERIMENT),
+        help="MLflow experiment name (enables MLflow logging, or set FAIRPIPE_MLFLOW_EXPERIMENT env var)",
     )
     p_run.add_argument("--mlflow-run-name", help="MLflow run name (optional)")
     p_run.set_defaults(func=cmd_run_pipeline)

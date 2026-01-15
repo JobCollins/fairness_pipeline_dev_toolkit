@@ -4,12 +4,19 @@ from __future__ import annotations
 # Users can import from either location: pipeline.config or exceptions
 from fairness_pipeline_dev_toolkit.exceptions import ConfigValidationError
 
-from .loader import PipelineConfig, PipelineStep, TrainingConfig, load_config
+from .loader import (
+    PipelineConfig,
+    PipelineStep,
+    TrainingConfig,
+    find_config_file,
+    load_config,
+)
 
 __all__ = [
     "PipelineConfig",
     "PipelineStep",
     "TrainingConfig",
     "load_config",
+    "find_config_file",
     "ConfigValidationError",
 ]
