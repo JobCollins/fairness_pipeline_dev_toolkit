@@ -636,19 +636,18 @@ def main(argv: Optional[List[str]] = None) -> int:
         "run-pipeline",
         help="Execute integrated three-step workflow (baseline → transform+train → validate)",
     )
-    p_run.add_argument("--config", required=True, help="Path to config.yml with training section")
+    p_run.add_argument(
+        "--config",
+        required=False,
+        default=os.getenv(FAIRPIPE_CONFIG_PATH),
+        help="Path to config.yml with training section (or set FAIRPIPE_CONFIG_PATH env var)",
+    )
     p_run.add_argument(
         "--profile", required=False, help="Config profile name (if YAML has profiles)"
     )
     p_run.add_argument("--csv", required=True, help="Input CSV data")
     p_run.add_argument(
         "--output-dir", help="Directory to save artifacts (workflow_results.json, model, etc.)"
-    )
-    p_run.add_argument(
-        "--config",
-        required=False,
-        default=os.getenv(FAIRPIPE_CONFIG_PATH),
-        help="Path to config.yml with training section (or set FAIRPIPE_CONFIG_PATH env var)",
     )
     p_run.add_argument(
         "--min-group-size",
