@@ -826,6 +826,7 @@ This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) fo
 
 - **API Reference**: See [docs/api.md](docs/api.md) for complete API documentation
 - **Integration Guide**: See [docs/integration_guide.md](docs/integration_guide.md) for integration examples
+- **Versioning Strategy**: See [docs/VERSIONING.md](docs/VERSIONING.md) for versioning and backward compatibility policy
 - **Architecture Decisions**: See [docs/ADR-001-architecture.md](docs/ADR-001-architecture.md)
 - **Comprehensive Guide**: See [DOCS.md](DOCS.md) for detailed usage across the ML lifecycle
 - **Demo Notebooks**: Explore `demo_*.ipynb` for complete examples
