@@ -884,4 +884,6 @@ print(__version__)  # "0.5.0"
 
 The toolkit follows semantic versioning. Public APIs (classes and functions listed in this document) are stable within the same major version. Internal modules may change without notice.
 
+For detailed information on versioning strategy, backward compatibility guarantees, deprecation policy, and migration guides, see the [Versioning Strategy](VERSIONING.md) document.
+
 For questions or issues, see the [Integration Guide](integration_guide.md) or visit the [GitHub repository](https://github.com/SvrusIO/fAIr).
