@@ -1,168 +1,152 @@
 # Fairness Pipeline Development Toolkit
 
-**Version:** 0.5.0
+**Version:** 0.5.0  
+**Status:** Production-ready | Available on [PyPI](https://pypi.org/project/fairness-pipeline-dev-toolkit/)
 
 A unified, statistically-rigorous framework for **detecting**, **mitigating**, **training**, and **validating** fairness in ML workflows. The toolkit provides both **modular components** and an **integrated end-to-end workflow** spanning data-to-model fairness — enabling teams to move from ad-hoc checks to automated, continuous fairness assurance in CI/CD.
 
-## What This Toolkit Is
+---
 
-The Fairness Pipeline Development Toolkit is a Python package designed for ML engineers, data scientists, and fairness practitioners who need to:
+## Quick Install
 
-- **Measure fairness** in datasets and model predictions using statistical methods
-- **Detect bias** in data through automated analysis (representation, statistical disparities, proxy variables)
-- **Mitigate bias** using sklearn-compatible transformers (reweighing, disparate impact removal, proxy dropping)
-- **Train fairness-aware models** using constraint-based methods (Fairlearn reductions, PyTorch regularizers, Lagrangian optimization)
-- **Validate models** against fairness thresholds with statistical confidence intervals
-- **Monitor fairness** in production with real-time tracking, drift detection, and alerting
+### From PyPI (Recommended for Production)
 
-## Who This Toolkit Is For
+The toolkit is available on PyPI and can be installed with pip:
 
-- **ML Engineers**: Building and deploying fair ML models
-- **Data Engineers**: Implementing fairness checks in data pipelines
-- **Fairness Practitioners**: Conducting fairness audits and assessments
-- **Researchers**: Experimenting with fairness mitigation techniques
-- **DevOps/CI/CD Teams**: Integrating fairness validation into automated pipelines
+```bash
+pip install fairness-pipeline-dev-toolkit
+```
 
-## What Problem It Solves
+This installs the core package with all essential dependencies. For optional features, see [Installation Options](#installation-options) below.
 
-Traditional ML workflows often lack systematic fairness assessment, leading to:
-- Models that perpetuate or amplify existing biases
-- Unfair outcomes for protected groups
-- Compliance risks with fairness regulations
-- Lack of visibility into fairness metrics over time
+## Installation Options
 
-This toolkit addresses these issues by providing:
-- **Automated bias detection** before model training
-- **Fairness-aware training methods** that embed constraints directly into learning
-- **Statistical validation** with confidence intervals and effect sizes
-- **Production monitoring** to detect fairness drift over time
-- **CI/CD integration** for continuous fairness assurance
+### Core Installation (Default)
 
-## Recommended Deployment and Usage Model
+The base installation includes all essential fairness measurement and pipeline components:
 
-The toolkit is designed as a **Python package with CLI entry points**, supporting multiple usage patterns:
+```bash
+pip install fairness-pipeline-dev-toolkit
+```
 
-1. **CLI Usage (Primary)**: Run fairness checks and workflows from the command line
-   ```bash
-   fairpipe validate --csv data.csv --y-true y_true --y-pred y_pred --sensitive gender
-   fairpipe run-pipeline --config config.yml --csv data.csv --output-dir artifacts/
-   ```
+**Included:**
+- Fairness metrics computation (demographic parity, equalized odds, etc.)
+- Bias detection and mitigation transformers
+- Statistical validation (bootstrap CIs, effect sizes)
+- Pipeline orchestration
+- Integration with scikit-learn
 
-2. **Programmatic Usage**: Import components into Python code
-   ```python
-   from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
-   analyzer = FairnessAnalyzer()
-   results = analyzer.demographic_parity_difference(y_pred, sensitive)
-   ```
+### Optional Extras
 
-3. **Integrated Workflow**: End-to-end automation from raw data to validated model
-   ```bash
-   fairpipe run-pipeline --config config.yml --csv data.csv --output-dir artifacts/
-   ```
+Install additional features using extra dependency groups:
 
-The toolkit is **not** designed as:
-- A web service or REST API (no HTTP endpoints)
-- A long-running daemon (CLI runs once and exits)
-- A distributed computing framework (single-threaded execution)
-- A database-backed system (file-based I/O only)
+```bash
+# Training methods (PyTorch-based fairness-aware training)
+pip install fairness-pipeline-dev-toolkit[training]
+
+# Production monitoring tools (dashboards and drift detection)
+pip install fairness-pipeline-dev-toolkit[monitoring]
+
+# External metric backends (Fairlearn, Aequitas adapters)
+pip install fairness-pipeline-dev-toolkit[adapters]
+
+# Install all optional dependencies
+pip install fairness-pipeline-dev-toolkit[training,monitoring,adapters]
+```
+
+**Optional dependency groups:**
+- **`training`**: PyTorch-based training methods (regularized loss, Lagrangian constraints, calibration)
+- **`monitoring`**: Production monitoring tools (Streamlit/Dash dashboards, drift detection, alerting)
+- **`adapters`**: External metric backends (Fairlearn, Aequitas) for compatibility with existing tools
+
+### Development Installation
+
+For development or to use the latest features from source:
+
+```bash
+git clone https://github.com/SvrusIO/fAIr
+cd fairness-pipeline-dev-toolkit
+pip install -e ".[training,monitoring,adapters,dev]"
+```
+
+### System Requirements
+
+- **Python**: 3.10 or higher (tested on 3.10, 3.11, 3.12)
+- **Operating System**: macOS, Linux, or Windows
+- **Disk Space**: 
+  - Core: ~500 MB
+  - With training: ~2 GB
+  - With monitoring: ~1 GB
+
+**Note on PyTorch**: If installing the `training` extra, PyTorch will be installed automatically. For GPU support, install PyTorch separately following instructions at [pytorch.org/get-started](https://pytorch.org/get-started/locally/).
 
 ---
 
-## Getting Started (Local Setup)
+## Quick Start
 
-This section provides step-by-step instructions to run the toolkit locally from scratch.
+### 1. Install the Package
 
-### Prerequisites
-
-**System Requirements:**
-- **Python**: 3.10 or higher (tested on Python 3.10, 3.11, 3.12)
-- **Operating System**: macOS, Linux, or Windows
-- **Package Manager**: `pip` (Python's package installer)
-- **Optional**: `conda` (alternative package manager)
-
-**System Dependencies:**
-- No system-level dependencies required (all dependencies are Python packages)
-- For PyTorch training: CUDA support optional (CPU-only works)
-
-**Disk Space:**
-- Minimum: ~500 MB for core installation
-- With training extras: ~2 GB (includes PyTorch)
-- With monitoring extras: ~1 GB (includes Streamlit, Dash, Plotly)
-
-### Step 1: Clone or Download the Repository
-
-If you have the repository:
 ```bash
-cd fairness_pipeline_dev_toolkit
+pip install fairness-pipeline-dev-toolkit
 ```
 
-If you're installing from a package (future PyPI release):
+### 2. Quick CLI Usage
+
+Run a quick fairness validation on your predictions:
+
 ```bash
-# Not yet available on PyPI - install from source for now
+fairpipe validate \
+  --csv data.csv \
+  --y-true y_true \
+  --y-pred y_pred \
+  --sensitive gender \
+  --with-ci \
+  --out report.md
 ```
 
-### Step 2: Create a Virtual Environment
+Run the complete integrated workflow (baseline → transform+train → validate):
 
-**Using venv (recommended):**
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+fairpipe run-pipeline \
+  --config config.yml \
+  --csv data.csv \
+  --output-dir artifacts/
 ```
 
-**Using conda:**
-```bash
-conda create -n fairness_toolkit python=3.10
-conda activate fairness_toolkit
+### 3. Quick Python Usage
+
+```python
+from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
+import pandas as pd
+
+# Load your data
+df = pd.read_csv("data.csv")
+
+# Initialize analyzer
+analyzer = FairnessAnalyzer(min_group_size=30)
+
+# Compute demographic parity difference with confidence intervals
+result = analyzer.demographic_parity_difference(
+    y_pred=df["y_pred"].to_numpy(),
+    sensitive=df["gender"].to_numpy(),
+    with_ci=True
+)
+
+print(f"DPD: {result.value:.4f}")
+print(f"95% CI: [{result.ci[0]:.4f}, {result.ci[1]:.4f}]")
 ```
 
-### Step 3: Install Dependencies
+For more examples, see [Usage Examples](#usage-examples) below or check the [Integration Guide](docs/integration_guide.md).
 
-**Option A: Core Installation (Minimum)**
-```bash
-# Install core toolkit with adapters (Fairlearn, Aequitas)
-pip install -e .[adapters]
-```
+---
 
-**Option B: Full Installation (Recommended)**
-```bash
-# Install core + training + monitoring extras
-pip install -e .[adapters,training,monitoring]
-```
+## Usage Examples
 
-**Option C: With Pinned Dependencies (Reproducible)**
-```bash
-# Install pip-tools first
-pip install pip-tools
+### Example 1: Fairness Validation
 
-# Generate pinned requirements
-pip-compile --extra training --extra monitoring --extra adapters \
-    --output-file=requirements.txt requirements-dev.in
+Validate fairness metrics on predictions with confidence intervals and effect sizes.
 
-# Install from pinned requirements
-pip install -r requirements.txt
-```
-
-**Note on PyTorch**: If you're installing the `training` extra, PyTorch will be installed automatically. For GPU support, you may need to install PyTorch separately first following instructions at [pytorch.org/get-started](https://pytorch.org/get-started/locally/).
-
-### Step 4: Verify Installation
-
-Check that the CLI is available:
-```bash
-fairpipe version
-```
-
-You should see: `0.5.0`
-
-If you get a `ModuleNotFoundError`, try:
-```bash
-python -m fairness_pipeline_dev_toolkit.cli.main version
-```
-
-### Step 5: Run Your First Example
-
-**Example 1: Quick Fairness Validation**
-
-Using the provided sample data:
+**CLI:**
 ```bash
 fairpipe validate \
   --csv dev_sample.csv \
@@ -174,16 +158,35 @@ fairpipe validate \
   --out artifacts/validation_report.md
 ```
 
-This will:
-- Load `dev_sample.csv`
-- Compute demographic parity and equalized odds differences
-- Calculate bootstrap confidence intervals
-- Compute effect sizes
-- Save a markdown report to `artifacts/validation_report.md`
+**Python:**
+```python
+import pandas as pd
+from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
 
-**Example 2: Pipeline-Only Workflow**
+# Load data
+df = pd.read_csv("data.csv")
 
-Run bias detection and mitigation (without training):
+# Initialize analyzer
+analyzer = FairnessAnalyzer(min_group_size=30, backend="native")
+
+# Compute demographic parity difference with confidence intervals
+result = analyzer.demographic_parity_difference(
+    y_pred=df["y_pred"].to_numpy(),
+    sensitive=df["gender"].to_numpy(),
+    with_ci=True,
+    ci_level=0.95
+)
+
+print(f"Demographic Parity Difference: {result.value:.4f}")
+print(f"95% CI: [{result.ci[0]:.4f}, {result.ci[1]:.4f}]")
+print(f"Group sizes: {result.n_per_group}")
+```
+
+### Example 2: Bias Detection and Mitigation Pipeline
+
+Detect bias in data and apply mitigation transformers.
+
+**CLI:**
 ```bash
 fairpipe pipeline \
   --config pipeline.config.yml \
@@ -193,18 +196,37 @@ fairpipe pipeline \
   --report-md artifacts/pipeline_report.md
 ```
 
-This will:
-- Detect bias in the data (representation, statistical, proxy analysis)
-- Apply configured transformers (reweighing, disparate impact removal)
-- Save transformed data to `artifacts/transformed_data.csv`
-- Save detection results to `artifacts/detectors.json`
-- Generate a report to `artifacts/pipeline_report.md`
+**Python:**
+```python
+import pandas as pd
+from fairness_pipeline_dev_toolkit.pipeline import (
+    load_config,
+    build_pipeline,
+    apply_pipeline,
+    run_detectors
+)
 
-**Example 3: Integrated Workflow (Full Pipeline)**
+# Load configuration
+config = load_config("pipeline.config.yml")
+df = pd.read_csv("data.csv")
 
-Run the complete three-step workflow:
+# Step 1: Run bias detection
+detector_report = run_detectors(df=df, cfg=config)
+print("Bias Detection Results:", detector_report.body)
+
+# Step 2: Build and apply mitigation pipeline
+pipeline = build_pipeline(config)
+transformed_df, _ = apply_pipeline(pipeline, df)
+transformed_df.to_csv("transformed_data.csv", index=False)
+```
+
+### Example 3: Integrated Workflow (Baseline → Transform+Train → Validate)
+
+Run the complete end-to-end workflow: baseline measurement, data transformation, model training, and validation.
+
+**CLI:**
 ```bash
-# First, create a config.yml with training section
+# Create config.yml
 cat > config.yml << EOF
 sensitive: ["sensitive"]
 pipeline:
@@ -220,7 +242,7 @@ fairness_metric: "demographic_parity_difference"
 validation_threshold: 0.05
 EOF
 
-# Then run the integrated workflow
+# Run workflow
 fairpipe run-pipeline \
   --config config.yml \
   --csv dev_sample.csv \
@@ -228,112 +250,13 @@ fairpipe run-pipeline \
   --min-group-size 30
 ```
 
-This will:
-1. **Baseline Measurement**: Measure fairness on raw data
-2. **Transform + Train**: Apply bias mitigation, then train a fairness-aware model
-3. **Final Validation**: Compare final metrics to baseline and check threshold
-
-### Step 6: Check Outputs
-
-All outputs are saved to the `artifacts/` directory (or the directory you specify with `--output-dir`):
-
-```
-artifacts/
-├── validation_report.md          # Fairness validation report
-├── transformed_data.csv          # Data after bias mitigation
-├── detectors.json                # Bias detection results
-├── pipeline_report.md            # Pipeline execution report
-└── workflow/                     # Integrated workflow outputs
-    ├── workflow_results.json     # Complete workflow results
-    ├── baseline_metrics.json     # Baseline fairness metrics
-    ├── final_metrics.json         # Final model fairness metrics
-    ├── model.pkl                 # Trained model (if applicable)
-    └── config.yml                # Configuration used
-```
-
-### Step 7: Explore Demo Notebooks
-
-The repository includes several demo notebooks:
-
-- `demo_integrated.ipynb`: Complete integrated workflow example
-- `demo_training.ipynb`: Training module examples
-- `demo_monitoring.ipynb`: Production monitoring examples
-- `demo_pipe.ipynb`: Pipeline module examples
-
-To run notebooks:
-```bash
-# Install Jupyter if not already installed
-pip install jupyter
-
-# Launch Jupyter
-jupyter notebook
-```
-
-Then open any of the `demo_*.ipynb` files.
-
----
-
-## Usage Examples
-
-### Minimal Example: Fairness Validation
-
+**Python:**
 ```python
 import pandas as pd
-from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
+from fairness_pipeline_dev_toolkit.integration import execute_workflow
+from fairness_pipeline_dev_toolkit.pipeline import load_config
 
-# Load data
-df = pd.read_csv("data.csv")
-
-# Initialize analyzer
-analyzer = FairnessAnalyzer(min_group_size=30, backend="native")
-
-# Compute demographic parity difference
-result = analyzer.demographic_parity_difference(
-    y_pred=df["y_pred"].to_numpy(),
-    sensitive=df["gender"].to_numpy(),
-    with_ci=True,
-    ci_level=0.95
-)
-
-print(f"Demographic Parity Difference: {result.value:.4f}")
-print(f"95% CI: [{result.ci[0]:.4f}, {result.ci[1]:.4f}]")
-```
-
-### Pipeline Example: Bias Detection and Mitigation
-
-```python
-import pandas as pd
-from fairness_pipeline_dev_toolkit.pipeline.config import load_config
-from fairness_pipeline_dev_toolkit.pipeline.orchestration import (
-    build_pipeline,
-    apply_pipeline,
-    run_detectors
-)
-
-# Load config and data
-config = load_config("pipeline.config.yml")
-df = pd.read_csv("data.csv")
-
-# Run bias detection
-detector_report = run_detectors(df=df, cfg=config)
-print("Bias Detection Results:", detector_report.body)
-
-# Build and apply pipeline
-pipeline = build_pipeline(config)
-transformed_df, _ = apply_pipeline(pipeline, df)
-
-# Save results
-transformed_df.to_csv("transformed_data.csv", index=False)
-```
-
-### Integrated Workflow Example
-
-```python
-import pandas as pd
-from fairness_pipeline_dev_toolkit.integration.orchestrator import execute_workflow
-from fairness_pipeline_dev_toolkit.pipeline.config import load_config
-
-# Load config and data
+# Load configuration and data
 config = load_config("config.yml")
 df = pd.read_csv("data.csv")
 
@@ -349,10 +272,60 @@ result = execute_workflow(
 # Check validation result
 if result.validation_result.passed:
     print("✅ Validation PASSED")
+    print(f"Improvement: {result.validation_result.improvement:.4f}")
 else:
     print("❌ Validation FAILED")
     print(f"Reason: {result.validation_result.message}")
+    print(f"Baseline: {result.validation_result.baseline_metric_value:.4f}")
+    print(f"Final: {result.validation_result.final_metric_value:.4f}")
 ```
+
+---
+
+## Public API
+
+### Core Components
+
+**Metrics:**
+- `fairness_pipeline_dev_toolkit.metrics.FairnessAnalyzer` - Main class for computing fairness metrics
+- `fairness_pipeline_dev_toolkit.metrics.MetricResult` - Result object containing metric values and metadata
+
+**Pipeline:**
+- `fairness_pipeline_dev_toolkit.pipeline.config.PipelineConfig` - Configuration dataclass
+- `fairness_pipeline_dev_toolkit.pipeline.config.load_config` - Load configuration from YAML
+- `fairness_pipeline_dev_toolkit.pipeline.build_pipeline` - Build pipeline from config
+- `fairness_pipeline_dev_toolkit.pipeline.apply_pipeline` - Apply pipeline to data
+- `fairness_pipeline_dev_toolkit.pipeline.run_detectors` - Run bias detection
+
+**Transformers:**
+- `fairness_pipeline_dev_toolkit.pipeline.InstanceReweighting` - Instance reweighing transformer
+- `fairness_pipeline_dev_toolkit.pipeline.DisparateImpactRemover` - Disparate impact removal
+- `fairness_pipeline_dev_toolkit.pipeline.ReweighingTransformer` - Reweighing transformer
+- `fairness_pipeline_dev_toolkit.pipeline.ProxyDropper` - Proxy variable dropper
+
+**Integration:**
+- `fairness_pipeline_dev_toolkit.integration.execute_workflow` - Execute end-to-end workflow
+- `fairness_pipeline_dev_toolkit.integration.WorkflowResult` - Workflow execution result
+- `fairness_pipeline_dev_toolkit.integration.ValidationResult` - Validation result
+
+**Training:**
+- `fairness_pipeline_dev_toolkit.training.ReductionsWrapper` - Fairlearn reductions wrapper
+- `fairness_pipeline_dev_toolkit.training.FairnessRegularizerLoss` - PyTorch fairness regularizer
+- `fairness_pipeline_dev_toolkit.training.LagrangianFairnessTrainer` - Lagrangian constraint trainer
+- `fairness_pipeline_dev_toolkit.training.GroupFairnessCalibrator` - Group-specific calibration
+
+**Monitoring:**
+- `fairness_pipeline_dev_toolkit.monitoring.RealTimeFairnessTracker` - Real-time metric tracking
+- `fairness_pipeline_dev_toolkit.monitoring.FairnessDriftAndAlertEngine` - Drift detection and alerting
+- `fairness_pipeline_dev_toolkit.monitoring.FairnessReportingDashboard` - Reporting dashboard
+
+**Exceptions:**
+- `fairness_pipeline_dev_toolkit.exceptions.FairnessToolkitError` - Base exception
+- `fairness_pipeline_dev_toolkit.exceptions.ConfigValidationError` - Configuration validation error
+- `fairness_pipeline_dev_toolkit.exceptions.MetricComputationError` - Metric computation error
+- `fairness_pipeline_dev_toolkit.exceptions.PipelineExecutionError` - Pipeline execution error
+
+See [API Reference](docs/api.md) for complete documentation.
 
 ---
 
@@ -606,6 +579,18 @@ validation_threshold: 0.05
        device: "cpu"
    ```
 
+### Environment Variables
+
+The toolkit supports configuration via environment variables:
+
+```bash
+export FAIRPIPE_CONFIG_PATH="config.yml"
+export FAIRPIPE_MIN_GROUP_SIZE=30
+export FAIRPIPE_MLFLOW_EXPERIMENT="fairness_workflow"
+```
+
+See [Integration Guide](docs/integration_guide.md) for more details.
+
 ---
 
 ## Modules Overview
@@ -745,7 +730,6 @@ fairpipe run-pipeline --config config.yml --csv data.csv --output-dir artifacts/
 ### Non-Goals
 
 The toolkit is **not** designed to:
-
 - Provide a web UI or dashboard (monitoring apps are separate)
 - Support real-time streaming inference (batch processing only)
 - Replace domain expertise in fairness assessment
@@ -840,8 +824,10 @@ This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) fo
 
 ## Additional Resources
 
-- **Comprehensive Guide**: See [DOCS.md](DOCS.md) for detailed usage across the ML lifecycle
+- **API Reference**: See [docs/api.md](docs/api.md) for complete API documentation
+- **Integration Guide**: See [docs/integration_guide.md](docs/integration_guide.md) for integration examples
 - **Architecture Decisions**: See [docs/ADR-001-architecture.md](docs/ADR-001-architecture.md)
+- **Comprehensive Guide**: See [DOCS.md](DOCS.md) for detailed usage across the ML lifecycle
 - **Demo Notebooks**: Explore `demo_*.ipynb` for complete examples
 - **Test Suite**: Review `tests/` for usage patterns and edge cases
 
