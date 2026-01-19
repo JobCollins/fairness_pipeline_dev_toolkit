@@ -12,6 +12,7 @@ import pytest
 
 from fairness_pipeline_dev_toolkit.cli.main import (
     cmd_calibrate,
+    cmd_sample_check,
     cmd_train_lagrangian,
     cmd_train_regularized,
     cmd_version,
@@ -53,6 +54,59 @@ class TestCmdSampleCheck:
         except SystemExit as e:
             # SystemExit(0) is expected for --help
             assert e.code == 0
+
+    def test_sample_check_when_file_exists(self, tmp_path, monkeypatch, capsys):
+        """Test cmd_sample_check when dev_sample.csv exists."""
+        # Create dev_sample.csv in tmp_path
+        sample_file = tmp_path / "dev_sample.csv"
+        sample_file.write_text("col1,col2\n1,2\n3,4\n")
+
+        # Change to tmp_path directory
+        import os
+
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+
+            # Create args object
+            class Args:
+                pass
+
+            exit_code = cmd_sample_check(Args())
+            assert exit_code == 0
+            captured = capsys.readouterr()
+            assert "Sample data exists" in captured.out or "✅" in captured.out
+        finally:
+            os.chdir(original_cwd)
+
+    def test_sample_check_when_file_not_exists(self, tmp_path, monkeypatch, capsys):
+        """Test cmd_sample_check when dev_sample.csv does not exist."""
+        # Ensure dev_sample.csv does not exist in tmp_path
+        sample_file = tmp_path / "dev_sample.csv"
+        if sample_file.exists():
+            sample_file.unlink()
+
+        # Change to tmp_path directory
+        import os
+
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+
+            # Create args object
+            class Args:
+                pass
+
+            exit_code = cmd_sample_check(Args())
+            assert exit_code == 0  # Should return 0 (non-blocking)
+            captured = capsys.readouterr()
+            assert (
+                "not found" in captured.out
+                or "⚠️" in captured.out
+                or "skipping" in captured.out.lower()
+            )
+        finally:
+            os.chdir(original_cwd)
 
 
 class TestCmdTrainRegularized:

@@ -64,7 +64,7 @@ def bootstrap_ci(
     if method == "percentile":
         return _percentile_ci(stats, level)
     elif method == "bca":
-        return bca_ci(x, stat_fn, stats, level)
+        return bca_ci(x, stat_fn, stats, level=level)
     else:
         raise ValueError(f"Unknown bootstrap method: {method}")
 
@@ -135,13 +135,21 @@ def bca_ci(
 # ------------------helpers------------------#
 def _z(p: float) -> float:
     """Inverse of standard normal CDF (probit function)."""
-    # Use numpy's erfcinv-based approximation
-    # z = sqrt(2) * erfinv(2p) * -1
-    from math import sqrt
+    # Use scipy's norm.ppf which is the inverse of the standard normal CDF
+    try:
+        from scipy.stats import norm
 
-    from numpy import erfcinv
+        return float(norm.ppf(p))
+    except ImportError:
+        # Fallback: use erfcinv if scipy.stats not available but scipy.special is
+        from math import sqrt
 
-    return sqrt(2) * float(erfcinv(2 * p))
+        from scipy.special import erfcinv
+
+        # erfcinv(2p) gives the value where erfc(x) = 2p
+        # For probit: z = sqrt(2) * erfinv(2p - 1)
+        # Using erfcinv: z = sqrt(2) * erfcinv(2 - 2p) with sign adjustment
+        return sqrt(2) * float(erfcinv(2 * (1 - p)))
 
 
 def _phi(z: float) -> float:
