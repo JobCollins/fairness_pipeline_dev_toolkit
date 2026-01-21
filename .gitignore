@@ -7,3 +7,6 @@ __pycache__/
 htmlcov/
 mlruns/
 next_steps/
+ROADMAP.md
+TEST_REVIEW_REPORT.md
+SECURITY_SCAN_RESULTS.md
