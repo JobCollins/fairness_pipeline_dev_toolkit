@@ -35,9 +35,9 @@ docker==7.1.0
 dominate==2.9.1
 e==1.4.5
 entrypoints==0.4
-executing==2.2.1
+executing==2.2.1 
 fairlearn==0.13.0
--e git+https://github.com/JobCollins/fairness_pipeline_dev_toolkit.git@d6378b915b45fb6190fba8edaf2009ca4623e9bf#egg=fairness_toolkit
+# -e git+https://github.com/JobCollins/fairness_pipeline_dev_toolkit.git@d6378b915b45fb6190fba8edaf2009ca4623e9bf#egg=fairness_toolkit
 fastapi==0.120.0
 filelock==3.20.0
 flake8==7.3.0
