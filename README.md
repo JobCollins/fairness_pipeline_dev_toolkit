@@ -1,7 +1,9 @@
 # Fairness Pipeline Development Toolkit
 
 **Version:** 0.5.0  
-**Status:** Production-ready | Available on [PyPI](https://pypi.org/project/fairness-pipeline-dev-toolkit/)
+**Status:** Production-ready | Available on [PyPI](https://pypi.org/project/fairness-pipeline-dev-toolkit/)  
+![Coverage](https://img.shields.io/badge/coverage-87%25-green)
+
 
 A unified, statistically-rigorous framework for **detecting**, **mitigating**, **training**, and **validating** fairness in ML workflows. The toolkit provides both **modular components** and an **integrated end-to-end workflow** spanning data-to-model fairness — enabling teams to move from ad-hoc checks to automated, continuous fairness assurance in CI/CD.
 
@@ -763,10 +765,11 @@ pytest tests/monitoring/ -q
 ```
 
 The test suite includes:
-- **90+ tests** across all modules
+- **645 tests** across all modules with **87% code coverage**
 - Integration tests for orchestrator and MLflow
 - System tests for CLI end-to-end workflows
 - Unit tests for individual components
+- Comprehensive coverage of detectors, transformers, metrics, and training modules
 
 ---
 
