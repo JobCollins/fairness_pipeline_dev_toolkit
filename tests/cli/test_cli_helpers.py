@@ -156,7 +156,7 @@ class TestWriteArtifact:
         file_path = tmp_path / "test.txt"
         content = "测试内容 🎉"
         _write_artifact(str(file_path), content)
-        assert file_path.read_text() == content
+        assert file_path.read_text(encoding="utf-8") == content
 
     def test_write_artifact_overwrites_existing(self, tmp_path):
         """Test that _write_artifact overwrites existing file."""
