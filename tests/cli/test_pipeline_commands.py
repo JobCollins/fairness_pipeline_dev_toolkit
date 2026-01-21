@@ -49,35 +49,35 @@ pipeline:
         self, sample_data, sample_config, tmp_path, capsys
     ):
         """Test pipeline run with detectors enabled."""
-        out_csv = tmp_path / "output.csv"
-        detector_json = tmp_path / "detectors.json"
-        report_md = tmp_path / "report.md"
+        out_csv_path = tmp_path / "output.csv"
+        detector_json_path = tmp_path / "detectors.json"
+        report_md_path = tmp_path / "report.md"
 
         class Args:
             config = str(sample_config)
             csv = str(sample_data)
-            out_csv = str(out_csv)
-            detector_json = str(detector_json)
-            report_md = str(report_md)
+            out_csv = str(out_csv_path)
+            detector_json = str(detector_json_path)
+            report_md = str(report_md_path)
             no_detectors = False
             profile = None
 
         exit_code = cmd_pipeline_run(Args())
 
         assert exit_code == 0
-        assert out_csv.exists(), "Output CSV should be created"
-        assert detector_json.exists(), "Detector JSON should be created"
-        assert report_md.exists(), "Report markdown should be created"
+        assert out_csv_path.exists(), "Output CSV should be created"
+        assert detector_json_path.exists(), "Detector JSON should be created"
+        assert report_md_path.exists(), "Report markdown should be created"
 
         # Verify detector JSON is valid
         import json
 
-        with open(detector_json) as f:
+        with open(detector_json_path) as f:
             detector_data = json.load(f)
             assert "meta" in detector_data or "body" in detector_data
 
         # Verify output CSV
-        output_df = pd.read_csv(out_csv)
+        output_df = pd.read_csv(out_csv_path)
         assert len(output_df) > 0
 
         # Check that detector summary was printed
@@ -86,12 +86,12 @@ pipeline:
 
     def test_pipeline_run_with_detectors_disabled(self, sample_data, sample_config, tmp_path):
         """Test pipeline run with detectors disabled."""
-        out_csv = tmp_path / "output.csv"
+        out_csv_path = tmp_path / "output.csv"
 
         class Args:
             config = str(sample_config)
             csv = str(sample_data)
-            out_csv = str(out_csv)
+            out_csv = str(out_csv_path)
             detector_json = None
             report_md = None
             no_detectors = True
@@ -100,20 +100,20 @@ pipeline:
         exit_code = cmd_pipeline_run(Args())
 
         assert exit_code == 0
-        assert out_csv.exists(), "Output CSV should be created"
+        assert out_csv_path.exists(), "Output CSV should be created"
 
     def test_pipeline_run_output_generation(self, sample_data, sample_config, tmp_path):
         """Test that all output files are generated correctly."""
-        out_csv = tmp_path / "output.csv"
-        detector_json = tmp_path / "detectors.json"
-        report_md = tmp_path / "report.md"
+        out_csv_path = tmp_path / "output.csv"
+        detector_json_path = tmp_path / "detectors.json"
+        report_md_path = tmp_path / "report.md"
 
         class Args:
             config = str(sample_config)
             csv = str(sample_data)
-            out_csv = str(out_csv)
-            detector_json = str(detector_json)
-            report_md = str(report_md)
+            out_csv = str(out_csv_path)
+            detector_json = str(detector_json_path)
+            report_md = str(report_md_path)
             no_detectors = False
             profile = None
 
@@ -122,18 +122,18 @@ pipeline:
         assert exit_code == 0
 
         # Verify CSV output
-        output_df = pd.read_csv(out_csv)
+        output_df = pd.read_csv(out_csv_path)
         assert len(output_df) > 0
 
         # Verify detector JSON
         import json
 
-        with open(detector_json) as f:
+        with open(detector_json_path) as f:
             detector_data = json.load(f)
             assert isinstance(detector_data, dict)
 
         # Verify markdown report
-        report_content = report_md.read_text()
+        report_content = report_md_path.read_text()
         assert "Pipeline Run Report" in report_content
         assert "Config" in report_content
 
@@ -193,12 +193,12 @@ profiles:
         config_path = tmp_path / "pipeline.config.yml"
         config_path.write_text(config_content)
 
-        out_csv = tmp_path / "output.csv"
+        out_csv_path = tmp_path / "output.csv"
 
         class Args:
             config = str(config_path)
             csv = str(sample_data)
-            out_csv = str(out_csv)
+            out_csv = str(out_csv_path)
             detector_json = None
             report_md = None
             no_detectors = True
@@ -206,4 +206,4 @@ profiles:
 
         exit_code = cmd_pipeline_run(Args())
         assert exit_code == 0
-        assert out_csv.exists()
+        assert out_csv_path.exists()
