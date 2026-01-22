@@ -10,4 +10,6 @@ pip-tools>=7.3
 ruff>=0.6
 mypy>=1.10
 types-python-dateutil
+# Security-critical development dependency
+pip>=25.3  # CVE-2025-8869
 
