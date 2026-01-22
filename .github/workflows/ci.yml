@@ -18,7 +18,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade "pip>=25.3"
           pip install -e .[dev] -r requirements.txt
 
       - name: Debug Black version
@@ -32,8 +32,28 @@ jobs:
       - name: Lint (flake8)
         run: flake8 fairness_pipeline_dev_toolkit
 
-      - name: Tests
-        run: pytest --cov=fairness_pipeline_dev_toolkit
+      - name: Tests with Coverage
+        run: |
+          pytest --cov=fairness_pipeline_dev_toolkit --cov-report=term-missing --cov-report=xml --cov-report=html
+          coverage report --fail-under=85
+
+      - name: Upload Coverage Report
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+        continue-on-error: true
+
+      - name: Upload Coverage Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ matrix.os }}-${{ matrix.python-version }}
+          path: |
+            coverage.xml
+            htmlcov/
 
       # ---------- Fairness Gate (run only on Ubuntu to keep CI fast/stable) ----------
       - name: Prepare tiny synthetic CSV for fairness checks (Ubuntu only)

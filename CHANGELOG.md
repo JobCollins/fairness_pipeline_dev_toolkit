@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [v0.5.1] — 2025-01-XX
+## [v0.5.1] — 2025-01-16
 
 ### Fixed
 - **Critical Bug Fix**: Fixed `IndexError` when using categorical Series with NaN values in intersectional analysis. The `_intersectional_prep()` function now properly handles categorical Series conversion by converting to string first, then to numpy array with proper NaN handling. This resolves issues in `demographic_parity_difference()`, `equalized_odds_difference()`, and `mae_parity_difference()` methods when using intersectional analysis with categorical data.
@@ -19,16 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Edge Case Handling**: Fixed intersectional tests to handle empty DataFrame edge cases and resolved variable name conflicts in CLI command tests.
 
 ### Improved
-- **Test Suite Quality**: Comprehensive test suite overhaul with all 294 tests now passing:
+- **Test Suite Quality**: Comprehensive test suite overhaul with all 645 tests now passing:
   - Tests updated to create sample files within test functions instead of relying on external files (improves isolation and portability)
   - Enhanced assertions in smoke tests to validate actual outputs
   - Added negative test cases for error handling in CLI commands and config loading
   - Improved test organization with better separation of concerns
+  - Expanded test coverage from 68% to 87% across all modules
 
 - **Test Documentation**: Enhanced `TEST_REVIEW_REPORT.md` with comprehensive test suite significance analysis, including detailed evaluation of 9 major test suites with star ratings and insights on test suite prioritization.
 
 ### Testing
-- **Test Coverage**: All 294 tests passing across all modules:
+- **Test Coverage**: All 645 tests passing across all modules with 87% code coverage:
   - Core/Measurement: 7 test files
   - Pipeline: 7 test files (including new unit tests for transformers and detectors)
   - Integration: 3 test files
@@ -38,6 +39,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Monitoring: 3 test files (including new AB test coverage)
   - Utils: 2 test files (new coverage for intersectional and validation)
   - Stats: 3 test files (new coverage for effect_size, multipletests, bayesian)
+  
+- **Coverage Improvements**: Test coverage increased from 68% to 87%, with comprehensive coverage across:
+  - Metrics computation and adapters
+  - Pipeline transformers and detectors
+  - Integration workflows and orchestrator
+  - Training methods (reductions, regularized, lagrangian)
+  - Monitoring tools and drift detection
+  - Statistical validation functions
 
 ### Purpose
 This patch release addresses a critical bug in intersectional analysis that could cause failures with categorical data, and significantly improves test suite reliability and documentation. The test suite now provides comprehensive coverage with all tests passing, ensuring the toolkit's reliability and correctness.

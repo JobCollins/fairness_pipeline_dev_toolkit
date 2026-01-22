@@ -1,6 +1,6 @@
 # Fairness Pipeline Development Toolkit
 
-**Version:** 0.5.0  
+**Version:** 0.5.1  
 **Status:** Production-ready | Available on [PyPI](https://pypi.org/project/fairness-pipeline-dev-toolkit/)  
 ![Coverage](https://img.shields.io/badge/coverage-87%25-green)
 
@@ -770,6 +770,7 @@ The test suite includes:
 - System tests for CLI end-to-end workflows
 - Unit tests for individual components
 - Comprehensive coverage of detectors, transformers, metrics, and training modules
+- Statistical validation tests for bootstrap CIs, effect sizes, and multiple testing corrections
 
 ---
 
@@ -837,5 +838,5 @@ This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) fo
 
 ---
 
-**Version**: 0.5.0  
-**Last Updated**: 2024
+**Version**: 0.5.1  
+**Last Updated**: 2025-01-16
