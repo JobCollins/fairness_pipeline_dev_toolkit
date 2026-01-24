@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v0.5.4] — 2026-01-24
+
+### Added
+- **Enhanced Testing Infrastructure**: Comprehensive testing improvements:
+  - Added property-based testing with Hypothesis (`tests/property_based/test_property_based.py`)
+  - Property-based tests verify invariants for bootstrap CI, effect sizes, and fairness metrics
+  - Expanded integration tests (`tests/integration/test_integration_expanded.py`) with 20+ edge case scenarios
+  - Edge case coverage includes: NaN/infinity handling, empty data, very large/small datasets, unicode characters, malformed data
+  - Added `hypothesis>=6.100` to development dependencies
+
+- **Documentation Site**: Complete documentation site infrastructure:
+  - Created Sphinx documentation structure (`docs/conf.py`, `docs/index.rst`)
+  - Set up automated documentation builds (`.github/workflows/docs.yml`)
+  - Configured GitHub Pages deployment for automatic documentation hosting
+  - Added ReadTheDocs configuration (`readthedocs.yml`) as alternative hosting option
+  - Created getting started guide (`docs/getting_started.md`)
+  - Documentation build automation with Makefile and requirements
+
+- **Security Automation**: Ongoing security monitoring and automation:
+  - Configured Dependabot (`.github/dependabot.yml`) for automated dependency updates
+  - Weekly automated dependency security updates for GitHub Actions and pip packages
+  - Security update grouping for efficient review
+  - Created security review process documentation (`.github/SECURITY_REVIEW_PROCESS.md`)
+  - Monthly automated security review workflow (`.github/workflows/security-review.yml`)
+  - Security review includes: dependency scanning, code analysis (Bandit), Safety checks, Dependabot status
+
+- **Release Workflow Improvements**: Enhanced automated release process:
+  - Added TestPyPI support in release workflow (`.github/workflows/release.yml`)
+  - Configurable repository selection (testpypi/pypi) via workflow inputs
+  - Improved error handling: GitHub release creation no longer depends on PyPI publish success
+  - Added `continue-on-error` to PyPI publish step to ensure releases are created even if publishing fails
+  - Enhanced release notes with PyPI publication status and repository information
+  - Support for both tag-based and manual workflow dispatch triggers
+
+### Changed
+- **Test Coverage**: Expanded test suite from 654 to 673 tests (86% coverage maintained)
+- **Documentation**: Enhanced documentation with automated build and deployment workflows
+
+### Improved
+- **Code Quality**: All new code formatted with Black and passes linting checks
+- **Testing**: Comprehensive edge case coverage for integration workflows
+- **Security**: Automated security monitoring and review processes
+- **Release Process**: More robust release workflow that ensures GitHub releases are created even if PyPI publishing encounters issues
+
+### Purpose
+This release focuses on testing infrastructure, documentation automation, and security automation. The enhanced testing ensures robustness across edge cases, the documentation site provides better user experience, and security automation ensures ongoing dependency security.
+
+**Migration Notes**:
+- No breaking changes to public APIs
+- Property-based tests require `hypothesis` package (included in dev dependencies)
+- Documentation site requires Sphinx and related packages (see `docs/requirements.txt`)
+- Dependabot will automatically create pull requests for dependency updates
+- Release workflow now supports TestPyPI by default; configure `TESTPYPI_API_TOKEN` secret in GitHub for TestPyPI publishing
+
+---
+
 ## [v0.5.3] — 2026-01-24
 
 ### Added
@@ -328,6 +384,7 @@ Phase 5 finalized the first release candidate by validating the entire fairness 
 
 ## Version History Summary
 
+- **v0.5.4**: Enhanced testing infrastructure, documentation site, security automation, TestPyPI release workflow support
 - **v0.5.3**: Security infrastructure, performance test suite, structured logging, user feedback collection
 - **v0.5.2**: Optional dependency import fixes, enhanced error handling, performance documentation, automated release workflow
 - **v0.5.1**: Critical intersectional analysis bug fix, test suite improvements

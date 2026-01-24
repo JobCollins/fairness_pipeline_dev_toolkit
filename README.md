@@ -1,8 +1,8 @@
 # Fairness Pipeline Development Toolkit
 
-**Version:** 0.5.1  
+**Version:** 0.5.4  
 **Status:** Production-ready | Available on [PyPI](https://pypi.org/project/fairness-pipeline-dev-toolkit/)  
-![Coverage](https://img.shields.io/badge/coverage-87%25-green)
+![Coverage](https://img.shields.io/badge/coverage-86%25-green)
 
 
 A unified, statistically-rigorous framework for **detecting**, **mitigating**, **training**, and **validating** fairness in ML workflows. The toolkit provides both **modular components** and an **integrated end-to-end workflow** spanning data-to-model fairness — enabling teams to move from ad-hoc checks to automated, continuous fairness assurance in CI/CD.
@@ -765,8 +765,10 @@ pytest tests/monitoring/ -q
 ```
 
 The test suite includes:
-- **645 tests** across all modules with **87% code coverage**
+- **673 tests** across all modules with **86% code coverage**
 - Integration tests for orchestrator and MLflow
+- Expanded integration tests with comprehensive edge case coverage
+- Property-based tests using Hypothesis for statistical invariants
 - System tests for CLI end-to-end workflows
 - Unit tests for individual components
 - Comprehensive coverage of detectors, transformers, metrics, and training modules
@@ -833,10 +835,12 @@ This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) fo
 - **Versioning Strategy**: See [docs/VERSIONING.md](docs/VERSIONING.md) for versioning and backward compatibility policy
 - **Architecture Decisions**: See [docs/ADR-001-architecture.md](docs/ADR-001-architecture.md)
 - **Comprehensive Guide**: See [DOCS.md](DOCS.md) for detailed usage across the ML lifecycle
+- **Documentation Site**: Automated documentation builds available via GitHub Pages (see `.github/workflows/docs.yml`)
+- **Security**: See [SECURITY.md](SECURITY.md) for security policy and [.github/SECURITY_REVIEW_PROCESS.md](.github/SECURITY_REVIEW_PROCESS.md) for security review process
 - **Demo Notebooks**: Explore `demo_*.ipynb` for complete examples
 - **Test Suite**: Review `tests/` for usage patterns and edge cases
 
 ---
 
-**Version**: 0.5.1  
-**Last Updated**: 2025-01-16
+**Version**: 0.5.4  
+**Last Updated**: 2026-01-24
