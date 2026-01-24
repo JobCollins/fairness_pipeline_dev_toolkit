@@ -45,6 +45,14 @@ from fairness_pipeline_dev_toolkit.pipeline.orchestration import (
     build_pipeline,
     run_detectors,
 )
+from fairness_pipeline_dev_toolkit.utils.logging import (
+    PerformanceLogger,
+    get_logger,
+    setup_logging,
+)
+
+# Set up logging for CLI
+logger = get_logger("cli")
 
 # import yaml
 
@@ -201,27 +209,33 @@ def _evaluate_metrics(
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
-    df = pd.read_csv(args.csv)
-    inputs = _prepare_validation_inputs(df, args)
+    """Validate fairness metrics on a CSV file."""
+    logger.info("Starting validation", extra={"csv": args.csv, "sensitive": args.sensitive})
 
-    backend = None if args.backend in (None, "auto") else args.backend
-    analyzer = FairnessAnalyzer(min_group_size=args.min_group_size, backend=backend)
+    with PerformanceLogger(logger, "validate", csv=args.csv):
+        df = pd.read_csv(args.csv)
+        inputs = _prepare_validation_inputs(df, args)
 
-    results = _evaluate_metrics(
-        analyzer,
-        inputs,
-        with_ci=args.with_ci,
-        ci_level=args.ci_level,
-        ci_samples=args.bootstrap_B,
-        with_effects=args.with_effects,
-    )
+        backend = None if args.backend in (None, "auto") else args.backend
+        analyzer = FairnessAnalyzer(min_group_size=args.min_group_size, backend=backend)
 
-    md = to_markdown_report(results, title="Fairness Validation Report (CLI)")
-    print(md)
+        results = _evaluate_metrics(
+            analyzer,
+            inputs,
+            with_ci=args.with_ci,
+            ci_level=args.ci_level,
+            ci_samples=args.bootstrap_B,
+            with_effects=args.with_effects,
+        )
 
-    if args.out:
-        with open(args.out, "w", encoding="utf-8") as f:
-            f.write(md)
+        md = to_markdown_report(results, title="Fairness Validation Report (CLI)")
+        print(md)
+
+        if args.out:
+            with open(args.out, "w", encoding="utf-8") as f:
+                f.write(md)
+
+        logger.info("Validation completed", extra={"output": args.out, "n_samples": len(df)})
 
     return 0
 
@@ -527,6 +541,24 @@ def cmd_run_pipeline(args: argparse.Namespace) -> int:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    """Main CLI entry point."""
+    # Set up logging based on environment or defaults
+    log_level = os.getenv("FAIRPIPE_LOG_LEVEL", "INFO")
+    log_file = os.getenv("FAIRPIPE_LOG_FILE")
+    json_logs = os.getenv("FAIRPIPE_JSON_LOGS", "false").lower() == "true"
+
+    if log_file:
+        setup_logging(
+            level=log_level, log_file=Path(log_file), json_format=json_logs, include_console=True
+        )
+    else:
+        setup_logging(level=log_level, json_format=json_logs, include_console=True)
+
+    # Log CLI start (after setup)
+    if argv is None:
+        argv = sys.argv[1:]
+    command = argv[0] if argv else "unknown"
+    logger.info("CLI started", extra={"command": command})
     parser = argparse.ArgumentParser(prog="fairpipe", description="Fairness Toolkit CLI")
     sub = parser.add_subparsers(dest="cmd")
 

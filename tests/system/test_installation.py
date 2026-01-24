@@ -127,7 +127,11 @@ class TestCLIEntryPoint:
         # CLI may have bugs, but if it runs (even with errors), the module exists
         # Exit code 1 might indicate a bug in CLI setup, but module exists
         if result.returncode == 0:
-            assert "0.5.1" in result.stdout or "version" in result.stdout.lower()
+            # Check for version number pattern (e.g., 0.5.x) or "version" keyword
+            import re
+
+            version_pattern = r"\d+\.\d+\.\d+"
+            assert re.search(version_pattern, result.stdout) or "version" in result.stdout.lower()
         else:
             # If there's an error, at least verify the module was found (not ModuleNotFoundError)
             assert "ModuleNotFoundError" not in result.stderr, "CLI module should exist"

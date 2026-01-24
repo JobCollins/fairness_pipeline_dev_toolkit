@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from scipy import stats
+
+from fairness_pipeline_dev_toolkit.utils.logging import get_logger
 
 from .config import DriftConfig, MonitoringSettings
 
@@ -17,7 +18,7 @@ try:
 except Exception:
     _HAS_PYWT = False
 
-log = logging.getLogger(__name__)
+logger = get_logger("monitoring.drift")
 
 
 @dataclass

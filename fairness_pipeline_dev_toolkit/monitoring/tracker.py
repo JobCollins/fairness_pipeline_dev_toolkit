@@ -8,6 +8,10 @@ from typing import Optional, Sequence
 import numpy as np
 import pandas as pd
 
+from fairness_pipeline_dev_toolkit.utils.logging import get_logger
+
+logger = get_logger("monitoring.tracker")
+
 
 @dataclass
 class ColumnMap:
@@ -160,6 +164,10 @@ class RealTimeFairnessTracker:
         Ingest a new batch, recompute metrics on the sliding window, and
         append rows to the time series store. Returns the current window df.
         """
+        logger.debug(
+            "Processing batch",
+            extra={"batch_size": len(batch), "window_size": self.cfg.window_size},
+        )
         ts = pd.Timestamp.utcfromtimestamp(time.time())
         df = batch.copy()
         if cmap.y_pred not in df.columns:
