@@ -12,4 +12,6 @@ mypy>=1.10
 types-python-dateutil
 # Security-critical development dependency
 pip>=25.3  # CVE-2025-8869
+# Note: virtualenv>=20.36.2 (CVE-2026-22702) is a standalone dev tool
+# Update manually: pip install --upgrade virtualenv>=20.36.2
 
