@@ -7,9 +7,17 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (e.g., 0.5.1)'
+        description: 'Version to release (e.g., 0.5.4)'
         required: true
         type: string
+      pypi_repository:
+        description: 'PyPI repository (testpypi or pypi)'
+        required: false
+        default: 'testpypi'
+        type: choice
+        options:
+          - testpypi
+          - pypi
 
 jobs:
   build-and-publish:
@@ -43,6 +51,18 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Extracted version: $VERSION"
 
+      - name: Determine PyPI repository
+        id: pypi_repo
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            REPO="${{ github.event.inputs.pypi_repository }}"
+          else
+            # Default to testpypi for tag pushes (change to 'pypi' when ready for production)
+            REPO="testpypi"
+          fi
+          echo "repository=$REPO" >> $GITHUB_OUTPUT
+          echo "Using PyPI repository: $REPO"
+
       - name: Verify version in pyproject.toml
         run: |
           VERSION="${{ steps.version.outputs.version }}"
@@ -60,15 +80,27 @@ jobs:
         run: |
           twine check dist/*
 
-      - name: Publish to PyPI
+      - name: Publish to TestPyPI
+        if: steps.pypi_repo.outputs.repository == 'testpypi'
+        id: pypi_publish
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI_API_TOKEN }}
+        run: |
+          twine upload --repository testpypi dist/*
+        continue-on-error: true
+
+      - name: Publish to Production PyPI
+        if: steps.pypi_repo.outputs.repository == 'pypi'
+        id: pypi_publish
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
           twine upload dist/*
+        continue-on-error: true
 
       - name: Create GitHub Release
-        if: success()
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.version.outputs.version }}
@@ -78,11 +110,18 @@ jobs:
             
             See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for full details.
             
+            ### PyPI Status
+            ${{ steps.pypi_publish.outcome == 'success' && format('✅ Published to {0}', steps.pypi_repo.outputs.repository) || '⚠️ PyPI publication failed or skipped' }}
+            
+            ${{ steps.pypi_repo.outputs.repository == 'testpypi' && format('📦 TestPyPI: https://test.pypi.org/project/fairness-pipeline-dev-toolkit/{0}/', steps.version.outputs.version) || format('📦 PyPI: https://pypi.org/project/fairness-pipeline-dev-toolkit/{0}/', steps.version.outputs.version) }}
+            
             ### Quick Links
             - [Documentation](https://github.com/${{ github.repository }}#readme)
             - [Installation](https://github.com/${{ github.repository }}#installation)
             - [Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
           draft: false
           prerelease: false
+          generate_release_notes: true
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

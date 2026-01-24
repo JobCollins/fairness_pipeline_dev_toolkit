@@ -11,3 +11,9 @@ next_steps/
 ROADMAP.md
 TEST_REVIEW_REPORT.md
 SECURITY_SCAN_RESULTS.md
+
+# Documentation build artifacts
+docs/_build/
+docs/_static/
+docs/_templates/
+*.doctree
