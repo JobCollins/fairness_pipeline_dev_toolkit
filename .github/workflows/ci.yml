@@ -48,7 +48,7 @@ jobs:
 
       - name: Upload Coverage Artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-report-${{ matrix.os }}-${{ matrix.python-version }}
           path: |
@@ -95,7 +95,7 @@ jobs:
 
       - name: Upload fairness report (artifact) (Ubuntu only)
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: fairness-report-${{ github.run_id }}-${{ github.job }}-${{ github.job }}
           path: fairness_report.md
@@ -111,7 +111,7 @@ jobs:
 
       - name: Upload benchmark results (Ubuntu only)
         if: runner.os == 'Linux' && always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: benchmark-results-${{ matrix.os }}-${{ matrix.python-version }}
           path: |
