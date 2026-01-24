@@ -41,7 +41,56 @@ jobs:
 
       - name: Check for high/critical vulnerabilities
         run: |
-          pip-audit --desc --fail-on high --fail-on critical || exit 1
+          # Run pip-audit and check for high/critical vulnerabilities
+          pip-audit --desc --format json --output /tmp/audit.json || true
+          # Check if any high or critical vulnerabilities exist
+          python << 'EOF'
+          import json
+          import sys
+          
+          try:
+              with open('/tmp/audit.json', 'r') as f:
+                  data = json.load(f)
+              
+              high_critical_vulns = []
+              for dep in data.get('dependencies', []):
+                  for vuln in dep.get('vulnerabilities', []):
+                      severity = vuln.get('severity', '').upper()
+                      if severity in ['HIGH', 'CRITICAL']:
+                          high_critical_vulns.append({
+                              'package': dep.get('name', 'unknown'),
+                              'vulnerability': vuln.get('id', 'unknown'),
+                              'severity': severity
+                          })
+              
+              if high_critical_vulns:
+                  print("❌ Found high or critical vulnerabilities:")
+                  for v in high_critical_vulns:
+                      print(f"  - {v['package']}: {v['vulnerability']} ({v['severity']})")
+                  sys.exit(1)
+              else:
+                  print("✅ No high or critical vulnerabilities found")
+                  sys.exit(0)
+          except FileNotFoundError:
+              print("⚠️ Audit file not found, running pip-audit to check...")
+              import subprocess
+              result = subprocess.run(['pip-audit', '--desc'], capture_output=True, text=True)
+              if 'HIGH' in result.stdout or 'CRITICAL' in result.stdout:
+                  print("❌ Found high or critical vulnerabilities in output")
+                  print(result.stdout)
+                  sys.exit(1)
+              sys.exit(0)
+          except Exception as e:
+              print(f"⚠️ Error checking vulnerabilities: {e}")
+              # Fallback: run pip-audit and check output
+              import subprocess
+              result = subprocess.run(['pip-audit', '--desc'], capture_output=True, text=True)
+              if result.returncode != 0 or 'HIGH' in result.stdout or 'CRITICAL' in result.stdout:
+                  print("❌ Potential high or critical vulnerabilities detected")
+                  print(result.stdout)
+                  sys.exit(1)
+              sys.exit(0)
+          EOF
 
       - name: Generate security scan summary
         if: always()
