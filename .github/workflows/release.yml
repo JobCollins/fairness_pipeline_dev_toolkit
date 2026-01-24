@@ -82,7 +82,7 @@ jobs:
 
       - name: Publish to TestPyPI
         if: steps.pypi_repo.outputs.repository == 'testpypi'
-        id: pypi_publish
+        id: testpypi_publish
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.TESTPYPI_API_TOKEN }}
@@ -92,7 +92,7 @@ jobs:
 
       - name: Publish to Production PyPI
         if: steps.pypi_repo.outputs.repository == 'pypi'
-        id: pypi_publish
+        id: production_pypi_publish
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
@@ -111,7 +111,7 @@ jobs:
             See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for full details.
             
             ### PyPI Status
-            ${{ steps.pypi_publish.outcome == 'success' && format('✅ Published to {0}', steps.pypi_repo.outputs.repository) || '⚠️ PyPI publication failed or skipped' }}
+            ${{ steps.pypi_repo.outputs.repository == 'testpypi' && (steps.testpypi_publish.outcome == 'success' && '✅ Published to TestPyPI' || '⚠️ TestPyPI publication failed or skipped') || (steps.production_pypi_publish.outcome == 'success' && '✅ Published to PyPI' || '⚠️ PyPI publication failed or skipped') }}
             
             ${{ steps.pypi_repo.outputs.repository == 'testpypi' && format('📦 TestPyPI: https://test.pypi.org/project/fairness-pipeline-dev-toolkit/{0}/', steps.version.outputs.version) || format('📦 PyPI: https://pypi.org/project/fairness-pipeline-dev-toolkit/{0}/', steps.version.outputs.version) }}
             
