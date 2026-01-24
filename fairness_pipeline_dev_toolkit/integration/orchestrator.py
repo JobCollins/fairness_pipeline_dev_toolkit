@@ -29,6 +29,14 @@ from fairness_pipeline_dev_toolkit.pipeline.orchestration import (
     apply_pipeline,
     build_pipeline,
 )
+from fairness_pipeline_dev_toolkit.utils.logging import (
+    PerformanceLogger,
+    get_logger,
+    log_metric_computation,
+    log_workflow_step,
+)
+
+logger = get_logger("integration.orchestrator")
 
 # Training imports are lazy/conditional to avoid requiring optional dependencies
 # Imported only when needed in run_transform_and_train()
@@ -76,22 +84,26 @@ def run_baseline_measurement(
     Returns:
         Dictionary of baseline fairness metrics
     """
-    # Check if we have predictions or need to compute baseline from data distribution
-    # For baseline, we typically measure representation and statistical disparities
-    # If target column exists, we can compute some metrics
-    results: Dict[str, Any] = {}
+    log_workflow_step(logger, "baseline_measurement", status="started", n_samples=len(df))
 
-    # Try to compute demographic parity if we have a target column
-    # For baseline, we might not have predictions yet, so we measure data-level fairness
-    # Store the sensitive attribute info for later use
-    results["sensitive_attribute"] = config.sensitive
-    results["data_shape"] = df.shape
-    results["min_group_size"] = min_group_size
+    with PerformanceLogger(logger, "baseline_measurement", n_samples=len(df)):
+        # Check if we have predictions or need to compute baseline from data distribution
+        # For baseline, we typically measure representation and statistical disparities
+        # If target column exists, we can compute some metrics
+        results: Dict[str, Any] = {}
 
-    # If target exists, we can compute some baseline metrics
-    # This will be expanded when we have actual predictions in Step 3
+        # Try to compute demographic parity if we have a target column
+        # For baseline, we might not have predictions yet, so we measure data-level fairness
+        # Store the sensitive attribute info for later use
+        results["sensitive_attribute"] = config.sensitive
+        results["data_shape"] = df.shape
+        results["min_group_size"] = min_group_size
 
-    return results
+        # If target exists, we can compute some baseline metrics
+        # This will be expanded when we have actual predictions in Step 3
+
+        log_workflow_step(logger, "baseline_measurement", status="completed", n_samples=len(df))
+        return results
 
 
 def run_transform_and_train(
@@ -462,21 +474,36 @@ def execute_workflow(
     Returns:
         WorkflowResult with all metrics, model, and validation result
     """
+    import uuid
+
+    workflow_id = str(uuid.uuid4())[:8]
+
+    logger.info(
+        "Starting workflow execution", extra={"workflow_id": workflow_id, "n_samples": len(df)}
+    )
+
     analyzer = FairnessAnalyzer(min_group_size=min_group_size, backend="native")
 
     # Step 1: Baseline Measurement
-    print("Step 1: Running baseline measurement...")
+    log_workflow_step(logger, "baseline_measurement", workflow_id=workflow_id, status="started")
+    logger.info("Step 1: Running baseline measurement...")
     run_baseline_measurement(df, config, min_group_size)
+    log_workflow_step(logger, "baseline_measurement", workflow_id=workflow_id, status="completed")
 
     # For baseline, we need actual predictions. If we have a target column,
     # we can compute baseline metrics on the raw data distribution
     # For now, we'll compute them after we have the model predictions to compare
 
     # Step 2: Transform and Train
-    print("Step 2: Transforming data and training model...")
-    model, transformed_df, y_full, y_test, predictions = run_transform_and_train(
-        df, config, train_size=train_size
-    )
+    log_workflow_step(logger, "transform_and_train", workflow_id=workflow_id, status="started")
+    logger.info("Step 2: Transforming data and training model...")
+    with PerformanceLogger(
+        logger, "transform_and_train", workflow_id=workflow_id, n_samples=len(df)
+    ):
+        model, transformed_df, y_full, y_test, predictions = run_transform_and_train(
+            df, config, train_size=train_size
+        )
+    log_workflow_step(logger, "transform_and_train", workflow_id=workflow_id, status="completed")
 
     # Now compute baseline metrics on original data if we have target
     # For baseline, we need predictions - use a simple baseline model
@@ -485,7 +512,8 @@ def execute_workflow(
     # In practice, you might train a simple baseline model
 
     # Compute final metrics on test set predictions
-    print("Step 3: Computing final metrics and validation...")
+    log_workflow_step(logger, "final_validation", workflow_id=workflow_id, status="started")
+    logger.info("Step 3: Computing final metrics and validation...")
 
     # Extract sensitive attributes for final metrics from original dataframe
     # We need to reconstruct the test set indices to get the correct sensitive attributes
@@ -525,17 +553,39 @@ def execute_workflow(
     final_metrics: Dict[str, Any] = {}
     if config.fairness_metric:
         metric_name = config.fairness_metric
+        import time
+
+        start_time = time.time()
+
         if metric_name == "demographic_parity_difference":
-            final_metrics[metric_name] = analyzer.demographic_parity_difference(
+            result = analyzer.demographic_parity_difference(
                 y_pred=predictions, sensitive=sensitive_test
             )
+            final_metrics[metric_name] = result
+            log_metric_computation(
+                logger,
+                metric_name=metric_name,
+                value=result.value,
+                n_samples=len(predictions),
+                duration=time.time() - start_time,
+                workflow_id=workflow_id,
+            )
         elif metric_name == "equalized_odds_difference":
-            final_metrics[metric_name] = analyzer.equalized_odds_difference(
+            result = analyzer.equalized_odds_difference(
                 y_true=y_test,
                 y_pred=predictions,
                 sensitive=sensitive_test,
                 attrs_df=attrs_df_test,
                 columns=columns,
+            )
+            final_metrics[metric_name] = result
+            log_metric_computation(
+                logger,
+                metric_name=metric_name,
+                value=result.value,
+                n_samples=len(predictions),
+                duration=time.time() - start_time,
+                workflow_id=workflow_id,
             )
         else:
             # Try to compute the metric if it's available
@@ -594,6 +644,14 @@ def execute_workflow(
 
     # Step 3: Final Validation
     validation_result = run_final_validation(baseline_metrics, final_metrics, config)
+    log_workflow_step(
+        logger,
+        "final_validation",
+        workflow_id=workflow_id,
+        status="completed",
+        validation_passed=validation_result.passed,
+        improvement=validation_result.improvement,
+    )
 
     # Prepare artifacts
     artifacts: Dict[str, Any] = {
@@ -638,6 +696,15 @@ def execute_workflow(
                     print("Warning: PyTorch not available, cannot save model state.")
         except Exception as e:
             print(f"Warning: Could not save model: {e}")
+
+    logger.info(
+        "Workflow execution completed",
+        extra={
+            "workflow_id": workflow_id,
+            "validation_passed": validation_result.passed,
+            "improvement": validation_result.improvement,
+        },
+    )
 
     return WorkflowResult(
         baseline_metrics=baseline_metrics,

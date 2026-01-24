@@ -1,0 +1,55 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade "pip>=25.3"
+          pip install pip-audit
+          pip install -e .[dev] -r requirements.txt
+
+      - name: Run security scan
+        run: |
+          pip-audit --desc --format json --output security_report.json || true
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-report
+          path: security_report.json
+          retention-days: 30
+
+      - name: Check for high/critical vulnerabilities
+        run: |
+          pip-audit --desc --fail-on high --fail-on critical || exit 1
+
+      - name: Generate security scan summary
+        if: always()
+        run: |
+          echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f security_report.json ]; then
+            echo "Security scan completed. See artifacts for full report." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Security scan failed to generate report." >> $GITHUB_STEP_SUMMARY
+          fi

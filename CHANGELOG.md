@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v0.5.3] — 2026-01-24
+
+### Added
+- **Security Infrastructure**: Comprehensive security improvements:
+  - Updated medium-priority dependencies with security fixes:
+    - `fonttools>=4.60.2` (CVE-2025-66034)
+    - `starlette>=0.49.1` (CVE-2025-62727)
+    - `werkzeug>=3.1.5` (CVE-2025-66221, CVE-2026-21860)
+    - `virtualenv>=20.36.2` (CVE-2026-22702)
+  - Created automated security scanning workflow (`.github/workflows/security.yml`) with weekly scheduled scans
+  - Added comprehensive security policy document (`SECURITY.md`) with vulnerability reporting guidelines
+  - Updated `SECURITY_SCAN_RESULTS.md` to track remediation status
+
+- **Performance Test Suite**: New performance testing infrastructure:
+  - Created pytest-based performance test suite (`tests/performance/test_performance_suite.py`) with baseline performance tests
+  - Added performance profiling script (`scripts/profile_performance.py`) using cProfile for bottleneck identification
+  - Performance tests cover metrics computation, bootstrap CI, pipeline operations, and scalability
+  - Tests establish performance baselines and detect regressions in CI/CD
+
+- **Structured Logging**: Comprehensive logging infrastructure:
+  - Implemented structured logging module (`fairness_pipeline_dev_toolkit/utils/logging.py`) with JSON format support
+  - Added performance logging context manager for timing operations
+  - Integrated logging into orchestrator, CLI, and monitoring modules
+  - Supports log levels, contextual information (workflow IDs, step names), and performance timing
+  - Configurable via environment variables (`FAIRPIPE_LOG_LEVEL`, `FAIRPIPE_LOG_FILE`, `FAIRPIPE_JSON_LOGS`)
+
+- **User Feedback Collection**: Complete feedback infrastructure:
+  - Created GitHub issue templates for bug reports, feature requests, and general feedback
+  - Added comprehensive feedback documentation (`docs/FEEDBACK.md`) with feedback form and guidelines
+  - Established feedback review process (`.github/FEEDBACK_REVIEW_PROCESS.md`) with priority guidelines and response timeframes
+  - Configured issue template system with links to discussions and documentation
+
+### Changed
+- **Dependency Management**: Updated `pyproject.toml` and `requirements.in` to pin security-critical indirect dependencies
+- **Performance Documentation**: Enhanced `docs/PERFORMANCE.md` with information about new performance test suite and profiling tools
+- **Logging Integration**: All modules now use structured logging for better observability and debugging
+
+### Improved
+- **Code Quality**: Fixed linting and formatting issues across all new code
+- **Test Coverage**: Added performance tests to test suite (654 total tests, 86% coverage)
+- **Developer Experience**: Improved debugging capabilities with structured logging and performance profiling tools
+
+### Purpose
+This release focuses on production readiness improvements including security hardening, performance monitoring, observability through structured logging, and community engagement through feedback infrastructure. These enhancements support long-term maintainability and user satisfaction.
+
+**Migration Notes**:
+- No breaking changes to public APIs
+- New logging is opt-in via environment variables (defaults to INFO level, console output)
+- Security dependency updates are backward compatible
+- Performance tests can be run independently: `pytest tests/performance/`
+
+---
+
 ## [v0.5.2] — 2026-01-24
 
 ### Added
@@ -275,6 +328,7 @@ Phase 5 finalized the first release candidate by validating the entire fairness 
 
 ## Version History Summary
 
+- **v0.5.3**: Security infrastructure, performance test suite, structured logging, user feedback collection
 - **v0.5.2**: Optional dependency import fixes, enhanced error handling, performance documentation, automated release workflow
 - **v0.5.1**: Critical intersectional analysis bug fix, test suite improvements
 - **v0.5.0**: Major release with integrated end-to-end workflow
@@ -306,7 +360,10 @@ No deprecations in current version.
 
 ## Security
 
-No security-related changes in documented versions.
+### v0.5.3
+- **Dependency Updates**: Updated medium-priority dependencies with security fixes (fonttools, starlette, werkzeug, virtualenv)
+- **Security Workflow**: Added automated weekly security scanning via GitHub Actions
+- **Security Policy**: Established comprehensive security policy with vulnerability reporting guidelines
 
 ---
 

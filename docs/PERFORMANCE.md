@@ -25,6 +25,41 @@ The toolkit includes a comprehensive benchmark suite located in the `benchmarks/
 - **`benchmark_pipeline.py`**: Benchmarks pipeline operations across different dataset sizes
 - **`benchmark_bootstrap.py`**: Benchmarks bootstrap confidence interval computation
 
+### Performance Test Suite
+
+A pytest-based performance test suite is available in `tests/performance/test_performance_suite.py`:
+
+- **Automated Performance Tests**: Establishes performance baselines and detects regressions
+- **CI/CD Integration**: Can be run in CI to track performance over time
+- **Scalability Tests**: Validates performance across different data sizes
+
+**Running Performance Tests:**
+```bash
+# Run all performance tests
+pytest tests/performance/test_performance_suite.py -v
+
+# Run with performance markers
+pytest -m performance -v
+```
+
+### Performance Profiling
+
+A profiling script is available to identify bottlenecks in critical paths:
+
+- **`scripts/profile_performance.py`**: Uses cProfile to profile critical operations
+- Profiles metrics computation, bootstrap CI, pipeline operations, and intersectional analysis
+- Identifies top functions by cumulative time
+
+**Running Profiling:**
+```bash
+# Run profiling script
+python scripts/profile_performance.py
+
+# Save profile data for detailed analysis
+python -m cProfile -o profile.stats scripts/profile_performance.py
+python -m pstats profile.stats
+```
+
 ### Running Benchmarks
 
 ```bash
@@ -257,8 +292,18 @@ tracemalloc.stop()
 
 ### Performance Regression Testing
 
-The toolkit includes performance benchmarks that can be integrated into CI/CD pipelines:
+The toolkit includes performance benchmarks and test suite that can be integrated into CI/CD pipelines:
 
+**Using Performance Test Suite:**
+```yaml
+# .github/workflows/ci.yml
+- name: Run performance tests
+  run: |
+    pytest tests/performance/test_performance_suite.py -v
+    # Tests will fail if performance degrades beyond baselines
+```
+
+**Using Benchmark Scripts:**
 ```yaml
 # .github/workflows/ci.yml
 - name: Run performance benchmarks
