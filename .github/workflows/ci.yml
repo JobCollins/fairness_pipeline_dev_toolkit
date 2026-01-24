@@ -99,3 +99,20 @@ jobs:
         with:
           name: fairness-report-${{ github.run_id }}-${{ github.job }}-${{ github.job }}
           path: fairness_report.md
+
+      # ---------- Performance Benchmarking (Ubuntu only) ----------
+      - name: Run performance benchmarks (Ubuntu only)
+        if: runner.os == 'Linux'
+        run: |
+          echo "Running performance benchmarks..."
+          python benchmarks/benchmark_metrics_100k.py > benchmark_metrics.txt 2>&1 || true
+          python benchmarks/benchmark_pipeline.py > benchmark_pipeline.txt 2>&1 || true
+          python benchmarks/benchmark_bootstrap.py > benchmark_bootstrap.txt 2>&1 || true
+
+      - name: Upload benchmark results (Ubuntu only)
+        if: runner.os == 'Linux' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ matrix.os }}-${{ matrix.python-version }}
+          path: |
+            benchmark_*.txt

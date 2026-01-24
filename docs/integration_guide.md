@@ -328,6 +328,126 @@ jobs:
           path: artifacts/fairness_report.md
 ```
 
+#### Use Case: Performance Benchmarking in CI/CD
+
+Add performance regression testing to your CI/CD pipeline:
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  performance-benchmarks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install dependencies
+        run: |
+          pip install -e .[dev]
+      
+      - name: Run performance benchmarks
+        run: |
+          echo "Running performance benchmarks..."
+          python benchmarks/benchmark_metrics_100k.py > benchmark_metrics.txt 2>&1
+          python benchmarks/benchmark_pipeline.py > benchmark_pipeline.txt 2>&1
+          python benchmarks/benchmark_bootstrap.py > benchmark_bootstrap.txt 2>&1
+      
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: |
+            benchmark_*.txt
+      
+      - name: Check for performance regressions
+        run: |
+          # Extract timing information and compare against baselines
+          # Fail if performance degrades significantly (>20%)
+          python -c "
+          import re
+          import sys
+          
+          # Example: Check if metrics benchmark exceeds threshold
+          with open('benchmark_metrics.txt') as f:
+              content = f.read()
+              # Add your performance regression checks here
+              print('Performance benchmarks completed')
+          "
+```
+
+#### Use Case: Automated Release Workflow
+
+Automate releases with GitHub Actions:
+
+```yaml
+# .github/workflows/release.yml
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on version tags
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write  # For PyPI trusted publishing
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install build dependencies
+        run: |
+          pip install build twine
+      
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Build distribution packages
+        run: python -m build
+      
+      - name: Check package
+        run: twine check dist/*
+      
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload dist/*
+      
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          release_name: Release v${{ steps.version.outputs.version }}
+          body: |
+            Release v${{ steps.version.outputs.version }}
+            
+            See CHANGELOG.md for details.
+          draft: false
+          prerelease: false
+```
+
 #### Use Case: pytest Integration
 
 ```python

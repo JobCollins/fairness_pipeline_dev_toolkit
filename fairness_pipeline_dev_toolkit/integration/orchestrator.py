@@ -18,17 +18,20 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 
+from fairness_pipeline_dev_toolkit.exceptions import (
+    DataValidationError,
+    DependencyError,
+    TrainingError,
+)
 from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
 from fairness_pipeline_dev_toolkit.pipeline.config import PipelineConfig
 from fairness_pipeline_dev_toolkit.pipeline.orchestration import (
     apply_pipeline,
     build_pipeline,
 )
-from fairness_pipeline_dev_toolkit.training import (
-    LagrangianFairnessTrainer,
-    ReductionsWrapper,
-)
-from fairness_pipeline_dev_toolkit.training.torch_.losses import FairnessRegularizerLoss
+
+# Training imports are lazy/conditional to avoid requiring optional dependencies
+# Imported only when needed in run_transform_and_train()
 
 
 @dataclass
@@ -112,13 +115,21 @@ def run_transform_and_train(
         Tuple of (trained_model, transformed_df, y_train, y_test, predictions)
     """
     if config.training is None:
-        raise ValueError("Config must have a 'training' section for Step 2.")
+        raise TrainingError(
+            "Configuration must include a 'training' section for Step 2 (Transform and Train).",
+            suggestion="Add a 'training' section to your configuration file with 'method' and 'target_column' fields.",
+        )
 
     training_cfg = config.training
     target_col = training_cfg.target_column
 
     if target_col not in df.columns:
-        raise ValueError(f"Target column '{target_col}' not found in dataframe.")
+        raise DataValidationError(
+            f"Target column '{target_col}' not found in dataframe.",
+            missing_columns=[target_col],
+            data_shape=df.shape,
+            suggestion=f"Ensure the dataframe contains a column named '{target_col}' or update the 'target_column' in your configuration.",
+        )
 
     # Extract target and sensitive features
     y = df[target_col].to_numpy()
@@ -150,7 +161,23 @@ def run_transform_and_train(
     params = training_cfg.params or {}
 
     if method == "reductions":
-        from fairlearn.reductions import DemographicParity, EqualizedOdds
+        try:
+            from fairlearn.reductions import DemographicParity, EqualizedOdds
+        except ImportError as e:
+            raise DependencyError(
+                "fairlearn is required for 'reductions' training method.",
+                dependency_name="fairlearn",
+                extra_name="adapters",
+            ) from e
+
+        try:
+            from fairness_pipeline_dev_toolkit.training import ReductionsWrapper
+        except ImportError as e:
+            raise DependencyError(
+                "Training module is required for 'reductions' method.",
+                dependency_name="training",
+                extra_name="training",
+            ) from e
 
         constraint_name = params.get("constraint", "demographic_parity")
         eps = params.get("eps", 0.01)
@@ -162,7 +189,12 @@ def run_transform_and_train(
         elif constraint_name == "equalized_odds":
             constraint = EqualizedOdds(difference_bound=eps)
         else:
-            raise ValueError(f"Unknown constraint: {constraint_name}")
+            raise TrainingError(
+                f"Unknown constraint: '{constraint_name}'",
+                method="reductions",
+                training_params={"constraint": constraint_name},
+                suggestion="Use 'demographic_parity' or 'equalized_odds' as the constraint name.",
+            )
 
         model = ReductionsWrapper(
             base_estimator=base_estimator, constraint=constraint, eps=eps, T=T
@@ -173,11 +205,23 @@ def run_transform_and_train(
         try:
             import torch
             import torch.nn as nn
-        except ImportError:
-            raise ImportError(
-                "PyTorch is required for 'regularized' training method. "
-                "Install with: pip install torch"
+        except ImportError as e:
+            raise DependencyError(
+                "PyTorch is required for 'regularized' training method.",
+                dependency_name="torch",
+                extra_name="training",
+            ) from e
+
+        try:
+            from fairness_pipeline_dev_toolkit.training.torch_.losses import (
+                FairnessRegularizerLoss,
             )
+        except ImportError as e:
+            raise DependencyError(
+                "Training module is required for 'regularized' method.",
+                dependency_name="training",
+                extra_name="training",
+            ) from e
 
         eta = params.get("eta", 0.5)
         epochs = params.get("epochs", 10)
@@ -223,11 +267,21 @@ def run_transform_and_train(
         try:
             import torch
             import torch.nn as nn
-        except ImportError:
-            raise ImportError(
-                "PyTorch is required for 'lagrangian' training method. "
-                "Install with: pip install torch"
-            )
+        except ImportError as e:
+            raise DependencyError(
+                "PyTorch is required for 'lagrangian' training method.",
+                dependency_name="torch",
+                extra_name="training",
+            ) from e
+
+        try:
+            from fairness_pipeline_dev_toolkit.training import LagrangianFairnessTrainer
+        except ImportError as e:
+            raise DependencyError(
+                "Training module is required for 'lagrangian' method.",
+                dependency_name="training",
+                extra_name="training",
+            ) from e
 
         fairness_type = params.get("fairness", "demographic_parity")
         dp_tol = params.get("dp_tol", 0.02)
@@ -274,7 +328,11 @@ def run_transform_and_train(
         model.eval()
 
     else:
-        raise ValueError(f"Unknown training method: {method}")
+        raise TrainingError(
+            f"Unknown training method: '{method}'",
+            method=method,
+            suggestion="Use one of: 'reductions', 'regularized', or 'lagrangian' as the training method.",
+        )
 
     # Generate predictions
     if method == "reductions":

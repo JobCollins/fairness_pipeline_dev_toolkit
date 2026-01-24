@@ -188,7 +188,9 @@ pipeline: []
 """
     config = load_config(text=config_text)
 
-    with pytest.raises(ValueError, match="training"):
+    from fairness_pipeline_dev_toolkit.exceptions import TrainingError
+
+    with pytest.raises(TrainingError, match="training"):
         execute_workflow(config=config, df=sample_data)
 
 

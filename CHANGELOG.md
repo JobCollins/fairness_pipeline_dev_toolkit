@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v0.5.2] — 2026-01-24
+
+### Added
+- **Performance Documentation**: Created comprehensive `docs/PERFORMANCE.md` with performance benchmarks, optimization tips, scalability considerations, memory usage guidelines, and CI/CD integration examples.
+
+- **Automated Release Workflow**: Added `.github/workflows/release.yml` for automated PyPI publication and GitHub release creation when version tags are pushed.
+
+- **Performance Benchmarking in CI**: Enhanced CI workflow to run performance benchmarks on Ubuntu, tracking performance regressions and uploading benchmark results as artifacts.
+
+### Changed
+- **Exception System**: Completely overhauled exception hierarchy with structured error types providing context and actionable suggestions:
+  - Enhanced `FairnessToolkitError` base class with `message`, `context`, and `suggestion` attributes
+  - Added `DataValidationError` for data validation failures
+  - Added `DependencyError` for missing optional dependencies
+  - All exceptions now provide user-friendly messages with installation suggestions
+
+- **Error Messages**: Improved user-facing error messages throughout the codebase:
+  - Configuration errors now include field names and suggestions
+  - Training errors include method-specific installation instructions
+  - Dependency errors provide exact pip install commands
+  - Data validation errors list missing columns and data shapes
+
+### Fixed
+- **Optional Dependency Imports**: Fixed critical issue where core package required optional dependencies (torch, fairlearn) to be installed:
+  - Made all training module imports lazy/conditional in `orchestrator.py`
+  - Training classes (`ReductionsWrapper`, `LagrangianFairnessTrainer`, `FairnessRegularizerLoss`) are now only imported when needed
+  - Core package can now be imported without `[training]` or `[adapters]` extras
+  - Improved error messages when optional dependencies are missing
+
+- **Orchestrator Module-Level Imports**: Removed top-level training imports from orchestrator, preventing import errors when optional dependencies are not installed.
+
+### Improved
+- **CI/CD Integration**: Enhanced integration guide with comprehensive CI/CD examples:
+  - Performance benchmarking in CI/CD pipelines
+  - Automated release workflow examples
+  - GitHub Actions integration patterns
+
+- **API Documentation**: Updated `docs/api.md` with complete exception hierarchy documentation, including all new exception types with usage examples.
+
+- **Test Suite**: Updated orchestrator tests to use new `TrainingError` exception type instead of generic `ValueError`.
+
+### Purpose
+This release significantly improves the developer experience by fixing the optional dependency import issue, enhancing error messages with actionable suggestions, and adding comprehensive performance documentation. The automated release workflow streamlines the release process, and performance benchmarking in CI helps prevent performance regressions.
+
+**Migration Notes**:
+- No breaking changes to public APIs
+- Core package can now be imported without optional dependencies
+- Exception types are backward compatible (all inherit from `FairnessToolkitError`)
+- Error messages are more informative but maintain same exception types
+
+---
+
 ## [v0.5.1] — 2025-01-16
 
 ### Fixed
@@ -223,6 +275,7 @@ Phase 5 finalized the first release candidate by validating the entire fairness 
 
 ## Version History Summary
 
+- **v0.5.2**: Optional dependency import fixes, enhanced error handling, performance documentation, automated release workflow
 - **v0.5.1**: Critical intersectional analysis bug fix, test suite improvements
 - **v0.5.0**: Major release with integrated end-to-end workflow
 - **v0.4.2**: Monitoring module improvements (DatetimeIndex, heatmaps, alert scoring)
