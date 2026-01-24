@@ -790,7 +790,7 @@ results = analyzer.compare(
 
 ### Exception Hierarchy
 
-All exceptions inherit from `FairnessToolkitError`:
+All exceptions inherit from `FairnessToolkitError` and provide structured error information with user-friendly messages.
 
 **Location:** `fairness_pipeline_dev_toolkit.exceptions`
 
@@ -803,9 +803,159 @@ ConfigValidationError      # Configuration validation failures
 MetricComputationError     # Metric computation failures
 PipelineExecutionError    # Pipeline execution failures
 TrainingError             # Training failures
+DataValidationError       # Data validation failures
+DependencyError           # Missing optional dependencies
 ```
 
-**Usage:**
+### Exception Attributes
+
+All exceptions support:
+- `message`: Human-readable error message
+- `context`: Dictionary with additional error details
+- `suggestion`: Optional suggestion for fixing the error
+
+### Exception Types
+
+#### `FairnessToolkitError`
+
+Base exception for all toolkit errors.
+
+```python
+FairnessToolkitError(
+    message: str,
+    *,
+    context: Optional[Dict[str, Any]] = None,
+    suggestion: Optional[str] = None
+)
+```
+
+#### `ConfigValidationError`
+
+Raised when configuration validation fails.
+
+```python
+ConfigValidationError(
+    message: str,
+    *,
+    field_name: Optional[str] = None,
+    field_value: Any = None,
+    config_path: Optional[str] = None,
+    suggestion: Optional[str] = None
+)
+```
+
+**Example:**
+```python
+from fairness_pipeline_dev_toolkit.exceptions import ConfigValidationError
+
+try:
+    config = load_config("config.yml")
+except ConfigValidationError as e:
+    print(f"Error: {e.message}")
+    print(f"Field: {e.context.get('field')}")
+    print(f"Suggestion: {e.suggestion}")
+```
+
+#### `MetricComputationError`
+
+Raised when metric computation fails.
+
+```python
+MetricComputationError(
+    message: str,
+    *,
+    metric_name: Optional[str] = None,
+    min_group_size: Optional[int] = None,
+    actual_group_sizes: Optional[Dict[str, int]] = None,
+    suggestion: Optional[str] = None
+)
+```
+
+**Example:**
+```python
+from fairness_pipeline_dev_toolkit.exceptions import MetricComputationError
+
+try:
+    result = analyzer.demographic_parity_difference(...)
+except MetricComputationError as e:
+    print(f"Error: {e.message}")
+    print(f"Group sizes: {e.context.get('group_sizes')}")
+    print(f"Suggestion: {e.suggestion}")
+```
+
+#### `PipelineExecutionError`
+
+Raised when pipeline execution fails.
+
+```python
+PipelineExecutionError(
+    message: str,
+    *,
+    step_name: Optional[str] = None,
+    step_index: Optional[int] = None,
+    transformer_name: Optional[str] = None,
+    suggestion: Optional[str] = None
+)
+```
+
+#### `TrainingError`
+
+Raised when training fails.
+
+```python
+TrainingError(
+    message: str,
+    *,
+    method: Optional[str] = None,
+    training_params: Optional[Dict[str, Any]] = None,
+    suggestion: Optional[str] = None
+)
+```
+
+#### `DataValidationError`
+
+Raised when data validation fails.
+
+```python
+DataValidationError(
+    message: str,
+    *,
+    missing_columns: Optional[list] = None,
+    invalid_columns: Optional[Dict[str, str]] = None,
+    data_shape: Optional[tuple] = None,
+    suggestion: Optional[str] = None
+)
+```
+
+#### `DependencyError`
+
+Raised when required optional dependencies are missing.
+
+```python
+DependencyError(
+    message: str,
+    *,
+    dependency_name: Optional[str] = None,
+    extra_name: Optional[str] = None,
+    suggestion: Optional[str] = None
+)
+```
+
+**Example:**
+```python
+from fairness_pipeline_dev_toolkit.exceptions import DependencyError
+
+try:
+    from fairness_pipeline_dev_toolkit.training import ReductionsWrapper
+except DependencyError as e:
+    print(f"Error: {e.message}")
+    print(f"Missing: {e.context.get('dependency')}")
+    print(f"Install: {e.suggestion}")
+```
+
+### Usage Examples
+
+**Basic Exception Handling:**
 ```python
 from fairness_pipeline_dev_toolkit.exceptions import (
     FairnessToolkitError,
@@ -815,8 +965,28 @@ from fairness_pipeline_dev_toolkit.exceptions import (
 
 try:
     config = load_config("config.yml")
+    result = analyzer.demographic_parity_difference(...)
 except ConfigValidationError as e:
     print(f"Configuration error: {e}")
+    print(f"Suggestion: {e.suggestion}")
+except MetricComputationError as e:
+    print(f"Computation error: {e}")
+    print(f"Context: {e.context}")
+except FairnessToolkitError as e:
+    print(f"Toolkit error: {e}")
+```
+
+**Accessing Exception Details:**
+```python
+try:
+    # Some operation
+    pass
+except ConfigValidationError as e:
+    # Access structured information
+    print(f"Message: {e.message}")
+    print(f"Field: {e.context.get('field')}")
+    print(f"Value: {e.context.get('value')}")
+    print(f"Suggestion: {e.suggestion}")
 ```
 
 ---
