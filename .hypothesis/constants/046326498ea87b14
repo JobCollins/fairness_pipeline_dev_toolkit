@@ -1,0 +1,4 @@
+# file: /Users/jobdulo/Documents/Turing/Sprint 4/fairness_pipeline_dev_toolkit/fairness_pipeline_dev_toolkit/integration/mlflow_logger.py
+# hypothesis_version: 6.150.3
+
+[0.0, 1.0, '.json', '.pkl', '.pt', 'accuracy', 'artifacts', 'baseline_', 'ci', 'config', 'effect_size', 'fairness_', 'final_', 'final_metric_value', 'improvement', 'log_artifact', 'log_dict', 'log_text', 'model', 'n_per_group', 'predict', 'results.json', 'state_dict', 'validation_message', 'validation_passed', 'validation_threshold', 'value', 'w', 'workflow', 'y_test']

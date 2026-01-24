@@ -1,0 +1,4 @@
+# file: /Users/jobdulo/Documents/Turing/Sprint 4/fairness_pipeline_dev_toolkit/fairness_pipeline_dev_toolkit/monitoring/tracker.py
+# hypothesis_version: 6.150.3
+
+[0.0, 0.5, 10000, '+', 'DP[overall]', 'EO[overall]', 'Processing batch', '__DPD__', '__EOD__', '__overall__', 'artifacts/monitoring', 'batch_size', 'demographic_parity', 'equalized_odds', 'g', 'group_key', 'metric', 'monitoring.tracker', 'n', 'timestamp', 'value', 'window_size', 'y', 'yhat', '×']

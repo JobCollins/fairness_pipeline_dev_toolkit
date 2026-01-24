@@ -1,0 +1,4 @@
+# file: /Users/jobdulo/Documents/Turing/Sprint 4/fairness_pipeline_dev_toolkit/fairness_pipeline_dev_toolkit/monitoring/drift.py
+# hypothesis_version: 6.150.3
+
+[0.0, 0.2, 0.3, 0.35, 0.4, 0.6, 0.7, 1.0, 100, 'CRITICAL', 'DP', 'EO', 'HIGH', 'LOW', 'approx', 'auto', 'db2', 'full', 'group_key', 'metric', 'monitoring.drift', 'n', 'timestamp', 'two-sided', 'value']

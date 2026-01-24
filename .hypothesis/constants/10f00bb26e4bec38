@@ -1,0 +1,4 @@
+# file: /Users/jobdulo/Documents/Turing/Sprint 4/fairness_pipeline_dev_toolkit/fairness_pipeline_dev_toolkit/training/viz/pareto.py
+# hypothesis_version: 6.150.3
+
+[0.0, 0.001, 0.1, 0.3, 0.5, 1.0, 2.0, 160, 'Accuracy (↑ better)', 'accuracy', 'covariance', 'cpu', 'dp_diff', 'eta', 'offset points', 'tight']

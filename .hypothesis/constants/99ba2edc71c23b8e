@@ -1,0 +1,4 @@
+# file: /Users/jobdulo/Documents/Turing/Sprint 4/fairness_pipeline_dev_toolkit/fairness_pipeline_dev_toolkit/monitoring/dashboard.py
+# hypothesis_version: 6.150.3
+
+[400, '%{text:.3f}', '</extra>', 'Group', 'Intersectional Group', 'Metric', 'Metric Value', 'Metric value', 'N/A', 'RdYlBu_r', 'Time', 'active_alerts.json', 'first', 'group_key', 'lines+markers', 'metric', 'n', 'plotly_white', 'report.md', 'size', 'timestamp', 'utf-8', 'value', 'w']

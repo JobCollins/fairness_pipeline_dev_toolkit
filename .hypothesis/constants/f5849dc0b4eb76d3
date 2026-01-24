@@ -1,0 +1,4 @@
+# file: /Users/jobdulo/Documents/Turing/Sprint 4/fairness_pipeline_dev_toolkit/fairness_pipeline_dev_toolkit/monitoring/config.py
+# hypothesis_version: 6.150.3
+
+[0.01, 0.1, 1.0, 1.2, 'DP', 'EO', 'MonitoringSettings', 'artifacts/monitoring', 'artifacts_dir', 'drift', 'report', 'utf-8', 'w']

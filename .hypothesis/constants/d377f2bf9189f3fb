@@ -1,0 +1,4 @@
+# file: /Users/jobdulo/Documents/Turing/Sprint 4/fairness_pipeline_dev_toolkit/fairness_pipeline_dev_toolkit/utils/logging.py
+# hypothesis_version: 6.150.3
+
+['INFO', 'Z', 'duration', 'duration_seconds', 'exception', 'function', 'group_count', 'level', 'line', 'logger', 'message', 'metric_name', 'metric_value', 'module', 'n_samples', 'started', 'status', 'step', 'timestamp', 'workflow_id']
