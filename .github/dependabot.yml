@@ -20,12 +20,12 @@ updates:
       prefix: "chore"
       include: "scope"
     # Group security updates together
+    # Note: Dependabot automatically groups security updates, but we can group all updates
+    # to reduce PR noise. Security updates will be included automatically.
     groups:
       security-updates:
         patterns:
           - "*"
-        update-types:
-          - "security"
     # Ignore major version updates for critical dependencies
     ignore:
       - dependency-name: "numpy"
