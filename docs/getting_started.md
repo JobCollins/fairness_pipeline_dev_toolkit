@@ -7,7 +7,7 @@ Welcome to the Fairness Pipeline Development Toolkit! This guide will help you g
 Install the toolkit using pip:
 
 ```bash
-pip install fairness-pipeline-dev-toolkit
+pip install fairpipe
 ```
 
 For development installation:

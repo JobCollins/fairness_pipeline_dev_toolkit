@@ -113,7 +113,7 @@ jobs:
             ### PyPI Status
             ${{ steps.pypi_repo.outputs.repository == 'testpypi' && (steps.testpypi_publish.outcome == 'success' && '✅ Published to TestPyPI' || '⚠️ TestPyPI publication failed or skipped') || (steps.production_pypi_publish.outcome == 'success' && '✅ Published to PyPI' || '⚠️ PyPI publication failed or skipped') }}
             
-            ${{ steps.pypi_repo.outputs.repository == 'testpypi' && format('📦 TestPyPI: https://test.pypi.org/project/fairness-pipeline-dev-toolkit/{0}/', steps.version.outputs.version) || format('📦 PyPI: https://pypi.org/project/fairness-pipeline-dev-toolkit/{0}/', steps.version.outputs.version) }}
+            ${{ steps.pypi_repo.outputs.repository == 'testpypi' && format('📦 TestPyPI: https://test.pypi.org/project/fairpipe/{0}/', steps.version.outputs.version) || format('📦 PyPI: https://pypi.org/project/fairpipe/{0}/', steps.version.outputs.version) }}
             
             ### Quick Links
             - [Documentation](https://github.com/${{ github.repository }}#readme)

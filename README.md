@@ -1,7 +1,7 @@
 # Fairness Pipeline Development Toolkit
 
 **Version:** 0.5.4  
-**Status:** Production-ready | Available on [PyPI](https://pypi.org/project/fairness-pipeline-dev-toolkit/)  
+**Status:** Production-ready | Available on [PyPI](https://pypi.org/project/fairpipe/)  
 ![Coverage](https://img.shields.io/badge/coverage-86%25-green)
 
 
@@ -16,7 +16,7 @@ A unified, statistically-rigorous framework for **detecting**, **mitigating**, *
 The toolkit is available on PyPI and can be installed with pip:
 
 ```bash
-pip install fairness-pipeline-dev-toolkit
+pip install fairpipe
 ```
 
 This installs the core package with all essential dependencies. For optional features, see [Installation Options](#installation-options) below.
@@ -28,7 +28,7 @@ This installs the core package with all essential dependencies. For optional fea
 The base installation includes all essential fairness measurement and pipeline components:
 
 ```bash
-pip install fairness-pipeline-dev-toolkit
+pip install fairpipe
 ```
 
 **Included:**
@@ -44,16 +44,16 @@ Install additional features using extra dependency groups:
 
 ```bash
 # Training methods (PyTorch-based fairness-aware training)
-pip install fairness-pipeline-dev-toolkit[training]
+pip install fairpipe[training]
 
 # Production monitoring tools (dashboards and drift detection)
-pip install fairness-pipeline-dev-toolkit[monitoring]
+pip install fairpipe[monitoring]
 
 # External metric backends (Fairlearn, Aequitas adapters)
-pip install fairness-pipeline-dev-toolkit[adapters]
+pip install fairpipe[adapters]
 
 # Install all optional dependencies
-pip install fairness-pipeline-dev-toolkit[training,monitoring,adapters]
+pip install fairpipe[training,monitoring,adapters]
 ```
 
 **Optional dependency groups:**
@@ -67,7 +67,7 @@ For development or to use the latest features from source:
 
 ```bash
 git clone https://github.com/SvrusIO/fAIr
-cd fairness-pipeline-dev-toolkit
+cd fAIr
 pip install -e ".[training,monitoring,adapters,dev]"
 ```
 
@@ -89,7 +89,7 @@ pip install -e ".[training,monitoring,adapters,dev]"
 ### 1. Install the Package
 
 ```bash
-pip install fairness-pipeline-dev-toolkit
+pip install fairpipe
 ```
 
 ### 2. Quick CLI Usage

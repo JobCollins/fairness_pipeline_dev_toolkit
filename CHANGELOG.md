@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v0.6.0] — 2026-01-26
+
+### Changed
+- **PyPI Package Name**: Package name changed from `fairness-pipeline-dev-toolkit` to `fairpipe` for a shorter, more user-friendly installation command.
+  - **Installation**: Use `pip install fairpipe` instead of `pip install fairness-pipeline-dev-toolkit`
+  - **Python Imports**: No changes required - Python imports remain `from fairness_pipeline_dev_toolkit import ...`
+  - **CLI Command**: No changes - CLI command remains `fairpipe`
+
+### Purpose
+This release simplifies the installation experience by providing a shorter package name while maintaining full backward compatibility for Python code. The package name change only affects the `pip install` command; all Python imports and CLI usage remain unchanged.
+
+**Migration Notes**:
+- **Breaking Change for Installation**: Users must update their installation commands
+  1. Uninstall old package: `pip uninstall fairness-pipeline-dev-toolkit`
+  2. Install new package: `pip install fairpipe`
+- **No Code Changes Required**: All Python imports remain unchanged:
+  - `from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer`
+  - `from fairness_pipeline_dev_toolkit.pipeline.config import PipelineConfig`
+  - All existing code continues to work without modification
+- **CLI Usage**: No changes - continue using `fairpipe` commands as before
+- **Optional Extras**: Installation with extras now uses the new name:
+  - `pip install fairpipe[training]`
+  - `pip install fairpipe[monitoring]`
+  - `pip install fairpipe[adapters]`
+  - `pip install fairpipe[training,monitoring,adapters]`
+
+---
+
 ## [v0.5.4] — 2026-01-24
 
 ### Added

@@ -3,8 +3,8 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "fairness-pipeline-dev-toolkit"
-version = "0.5.4"
+name = "fairpipe"
+version = "0.6.0"
 description = "Production-ready toolkit for fairness measurement, mitigation, and monitoring."
 readme = "README.md"
 license = { text = "Apache-2.0" }
