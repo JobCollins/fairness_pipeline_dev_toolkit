@@ -1045,7 +1045,7 @@ Get the toolkit version:
 ```python
 from fairness_pipeline_dev_toolkit import __version__
 
-print(__version__)  # "0.5.0"
+print(__version__)  # "0.6.0"
 ```
 
 ---

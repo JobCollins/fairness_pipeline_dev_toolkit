@@ -412,6 +412,7 @@ Phase 5 finalized the first release candidate by validating the entire fairness 
 
 ## Version History Summary
 
+- **v0.6.0**: PyPI package name migration from `fairness-pipeline-dev-toolkit` to `fairpipe` for improved user experience
 - **v0.5.4**: Enhanced testing infrastructure, documentation site, security automation, TestPyPI release workflow support
 - **v0.5.3**: Security infrastructure, performance test suite, structured logging, user feedback collection
 - **v0.5.2**: Optional dependency import fixes, enhanced error handling, performance documentation, automated release workflow
@@ -425,6 +426,9 @@ Phase 5 finalized the first release candidate by validating the entire fairness 
 ---
 
 ## Breaking Changes
+
+### v0.6.0
+- **PyPI Package Name**: Package name changed from `fairness-pipeline-dev-toolkit` to `fairpipe`. Users must update installation commands, but no code changes are required (Python imports remain unchanged).
 
 ### v0.5.0
 - **None**: All changes are backward compatible. Configs without `training` section continue to work with `fairpipe pipeline` command.
