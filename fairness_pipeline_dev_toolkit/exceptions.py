@@ -211,9 +211,9 @@ class TrainingError(FairnessToolkitError):
 
         if not suggestion and method:
             if method == "reductions":
-                suggestion = "Ensure fairlearn is installed: pip install fairness-pipeline-dev-toolkit[adapters]"
+                suggestion = "Ensure fairlearn is installed: pip install fairpipe[adapters]"
             elif method in ("regularized", "lagrangian"):
-                suggestion = "Ensure PyTorch is installed: pip install fairness-pipeline-dev-toolkit[training]"
+                suggestion = "Ensure PyTorch is installed: pip install fairpipe[training]"
 
         super().__init__(message, context=context, suggestion=suggestion)
 
@@ -293,9 +293,7 @@ class DependencyError(FairnessToolkitError):
 
         if not suggestion:
             if extra_name:
-                suggestion = (
-                    f"Install with: pip install fairness-pipeline-dev-toolkit[{extra_name}]"
-                )
+                suggestion = f"Install with: pip install fairpipe[{extra_name}]"
             elif dependency_name:
                 suggestion = f"Install with: pip install {dependency_name}"
             else:

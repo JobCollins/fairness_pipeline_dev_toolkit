@@ -25,7 +25,7 @@ This guide demonstrates how to integrate the Fairness Pipeline Development Toolk
 ### Basic Installation
 
 ```bash
-pip install fairness-pipeline-dev-toolkit
+pip install fairpipe
 ```
 
 ### With Optional Dependencies
@@ -34,16 +34,16 @@ For specific use cases, install additional features:
 
 ```bash
 # For fairness-aware training
-pip install fairness-pipeline-dev-toolkit[training]
+pip install fairpipe[training]
 
 # For production monitoring
-pip install fairness-pipeline-dev-toolkit[monitoring]
+pip install fairpipe[monitoring]
 
 # For external metric backends
-pip install fairness-pipeline-dev-toolkit[adapters]
+pip install fairpipe[adapters]
 
 # All features
-pip install fairness-pipeline-dev-toolkit[training,monitoring,adapters]
+pip install fairpipe[training,monitoring,adapters]
 ```
 
 ### Verify Installation
@@ -287,7 +287,7 @@ jobs:
           python-version: '3.10'
       
       - name: Install toolkit
-        run: pip install fairness-pipeline-dev-toolkit
+        run: pip install fairpipe
       
       - name: Run fairness validation
         run: |
@@ -947,7 +947,7 @@ analyzer = FairnessAnalyzer(
 **Problem:** `RuntimeError: Requested backend 'fairlearn' is not available`
 
 **Solutions:**
-- Install optional dependencies: `pip install fairness-pipeline-dev-toolkit[adapters]`
+- Install optional dependencies: `pip install fairpipe[adapters]`
 - Use `backend="native"` (always available)
 - Let toolkit auto-select: `backend=None`
 

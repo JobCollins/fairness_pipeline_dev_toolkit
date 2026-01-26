@@ -108,7 +108,7 @@ Security updates are released as:
 
 1. **Keep Dependencies Updated**
    ```bash
-   pip install --upgrade fairness-pipeline-dev-toolkit
+   pip install --upgrade fairpipe
    ```
 
 2. **Review Security Advisories**

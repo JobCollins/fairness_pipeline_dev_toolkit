@@ -17,3 +17,6 @@ docs/_build/
 docs/_static/
 docs/_templates/
 *.doctree
+
+dist/
+test_pypi_venv/
