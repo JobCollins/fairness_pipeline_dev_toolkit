@@ -35,6 +35,24 @@ This release simplifies the installation experience by providing a shorter packa
 
 ---
 
+## [v0.6.1] — 2026-01-27
+
+### Fixed
+- **Regression Metrics Support**: Added missing `mae_parity_difference` method to `FairlearnAdapter` and `AequitasAdapter`
+  - Previously, `mae_parity_difference` was only implemented in `NativeAdapter`, causing failures when users selected `fairlearn` or `aequitas` backends for regression metrics
+  - Both adapters now implement the method following the same pattern as `NativeAdapter`
+  - Comprehensive test coverage added for both adapters
+
+### Purpose
+This patch release fixes a bug where regression metrics (`mae_parity_difference`) would fail when using `fairlearn` or `aequitas` backends. The method was expected by `FairnessAnalyzer` but was missing from these adapters.
+
+**Migration Notes**:
+- No breaking changes
+- Users can now use `mae_parity_difference` with any backend (native, fairlearn, or aequitas)
+- All existing functionality remains unchanged
+
+---
+
 ## [v0.5.4] — 2026-01-24
 
 ### Added
