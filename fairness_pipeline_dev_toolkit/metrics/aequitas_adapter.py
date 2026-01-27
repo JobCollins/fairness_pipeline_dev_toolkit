@@ -95,3 +95,30 @@ class AequitasAdapter:
             float(value) if value == value else np.nan,
             n_per_group=n_per,
         )
+
+    def mae_parity_difference(
+        self, y_true, y_pred, sensitive, *, min_group_size: int = 30
+    ) -> MetricResult:
+        if not self.available():
+            raise RuntimeError("Aequitas not available")
+        s, valid = self._mask_small_groups(sensitive, min_group_size)
+        yt = np.asarray(y_true)
+        yp = np.asarray(y_pred)
+        if valid.sum() == 0:
+            return MetricResult("mae_parity_difference", np.nan, n_per_group={})
+
+        s = s[valid].to_numpy()
+        yt = yt[valid]
+        yp = yp[valid]
+        groups = np.unique(s)
+        maes, n_per = {}, {}
+        for g in groups:
+            m = s == g
+            yt_g, yp_g = yt[m], yp[m]
+            maes[str(g)] = float(np.mean(np.abs(yt_g - yp_g)))
+            n_per[str(g)] = int(m.sum())
+
+        if len(maes) < 2:
+            return MetricResult("mae_parity_difference", np.nan, n_per_group=n_per)
+        diff = max(maes.values()) - min(maes.values())
+        return MetricResult("mae_parity_difference", float(diff), n_per_group=n_per)

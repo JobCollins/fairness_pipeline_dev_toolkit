@@ -483,3 +483,124 @@ class TestEqualizedOddsDifference:
         assert isinstance(result, MetricResult)
         # Only one group has valid FPR, so span returns NaN
         assert np.isnan(result.value)
+
+
+class TestMAEParityDifference:
+    """Tests for mae_parity_difference() method."""
+
+    @pytest.fixture
+    def adapter(self):
+        """Create an adapter instance with mocked aequitas."""
+
+        def mock_import(name, *args, **kwargs):
+            if name == "aequitas":
+                return type("MockModule", (), {})()
+            return __import__(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=mock_import):
+            return AequitasAdapter()
+
+    def test_mae_valid_groups(self, adapter):
+        """Test with valid groups (>= min_group_size)."""
+        y_true = np.array([3.0, 2.5, 4.0, 5.0, 3.5, 4.5])
+        y_pred = np.array([2.8, 2.3, 4.2, 5.1, 3.2, 4.3])
+        sensitive = np.array(["A", "A", "A", "B", "B", "B"])
+
+        result = adapter.mae_parity_difference(y_true, y_pred, sensitive, min_group_size=2)
+
+        assert isinstance(result, MetricResult)
+        assert result.metric == "mae_parity_difference"
+        assert not np.isnan(result.value)
+        assert result.value >= 0  # Difference should be non-negative
+        assert result.n_per_group is not None
+        assert len(result.n_per_group) == 2  # Two groups
+
+    def test_mae_insufficient_groups(self, adapter):
+        """Test with insufficient groups (< min_group_size)."""
+        y_true = np.array([3.0, 2.5, 4.0, 5.0])
+        y_pred = np.array([2.8, 2.3, 4.2, 5.1])
+        sensitive = np.array(["A", "A", "B", "B"])
+
+        result = adapter.mae_parity_difference(y_true, y_pred, sensitive, min_group_size=3)
+
+        assert isinstance(result, MetricResult)
+        assert result.metric == "mae_parity_difference"
+        assert np.isnan(result.value)  # Should return NaN when no valid groups
+        assert result.n_per_group == {}
+
+    def test_mae_empty_data(self, adapter):
+        """Test with empty data."""
+        y_true = np.array([])
+        y_pred = np.array([])
+        sensitive = np.array([])
+
+        result = adapter.mae_parity_difference(y_true, y_pred, sensitive, min_group_size=2)
+
+        assert isinstance(result, MetricResult)
+        assert result.metric == "mae_parity_difference"
+        assert np.isnan(result.value)
+        assert result.n_per_group == {}
+
+    def test_mae_single_group(self, adapter):
+        """Test with single group."""
+        y_true = np.array([3.0, 2.5, 4.0, 3.5])
+        y_pred = np.array([2.8, 2.3, 4.2, 3.2])
+        sensitive = np.array(["A", "A", "A", "A"])
+
+        result = adapter.mae_parity_difference(y_true, y_pred, sensitive, min_group_size=2)
+
+        assert isinstance(result, MetricResult)
+        # Need at least 2 groups to compute difference
+        assert np.isnan(result.value)
+
+    def test_mae_perfect_parity(self, adapter):
+        """Test with perfect MAE parity (same MAE for all groups)."""
+        # Perfect predictions for both groups
+        y_true = np.array([3.0, 2.5, 4.0, 3.0, 2.5, 4.0])
+        y_pred = np.array([3.0, 2.5, 4.0, 3.0, 2.5, 4.0])
+        sensitive = np.array(["A", "A", "A", "B", "B", "B"])
+
+        result = adapter.mae_parity_difference(y_true, y_pred, sensitive, min_group_size=2)
+
+        assert isinstance(result, MetricResult)
+        assert result.value == 0.0  # Perfect parity means 0 difference
+
+    def test_mae_different_errors(self, adapter):
+        """Test with different MAE values across groups."""
+        # Group A: small errors, Group B: larger errors
+        y_true = np.array([3.0, 3.0, 3.0, 5.0, 5.0, 5.0])
+        y_pred = np.array([3.1, 2.9, 3.0, 4.5, 5.5, 4.8])
+        sensitive = np.array(["A", "A", "A", "B", "B", "B"])
+
+        result = adapter.mae_parity_difference(y_true, y_pred, sensitive, min_group_size=2)
+
+        assert isinstance(result, MetricResult)
+        assert result.value > 0  # Should have some difference
+
+    def test_mae_unavailable_raises_error(self):
+        """Test that calling method when aequitas unavailable raises RuntimeError."""
+
+        def mock_import(name, *args, **kwargs):
+            if name == "aequitas":
+                raise ImportError("No module named 'aequitas'")
+            return __import__(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=mock_import):
+            adapter = AequitasAdapter()
+            y_true = np.array([3.0, 2.5])
+            y_pred = np.array([2.8, 2.3])
+            sensitive = np.array(["A", "B"])
+
+            with pytest.raises(RuntimeError, match="Aequitas not available"):
+                adapter.mae_parity_difference(y_true, y_pred, sensitive)
+
+    def test_mae_n_per_group_counts(self, adapter):
+        """Test that n_per_group contains correct counts."""
+        y_true = np.array([3.0, 2.5, 4.0, 5.0, 3.5, 4.5])
+        y_pred = np.array([2.8, 2.3, 4.2, 5.1, 3.2, 4.3])
+        sensitive = np.array(["A", "A", "A", "B", "B", "B"])
+
+        result = adapter.mae_parity_difference(y_true, y_pred, sensitive, min_group_size=2)
+
+        assert result.n_per_group["A"] == 3
+        assert result.n_per_group["B"] == 3
