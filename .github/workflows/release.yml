@@ -11,13 +11,13 @@ on:
         required: true
         type: string
       pypi_repository:
-        description: 'PyPI repository (testpypi or pypi)'
+        description: 'PyPI repository (pypi or testpypi)'
         required: false
-        default: 'testpypi'
+        default: 'pypi'
         type: choice
         options:
-          - testpypi
           - pypi
+          - testpypi
 
 jobs:
   build-and-publish:
@@ -57,8 +57,8 @@ jobs:
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             REPO="${{ github.event.inputs.pypi_repository }}"
           else
-            # Default to testpypi for tag pushes (change to 'pypi' when ready for production)
-            REPO="testpypi"
+            # Publish to production PyPI when pushing version tags
+            REPO="pypi"
           fi
           echo "repository=$REPO" >> $GITHUB_OUTPUT
           echo "Using PyPI repository: $REPO"
