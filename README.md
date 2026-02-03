@@ -11,9 +11,9 @@ A unified, statistically-rigorous framework for **detecting**, **mitigating**, *
 
 ## Quick Install
 
-### From PyPI (Recommended for Production)
+### From PyPI
 
-The toolkit is available on PyPI and can be installed with pip:
+The toolkit is available on [PyPI](https://pypi.org/project/fairpipe/). Install with pip:
 
 ```bash
 pip install fairpipe
