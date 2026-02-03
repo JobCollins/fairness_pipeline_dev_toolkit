@@ -52,6 +52,18 @@ After building, open `docs/_build/html/index.html` in your browser.
 
 The documentation is automatically built and deployed to GitHub Pages via the `.github/workflows/docs.yml` workflow when changes are pushed to the `main` branch.
 
+### Fixing a 404 at the docs URL
+
+If **https://svrusio.github.io/fAIr** returns 404, GitHub Pages is likely not using the workflow:
+
+1. On GitHub, open the repository **SvrusIO/fAIr**.
+2. Go to **Settings → Pages**.
+3. Under **Build and deployment**, set **Source** to **GitHub Actions** (not "Deploy from a branch").
+4. Save. The next successful run of the **Documentation** workflow (on push to `main` that touches `docs/`, `*.md`, or package code) will deploy the site.
+5. To deploy immediately without a code change: **Actions → Documentation → Run workflow** (the workflow has `workflow_dispatch`).
+
+The site will be available at **https://svrusio.github.io/fAIr** (or **https://SvrusIO.github.io/fAIr**).
+
 ## Adding New Documentation
 
 1. Add Markdown files to the `docs/` directory

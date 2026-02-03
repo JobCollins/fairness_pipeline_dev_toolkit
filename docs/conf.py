@@ -42,6 +42,8 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "sphinx_rtd_theme"
+# Base URL when deployed to GitHub Pages (https://<owner>.github.io/fAIr)
+html_baseurl = "https://svrusio.github.io/fAIr/"
 # html_static_path = ["_static"]  # Commented out - directory doesn't exist
 html_theme_options = {
     "collapse_navigation": False,
