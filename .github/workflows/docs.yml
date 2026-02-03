@@ -23,7 +23,7 @@ jobs:
       contents: write  # For GitHub Pages deployment
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Fetch all history for proper versioning
 
@@ -62,7 +62,7 @@ jobs:
     environment:
       name: github-pages
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download documentation artifacts
         uses: actions/download-artifact@v4
