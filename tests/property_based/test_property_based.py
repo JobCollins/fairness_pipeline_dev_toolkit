@@ -53,6 +53,38 @@ def numeric_arrays(draw, min_size=1, max_size=1000, min_value=-1e6, max_value=1e
     )
 
 
+@st.composite
+def eo_valid_arrays(draw, min_size=10, max_size=100, min_groups=2, max_groups=5):
+    """Generate (y_true, y_pred, sensitive) aligned in length with at least 2 groups that have
+    both 0 and 1 in y_true, so equalized_odds_difference gets valid inputs by construction.
+    """
+    n_groups = draw(st.integers(min_value=min_groups, max_value=max_groups))
+    # Need n >= 2 * n_groups so each group has at least 2 members
+    n = draw(st.integers(min_value=max(min_size, 2 * n_groups), max_value=max_size))
+    group_names = [f"g{i}" for i in range(n_groups)]
+    # Assign each index to a group; ensure each group has >= 2 members
+    base = list(range(n_groups)) * 2  # 2 per group
+    extra = n - len(base)
+    if extra > 0:
+        base.extend(draw(st.lists(st.integers(0, n_groups - 1), min_size=extra, max_size=extra)))
+    assignment = np.array(draw(st.permutations(base)))
+    sensitive = np.array([group_names[i] for i in assignment])
+    # y_true: for groups 0 and 1, set at least one 0 and one 1; rest random
+    y_true = np.zeros(n, dtype=np.int_)
+    for g in range(min(2, n_groups)):
+        indices = np.where(assignment == g)[0]
+        y_true[indices[0]] = 0
+        y_true[indices[1]] = 1
+        for i in indices[2:]:
+            y_true[i] = draw(st.integers(0, 1))
+    for g in range(2, n_groups):
+        indices = np.where(assignment == g)[0]
+        for i in indices:
+            y_true[i] = draw(st.integers(0, 1))
+    y_pred = np.array(draw(st.lists(st.integers(0, 1), min_size=n, max_size=n)))
+    return y_true, y_pred, sensitive
+
+
 # ============================================================================
 # Property-based tests for bootstrap CI
 # ============================================================================
@@ -278,30 +310,12 @@ class TestFairnessMetricsProperties:
             assert abs(result.value) < 1e-10
 
     @given(
-        y_true=binary_arrays(min_size=10, max_size=100),
-        y_pred=binary_arrays(min_size=10, max_size=100),
-        sensitive=sensitive_arrays(min_size=10, max_size=100, min_groups=2, max_groups=5),
+        data=eo_valid_arrays(min_size=10, max_size=100, min_groups=2, max_groups=5),
     )
-    @settings(
-        max_examples=50,
-        deadline=5000,
-        suppress_health_check=[HealthCheck.filter_too_much],
-    )
-    def test_eo_difference_bounds(self, y_true, y_pred, sensitive):
+    @settings(max_examples=50, deadline=5000)
+    def test_eo_difference_bounds(self, data):
         """Property: Equalized odds difference should be in [0, 1]."""
-        assume(len(y_true) == len(y_pred) == len(sensitive))
-        # Ensure we have at least 2 groups with sufficient size AND diversity in y_true
-        unique_groups = np.unique(sensitive)
-        groups_with_valid_data = []
-        for g in unique_groups:
-            mask = sensitive == g
-            if mask.sum() >= 2:  # min_group_size
-                y_true_group = y_true[mask]
-                # Need both positive and negative examples for TPR/FPR
-                if np.any(y_true_group == 0) and np.any(y_true_group == 1):
-                    groups_with_valid_data.append(g)
-        assume(len(groups_with_valid_data) >= 2)
-
+        y_true, y_pred, sensitive = data
         fa = FairnessAnalyzer(min_group_size=2, backend="native")
         result = fa.equalized_odds_difference(y_true, y_pred, sensitive)
 

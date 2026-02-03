@@ -1,6 +1,6 @@
 # Fairness Pipeline Development Toolkit
 
-**Version:** 0.6.0  
+**Version:** 0.6.2  
 **Status:** Production-ready | Available on [PyPI](https://pypi.org/project/fairpipe/)  
 ![Coverage](https://img.shields.io/badge/coverage-86%25-green)
 
@@ -139,6 +139,22 @@ print(f"95% CI: [{result.ci[0]:.4f}, {result.ci[1]:.4f}]")
 ```
 
 For more examples, see [Usage Examples](#usage-examples) below or check the [Integration Guide](docs/integration_guide.md).
+
+### Workflow Overview
+
+The integrated pipeline (`fairpipe run-pipeline`) runs a three-step workflow from raw data to validated model and artifacts:
+
+```mermaid
+flowchart LR
+  Data[Data] --> Step1[Step 1: Baseline Measurement]
+  Step1 --> Step2[Step 2: Transform + Train]
+  Step2 --> Step3[Step 3: Final Validation]
+  Step3 --> Artifacts[Artifacts / MLflow]
+```
+
+- **Step 1 (Baseline Measurement):** Compute fairness metrics on an unconstrained baseline model; these baseline metrics are used in Step 3 for comparison.
+- **Step 2 (Transform + Train):** Apply bias mitigation (e.g. reweighing, repair) and train a fairness-aware model.
+- **Step 3 (Final Validation):** Evaluate the trained model and compare to baseline; pass/fail against a threshold.
 
 ---
 
@@ -417,6 +433,12 @@ fairpipe run-pipeline \
 - `--train-size`: Proportion of data for training (default: 0.8)
 - `--mlflow-experiment`: MLflow experiment name (enables MLflow logging)
 - `--mlflow-run-name`: MLflow run name
+
+**Output:** The command prints workflow results including:
+- **Validation status:** PASSED or FAILED with a short message
+- **Improvement:** Percentage change in the fairness metric (negative = reduction in unfairness)
+- **Metric comparison table:** Baseline (Step 1) vs Final (Step 3) with change per metric
+- Short **Baseline (Step 1)** and **Final (Step 3)** metric summaries
 
 **Exit codes:**
 - `0`: Validation passed (metrics meet threshold)
@@ -765,7 +787,7 @@ pytest tests/monitoring/ -q
 ```
 
 The test suite includes:
-- **673 tests** across all modules with **86% code coverage**
+- **709 tests** across all modules with **86% code coverage**
 - Integration tests for orchestrator and MLflow
 - Expanded integration tests with comprehensive edge case coverage
 - Property-based tests using Hypothesis for statistical invariants
@@ -794,7 +816,7 @@ fairness_pipeline_dev_toolkit/
 ├── artifacts/                        # Generated outputs (gitignored)
 ├── apps/                             # Monitoring dashboards (Streamlit/Dash)
 ├── scripts/                          # Utility scripts
-├── demo_*.ipynb                      # Demo notebooks
+├── demo.ipynb                         # Full pipeline demo (baseline → transform+train → validate)
 ├── config.yml                        # Example integrated workflow config
 ├── pipeline.config.yml               # Example pipeline config
 └── requirements.txt                  # Pinned dependencies
@@ -837,10 +859,10 @@ This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) fo
 - **Comprehensive Guide**: See [DOCS.md](DOCS.md) for detailed usage across the ML lifecycle
 - **Documentation Site**: Automated documentation builds available via GitHub Pages (see `.github/workflows/docs.yml`)
 - **Security**: See [SECURITY.md](SECURITY.md) for security policy and [.github/SECURITY_REVIEW_PROCESS.md](.github/SECURITY_REVIEW_PROCESS.md) for security review process
-- **Demo Notebooks**: Explore `demo_*.ipynb` for complete examples
+- **Demo Notebook**: Explore `demo.ipynb` for the full pipeline (baseline → transform+train → validate)
 - **Test Suite**: Review `tests/` for usage patterns and edge cases
 
 ---
 
-**Version**: 0.6.0  
-**Last Updated**: 2026-01-26
+**Version**: 0.6.2  
+**Last Updated**: 2026-02-03

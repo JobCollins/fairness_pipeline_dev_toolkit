@@ -1,0 +1,17 @@
+{
+  "artifacts_dir": "artifacts/monitoring",
+  "drift": {
+    "ks_pvalue_cutoff": 0.01,
+    "multi_scale": true,
+    "severity_weights": {
+      "DP": 1.0,
+      "EO": 1.2
+    },
+    "min_persist_points": 2,
+    "critical_dpd": 0.1,
+    "critical_eod": 0.1
+  },
+  "report": {
+    "k_anonymity": 20
+  }
+}

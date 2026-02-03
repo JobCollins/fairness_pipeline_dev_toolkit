@@ -1,0 +1,4 @@
+# file: /Users/jobdulo/Documents/Turing/Sprint 4/fairness_pipeline_dev_toolkit/fairness_pipeline_dev_toolkit/integration/orchestrator.py
+# hypothesis_version: 6.150.3
+
+[0.0, 0.001, 0.01, 0.02, 0.5, 0.8, 128, 1000, 'T', '_', 'adapters', 'base_estimator', 'baseline_measurement', 'baseline_metrics', 'batch_size', 'completed', 'constraint', 'cpu', 'data_shape', 'demographic_parity', 'device', 'dp_tol', 'eo_tol', 'epochs', 'eps', 'equalized_odds', 'eta', 'fairlearn', 'fairness', 'final_metric_value', 'final_metrics', 'final_validation', 'improvement', 'lagrangian', 'lambda_lr', 'lr', 'message', 'min_group_size', 'model.pkl', 'model.pt', 'model_lr', 'n_samples', 'native', 'passed', 'predict', 'reductions', 'regularized', 'sensitive_attribute', 'started', 'state_dict', 'threshold', 'torch', 'training', 'transform_and_train', 'transformed_data.csv', 'validation_passed', 'validation_result', 'value', 'w', 'workflow_id']
