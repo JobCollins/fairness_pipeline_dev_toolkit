@@ -69,39 +69,105 @@ class WorkflowResult:
 
 
 def run_baseline_measurement(
-    df: pd.DataFrame, config: PipelineConfig, min_group_size: int = 30
+    df: pd.DataFrame,
+    config: PipelineConfig,
+    min_group_size: int = 30,
+    train_size: float = 0.8,
+    random_state: int = 42,
 ) -> Dict[str, Any]:
     """
     Execute Step 1: Baseline Measurement.
 
     Run fairness audit on raw input data before any transformations or training.
+    When config.training and config.fairness_metric are set, trains an unconstrained
+    baseline model and computes baseline fairness metrics on the test set.
 
     Args:
         df: Raw input dataframe
         config: Pipeline configuration
         min_group_size: Minimum group size for fairness analysis
+        train_size: Proportion of data for training (used for train/test split when computing baseline metrics)
+        random_state: Random seed for train/test split
 
     Returns:
-        Dictionary of baseline fairness metrics
+        Dictionary with sensitive_attribute, data_shape, min_group_size, and optionally
+        baseline_metrics (metric name -> MetricResult when training/fairness_metric are set).
     """
     log_workflow_step(logger, "baseline_measurement", status="started", n_samples=len(df))
 
     with PerformanceLogger(logger, "baseline_measurement", n_samples=len(df)):
-        # Check if we have predictions or need to compute baseline from data distribution
-        # For baseline, we typically measure representation and statistical disparities
-        # If target column exists, we can compute some metrics
         results: Dict[str, Any] = {}
-
-        # Try to compute demographic parity if we have a target column
-        # For baseline, we might not have predictions yet, so we measure data-level fairness
-        # Store the sensitive attribute info for later use
         results["sensitive_attribute"] = config.sensitive
         results["data_shape"] = df.shape
         results["min_group_size"] = min_group_size
 
-        # If target exists, we can compute some baseline metrics
-        # This will be expanded when we have actual predictions in Step 3
+        if config.training is None or config.fairness_metric is None:
+            log_workflow_step(logger, "baseline_measurement", status="completed", n_samples=len(df))
+            return results
 
+        training_cfg = config.training
+        target_col = training_cfg.target_column
+        if target_col not in df.columns:
+            log_workflow_step(logger, "baseline_measurement", status="completed", n_samples=len(df))
+            return results
+
+        y = df[target_col].to_numpy()
+        feature_cols = [
+            col for col in df.columns if col != target_col and col not in config.sensitive
+        ]
+        X = df[feature_cols]
+        if len(config.sensitive) == 1:
+            sensitive_features = df[config.sensitive[0]].to_numpy()
+        else:
+            sensitive_features = df[config.sensitive[0]].to_numpy()
+
+        X_train, X_test, y_train, y_test, s_train, s_test = train_test_split(
+            X,
+            y,
+            sensitive_features,
+            train_size=train_size,
+            random_state=random_state,
+            stratify=y,
+        )
+
+        baseline_model = LogisticRegression(max_iter=1000, random_state=random_state)
+        baseline_model.fit(X_train.values, y_train)
+        baseline_predictions = baseline_model.predict(X_test.values)
+
+        analyzer = FairnessAnalyzer(min_group_size=min_group_size, backend="native")
+        metric_name = config.fairness_metric
+        baseline_metrics: Dict[str, Any] = {}
+
+        if metric_name == "demographic_parity_difference":
+            baseline_metrics[metric_name] = analyzer.demographic_parity_difference(
+                y_pred=baseline_predictions, sensitive=s_test
+            )
+        elif metric_name == "equalized_odds_difference":
+            test_indices = X_test.index
+            if len(config.sensitive) == 1:
+                baseline_metrics[metric_name] = analyzer.equalized_odds_difference(
+                    y_true=y_test,
+                    y_pred=baseline_predictions,
+                    sensitive=s_test,
+                )
+            else:
+                attrs_df_test = df.loc[test_indices, config.sensitive].copy()
+                sensitive_test = attrs_df_test.astype(str).agg("_".join, axis=1).to_numpy().ravel()
+                baseline_metrics[metric_name] = analyzer.equalized_odds_difference(
+                    y_true=y_test,
+                    y_pred=baseline_predictions,
+                    sensitive=sensitive_test,
+                    attrs_df=attrs_df_test,
+                    columns=config.sensitive,
+                )
+        else:
+            if hasattr(analyzer, metric_name):
+                metric_func = getattr(analyzer, metric_name)
+                baseline_metrics[metric_name] = metric_func(
+                    y_true=y_test, y_pred=baseline_predictions, sensitive=s_test
+                )
+
+        results["baseline_metrics"] = baseline_metrics
         log_workflow_step(logger, "baseline_measurement", status="completed", n_samples=len(df))
         return results
 
@@ -487,7 +553,10 @@ def execute_workflow(
     # Step 1: Baseline Measurement
     log_workflow_step(logger, "baseline_measurement", workflow_id=workflow_id, status="started")
     logger.info("Step 1: Running baseline measurement...")
-    run_baseline_measurement(df, config, min_group_size)
+    baseline_result = run_baseline_measurement(
+        df, config, min_group_size, train_size=train_size, random_state=42
+    )
+    baseline_metrics = baseline_result.get("baseline_metrics", {})
     log_workflow_step(logger, "baseline_measurement", workflow_id=workflow_id, status="completed")
 
     # For baseline, we need actual predictions. If we have a target column,
@@ -594,53 +663,6 @@ def execute_workflow(
                 final_metrics[metric_name] = metric_func(
                     y_true=y_test, y_pred=predictions, sensitive=sensitive_test
                 )
-
-    # Compute baseline metrics on original data (using a simple baseline model)
-    # For a proper baseline, we'd train a simple model without fairness constraints
-    # For now, we'll use the original target distribution
-    baseline_metrics: Dict[str, Any] = {}
-    if config.fairness_metric and config.training:
-        # Train a simple baseline model without fairness constraints
-        from sklearn.linear_model import LogisticRegression
-
-        # Exclude target and sensitive attributes from features
-        target_col = config.training.target_column
-        feature_cols = [
-            col for col in df.columns if col != target_col and col not in config.sensitive
-        ]
-        X_baseline = df[feature_cols]
-        y_baseline = df[target_col].to_numpy()
-        if len(config.sensitive) == 1:
-            s_baseline = df[config.sensitive[0]].to_numpy()
-        else:
-            s_baseline = df[config.sensitive[0]].to_numpy()
-
-        X_train_base, X_test_base, y_train_base, y_test_base, s_train_base, s_test_base = (
-            train_test_split(
-                X_baseline,
-                y_baseline,
-                s_baseline,
-                train_size=train_size,
-                random_state=42,
-                stratify=y_baseline,
-            )
-        )
-
-        baseline_model = LogisticRegression(max_iter=1000, random_state=42)
-        baseline_model.fit(X_train_base.values, y_train_base)
-        baseline_predictions = baseline_model.predict(X_test_base.values)
-
-        metric_name = config.fairness_metric
-        if metric_name == "demographic_parity_difference":
-            baseline_metrics[metric_name] = analyzer.demographic_parity_difference(
-                y_pred=baseline_predictions, sensitive=s_test_base
-            )
-        elif metric_name == "equalized_odds_difference":
-            baseline_metrics[metric_name] = analyzer.equalized_odds_difference(
-                y_true=y_test_base,
-                y_pred=baseline_predictions,
-                sensitive=s_test_base,
-            )
 
     # Step 3: Final Validation
     validation_result = run_final_validation(baseline_metrics, final_metrics, config)

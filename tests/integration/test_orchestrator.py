@@ -11,6 +11,7 @@ import pytest
 from fairness_pipeline_dev_toolkit.integration.orchestrator import (
     ValidationResult,
     WorkflowResult,
+    run_baseline_measurement,
     run_final_validation,
 )
 from fairness_pipeline_dev_toolkit.pipeline.config import load_config
@@ -83,6 +84,43 @@ def test_run_transform_and_train_reductions(sample_data, sample_config):
     assert len(transformed_df) == len(sample_data)
     assert len(predictions) == len(y_test)
     assert set(predictions).issubset({0, 1})
+
+
+def test_run_baseline_measurement_returns_baseline_metrics(sample_data):
+    """Test that run_baseline_measurement returns baseline_metrics when config has training and fairness_metric."""
+    config_text = """
+sensitive: ["sensitive"]
+fairness_metric: "demographic_parity_difference"
+training:
+  target_column: "y"
+  method: "reductions"
+  params: {}
+"""
+    config = load_config(text=config_text)
+    result = run_baseline_measurement(
+        sample_data, config, min_group_size=20, train_size=0.8, random_state=42
+    )
+    assert "sensitive_attribute" in result
+    assert "data_shape" in result
+    assert "min_group_size" in result
+    assert "baseline_metrics" in result
+    assert "demographic_parity_difference" in result["baseline_metrics"]
+    metric = result["baseline_metrics"]["demographic_parity_difference"]
+    assert hasattr(metric, "value")
+    assert isinstance(metric.value, (int, float))
+
+
+def test_run_baseline_measurement_metadata_only(sample_data):
+    """Test that run_baseline_measurement returns only metadata when no training/fairness_metric."""
+    config_text = """
+sensitive: ["sensitive"]
+"""
+    config = load_config(text=config_text)
+    result = run_baseline_measurement(sample_data, config, min_group_size=20)
+    assert "sensitive_attribute" in result
+    assert "data_shape" in result
+    assert "min_group_size" in result
+    assert "baseline_metrics" not in result or result.get("baseline_metrics") == {}
 
 
 def test_run_final_validation_passed():

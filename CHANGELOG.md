@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+## [v0.6.2] — 2026-02-03
+
+### Changed
+- **Step 1 (Baseline Measurement)**: Baseline model training and fairness metrics are now computed inside `run_baseline_measurement()`. The function accepts optional `train_size` and `random_state` and, when `config.training` and `config.fairness_metric` are set, trains an unconstrained LogisticRegression and returns `baseline_metrics` in its result dict. `execute_workflow()` uses this return value and no longer duplicates baseline computation.
+- **CLI `run-pipeline` output**: Enhanced workflow results with explicit pass/fail (PASSED/FAILED with symbol), improvement percentage and “(negative = reduction in unfairness)”, a tabular baseline vs final vs change comparison, and short “Baseline (Step 1)” and “Final (Step 3)” summaries.
+
+### Fixed
+- **Property-based test**: Resolved Hypothesis `Unsatisfiable` in `test_eo_difference_bounds` by adding an `eo_valid_arrays` strategy that generates aligned `(y_true, y_pred, sensitive)` with at least two groups having both 0 and 1 in `y_true` by construction, so the test no longer relies on strict `assume()` filters.
+
+---
+
 ## [v0.6.0] — 2026-01-26
 
 ### Changed

@@ -1,6 +1,6 @@
 # Fairness Pipeline Development Toolkit - Comprehensive User Guide
 
-**Version:** 0.6.0
+**Version:** 0.6.2
 
 This guide walks you through using the Fairness Pipeline Development Toolkit across the complete model development cycle—from initial data exploration to production monitoring. Whether you're building a new model or improving an existing one, this toolkit provides the tools and workflows to ensure fairness at every stage.
 
@@ -83,7 +83,7 @@ pip install -r requirements.txt
 fairpipe version
 ```
 
-You should see the version number (e.g., `0.6.0`).
+You should see the version number (e.g., `0.6.2`).
 
 ---
 
@@ -1166,7 +1166,7 @@ validation_threshold: 0.05
 - MLflow tracking (if configured)
 - Validation results
 
-See `demo_integrated.ipynb` for a complete example.
+See `demo.ipynb` for a complete example.
 
 ---
 
@@ -1226,7 +1226,7 @@ See `demo_integrated.ipynb` for a complete example.
 
 ### Getting Help
 
-- Check `demo_integrated.ipynb` for complete examples
+- Check `demo.ipynb` for complete examples
 - Review test files in `tests/` for usage patterns
 - See `README.md` for module-specific documentation
 - Check `CHANGELOG.md` for recent updates
@@ -1319,7 +1319,7 @@ This guide has walked you through using the Fairness Pipeline Development Toolki
 ### Next Steps
 
 1. **Try the Integrated Workflow**: Start with `fairpipe run-pipeline` for a quick end-to-end example
-2. **Explore Demos**: Check out `demo_integrated.ipynb`, `demo_training.ipynb`, and `demo_monitoring.ipynb`
+2. **Explore the Demo**: Run `demo.ipynb` for the full pipeline (baseline → transform+train → validate)
 3. **Customize for Your Use Case**: Adapt configurations and workflows to your specific needs
 4. **Set Up Monitoring**: Implement production monitoring early in your deployment
 
@@ -1332,7 +1332,7 @@ This guide has walked you through using the Fairness Pipeline Development Toolki
 
 ---
 
-**Version**: 0.6.0  
+**Version**: 0.6.2  
 **Last Updated**: 2026-01-26
 
 For questions, issues, or contributions, please see [CONTRIBUTING.md](CONTRIBUTING.md).

@@ -494,22 +494,69 @@ def cmd_run_pipeline(args: argparse.Namespace) -> int:
         )
 
         # Print results
+        vr = result.validation_result
         print("\n" + "=" * 60)
         print("WORKFLOW RESULTS")
         print("=" * 60)
-        print(f"\nValidation: {result.validation_result.message}")
-        print("\nBaseline Metrics:")
+        status = "PASSED" if vr.passed else "FAILED"
+        symbol = "[OK]" if vr.passed else "[!!]"
+        print(f"\nValidation: {symbol} {status}")
+        print(f"  {vr.message}")
+        print(f"\nImprovement: {vr.improvement:.2%} (negative = reduction in unfairness)")
+
+        def _metric_value(obj):
+            if obj is None:
+                return None
+            if hasattr(obj, "value"):
+                return float(obj.value)
+            if isinstance(obj, dict):
+                return obj.get("value")
+            try:
+                return float(obj)
+            except (TypeError, ValueError):
+                return None
+
+        all_metric_names = sorted(
+            set(result.baseline_metrics.keys()) | set(result.final_metrics.keys())
+        )
+        if all_metric_names:
+            col_w = 12
+            name_w = max(len(n) for n in all_metric_names) + 2
+            name_w = max(name_w, 10)
+            print("\n  Metric comparison (baseline vs final):")
+            print(
+                f"  {'Metric':<{name_w}} {'Baseline':>{col_w}} {'Final':>{col_w}} {'Change':>{col_w}}"
+            )
+            print("  " + "-" * (name_w + 3 * (col_w + 1)))
+            for name in all_metric_names:
+                base_val = _metric_value(result.baseline_metrics.get(name))
+                final_val = _metric_value(result.final_metrics.get(name))
+                base_str = f"{base_val:.4f}" if base_val is not None else "n/a"
+                final_str = f"{final_val:.4f}" if final_val is not None else "n/a"
+                change = (
+                    (final_val - base_val)
+                    if (base_val is not None and final_val is not None)
+                    else None
+                )
+                change_str = f"{change:+.4f}" if change is not None else "n/a"
+                print(
+                    f"  {name:<{name_w}} {base_str:>{col_w}} {final_str:>{col_w}} {change_str:>{col_w}}"
+                )
+
+        print("\n  Baseline (Step 1):")
         for metric_name, metric_value in result.baseline_metrics.items():
-            if hasattr(metric_value, "value"):
-                print(f"  {metric_name}: {metric_value.value:.4f}")
+            v = _metric_value(metric_value)
+            if v is not None:
+                print(f"    {metric_name}: {v:.4f}")
             else:
-                print(f"  {metric_name}: {metric_value}")
-        print("\nFinal Metrics:")
+                print(f"    {metric_name}: {metric_value}")
+        print("  Final (Step 3):")
         for metric_name, metric_value in result.final_metrics.items():
-            if hasattr(metric_value, "value"):
-                print(f"  {metric_name}: {metric_value.value:.4f}")
+            v = _metric_value(metric_value)
+            if v is not None:
+                print(f"    {metric_name}: {v:.4f}")
             else:
-                print(f"  {metric_name}: {metric_value}")
+                print(f"    {metric_name}: {metric_value}")
 
         if args.output_dir:
             print(f"\nArtifacts saved to: {args.output_dir}")
