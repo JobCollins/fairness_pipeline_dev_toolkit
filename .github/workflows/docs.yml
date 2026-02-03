@@ -1,3 +1,4 @@
+# Docs deploy to https://svrusio.github.io/fAIr — ensure repo Settings → Pages → Source is "GitHub Actions".
 name: Documentation
 
 on:
