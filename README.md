@@ -1,6 +1,6 @@
 # Fairness Pipeline Development Toolkit
 
-**Version:** 0.6.3 
+**Version:** 0.6.5 
 **Status:** Production-ready | Available on [PyPI](https://pypi.org/project/fairpipe/)  
 ![Coverage](https://img.shields.io/badge/coverage-86%25-green)
 
@@ -864,5 +864,5 @@ This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) fo
 
 ---
 
-**Version**: 0.6.3  
+**Version**: 0.6.5  
 **Last Updated**: 2026-02-03

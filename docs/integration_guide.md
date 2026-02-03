@@ -50,7 +50,7 @@ pip install fairpipe[training,monitoring,adapters]
 
 ```python
 from fairness_pipeline_dev_toolkit import __version__
-print(__version__)  # Should print "0.6.3"
+print(__version__)  # Should print "0.6.5"
 
 # Test CLI
 import subprocess
