@@ -60,7 +60,7 @@ addopts = "-vv -ra --maxfail=1 --disable-warnings"
 dev = [
   "pytest>=8.3",
   "pytest-cov>=5.0",
-  "black==25.9.0",
+  "black==26.1.0",
   "flake8>=7.0",
   "isort>=5.13",
   "pre-commit>=3.6",
