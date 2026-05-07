@@ -193,7 +193,7 @@ fairpipe validate \
 **Python:**
 ```python
 import pandas as pd
-from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
+from fairpipe.metrics import FairnessAnalyzer
 
 # Load data
 df = pd.read_csv("data.csv")
@@ -203,8 +203,8 @@ analyzer = FairnessAnalyzer(min_group_size=30, backend="native")
 
 # Compute demographic parity difference with confidence intervals
 result = analyzer.demographic_parity_difference(
-    y_pred=df["y_pred"].to_numpy(),
-    sensitive=df["gender"].to_numpy(),
+    y_pred=df["y_pred"],
+    sensitive=df["gender"],
     with_ci=True,
     ci_level=0.95
 )
@@ -231,11 +231,11 @@ fairpipe pipeline \
 **Python:**
 ```python
 import pandas as pd
-from fairness_pipeline_dev_toolkit.pipeline import (
+from fairpipe.pipeline import (
     load_config,
     build_pipeline,
     apply_pipeline,
-    run_detectors
+    run_detectors,
 )
 
 # Load configuration
@@ -285,8 +285,8 @@ fairpipe run-pipeline \
 **Python:**
 ```python
 import pandas as pd
-from fairness_pipeline_dev_toolkit.integration import execute_workflow
-from fairness_pipeline_dev_toolkit.pipeline import load_config
+from fairpipe.integration import execute_workflow
+from fairpipe.pipeline import load_config
 
 # Load configuration and data
 config = load_config("config.yml")
