@@ -38,6 +38,7 @@ from fairness_pipeline_dev_toolkit.config.env import (
     get_env_int,
 )
 from fairness_pipeline_dev_toolkit.integration.reporting import to_markdown_report
+from fairness_pipeline_dev_toolkit.io import load_data
 from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
 from fairness_pipeline_dev_toolkit.pipeline.config import load_config
 from fairness_pipeline_dev_toolkit.pipeline.orchestration import (
@@ -213,7 +214,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
     logger.info("Starting validation", extra={"csv": args.csv, "sensitive": args.sensitive})
 
     with PerformanceLogger(logger, "validate", csv=args.csv):
-        df = pd.read_csv(args.csv)
+        df = load_data(args.csv)
         inputs = _prepare_validation_inputs(df, args)
 
         backend = None if args.backend in (None, "auto") else args.backend
@@ -280,7 +281,7 @@ def cmd_pipeline_run(args: argparse.Namespace) -> int:
     cfg = load_config(config_path, profile=getattr(args, "profile", None))
 
     # 2) Load data
-    df = pd.read_csv(args.csv)
+    df = load_data(args.csv)
 
     # 3) Run detectors (optional)
     detector_report = None
@@ -332,13 +333,12 @@ def cmd_pipeline_run(args: argparse.Namespace) -> int:
 
 def cmd_train_sklearn_reduced(args: argparse.Namespace) -> int:
     import joblib
-    import pandas as pd
     from fairlearn.reductions import DemographicParity, EqualizedOdds
     from sklearn.linear_model import LogisticRegression
 
     from fairness_pipeline_dev_toolkit.training import ReductionsWrapper
 
-    df = pd.read_csv(args.csv)
+    df = load_data(args.csv)
     y = df[args.y].values
     g = df[args.group].values
     X = df.drop(columns=[args.y, args.group]).values
@@ -357,11 +357,10 @@ def cmd_train_regularized(args: argparse.Namespace) -> int:
 
     Required CSV columns: features f0..f{d-1}, label 'y', sensitive 's'.
     """
-    import pandas as pd
 
     from fairness_pipeline_dev_toolkit.training import plot_pareto, sweep_pareto
 
-    df = pd.read_csv(args.csv)
+    df = load_data(args.csv)
     feature_cols = [c for c in df.columns if c.startswith("f")]
     X = df[feature_cols].to_numpy(dtype=np.float32)
     y = df["y"].to_numpy(dtype=np.int64)
@@ -402,13 +401,12 @@ def cmd_train_lagrangian(args: argparse.Namespace) -> int:
 
     Required CSV columns: f0.., 'y', 's'
     """
-    import pandas as pd
     import torch
     import torch.nn as nn
 
     from fairness_pipeline_dev_toolkit.training import LagrangianFairnessTrainer
 
-    df = pd.read_csv(args.csv)
+    df = load_data(args.csv)
     feature_cols = [c for c in df.columns if c.startswith("f")]
     X = torch.tensor(df[feature_cols].to_numpy(dtype=np.float32))
     y = torch.tensor(df["y"].to_numpy(dtype=np.int64))
@@ -439,7 +437,7 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
 
     from fairness_pipeline_dev_toolkit.training import GroupFairnessCalibrator
 
-    df = pd.read_csv(args.csv)
+    df = load_data(args.csv)
     scores = df["score"].to_numpy()
     labels = df["y"].to_numpy()
     groups = df["g"].to_numpy()
@@ -462,7 +460,6 @@ def cmd_run_pipeline(args: argparse.Namespace) -> int:
     2. Transform Data + Train Model - apply pipeline, train model
     3. Final Validation - compare to baseline, check threshold
     """
-    import pandas as pd
 
     from fairness_pipeline_dev_toolkit.config.env import FAIRPIPE_CONFIG_PATH
     from fairness_pipeline_dev_toolkit.integration.orchestrator import execute_workflow
@@ -481,7 +478,7 @@ def cmd_run_pipeline(args: argparse.Namespace) -> int:
         return 1
 
     # Load data
-    df = pd.read_csv(args.csv)
+    df = load_data(args.csv)
 
     # Execute workflow
     try:
