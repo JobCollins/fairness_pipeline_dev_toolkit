@@ -86,6 +86,10 @@ adapters = [
   "fairlearn>=0.10",
   "aequitas>=0.42 ; python_version < \"3.12\"",
 ]
+api = [
+  "fastapi[standard]>=0.111.0",
+  "python-multipart>=0.0.9",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
