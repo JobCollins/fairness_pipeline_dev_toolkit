@@ -232,7 +232,7 @@ fairpipe validate \
 For more control and integration:
 
 ```python
-from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
+from fairpipe.metrics import FairnessAnalyzer
 
 # Initialize analyzer
 analyzer = FairnessAnalyzer(backend="native")  # or "fairlearn", "aequitas"
@@ -490,7 +490,7 @@ The toolkit supports three training approaches:
 Best for: scikit-learn models, constraint-based fairness
 
 ```python
-from fairness_pipeline_dev_toolkit.training import ReductionsWrapper
+from fairpipe.training import ReductionsWrapper
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 
@@ -530,7 +530,7 @@ y_proba = fair_model.predict_proba(X_test)[:, 1]
 Best for: Deep learning models, exploring fairness-accuracy trade-offs
 
 ```python
-from fairness_pipeline_dev_toolkit.training.torch_.losses import FairnessRegularizerLoss
+from fairpipe.training.torch_.losses import FairnessRegularizerLoss
 import torch
 import torch.nn as nn
 
@@ -579,7 +579,7 @@ for epoch in range(50):
 Best for: Strict fairness constraints, dual optimization
 
 ```python
-from fairness_pipeline_dev_toolkit.training import LagrangianFairnessTrainer
+from fairpipe.training import LagrangianFairnessTrainer
 
 # Prepare data
 train_data = {
@@ -638,7 +638,7 @@ fairpipe calibrate \
 Or in Python:
 
 ```python
-from fairness_pipeline_dev_toolkit.training.postproc import GroupFairnessCalibrator
+from fairpipe.training.postproc import GroupFairnessCalibrator
 
 calibrator = GroupFairnessCalibrator(
     method="platt",  # or "isotonic"
@@ -692,7 +692,7 @@ This runs:
 ### Method 2: Manual Validation
 
 ```python
-from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
+from fairpipe.metrics import FairnessAnalyzer
 
 # Measure final model fairness
 analyzer = FairnessAnalyzer(backend="native")
@@ -731,7 +731,7 @@ Use the pytest plugin for automated testing:
 ```python
 # test_fairness.py
 import pytest
-from fairness_pipeline_dev_toolkit.integration.pytest_plugin import assert_fairness
+from fairpipe.integration.pytest_plugin import assert_fairness
 
 def test_model_fairness():
     """Test that model meets fairness threshold."""
@@ -756,7 +756,7 @@ pytest test_fairness.py -v
 Generate a comprehensive validation report:
 
 ```python
-from fairness_pipeline_dev_toolkit.integration.reporting import generate_validation_report
+from fairpipe.integration.reporting import generate_validation_report
 
 report = generate_validation_report(
     baseline_metrics=baseline_results,
@@ -771,7 +771,7 @@ report = generate_validation_report(
 Log results to MLflow for tracking:
 
 ```python
-from fairness_pipeline_dev_toolkit.integration.mlflow_logger import log_workflow_results
+from fairpipe.integration.mlflow_logger import log_workflow_results
 import mlflow
 
 mlflow.set_experiment("fairness_workflow")
@@ -883,7 +883,7 @@ Create monitoring configuration for production:
 
 ```python
 # monitoring_config.py
-from fairness_pipeline_dev_toolkit.monitoring import (
+from fairpipe.monitoring import (
     TrackerConfig,
     DriftConfig,
     MonitoringSettings
@@ -964,7 +964,7 @@ At this stage, you should have:
 ### Step 1: Initialize Real-Time Tracker
 
 ```python
-from fairness_pipeline_dev_toolkit.monitoring import (
+from fairpipe.monitoring import (
     RealTimeFairnessTracker,
     ColumnMap,
     TrackerConfig
@@ -1013,7 +1013,7 @@ def process_batch(predictions_df):
 ### Step 3: Detect Drift and Generate Alerts
 
 ```python
-from fairness_pipeline_dev_toolkit.monitoring import (
+from fairpipe.monitoring import (
     FairnessDriftAndAlertEngine,
     DriftConfig
 )
@@ -1043,7 +1043,7 @@ if alerts:
 ### Step 4: Generate Monitoring Reports
 
 ```python
-from fairness_pipeline_dev_toolkit.monitoring import FairnessReportingDashboard
+from fairpipe.monitoring import FairnessReportingDashboard
 
 # Initialize dashboard
 dashboard = FairnessReportingDashboard(
@@ -1077,7 +1077,7 @@ python apps/monitoring_dash_app.py
 Compare fairness between model versions:
 
 ```python
-from fairness_pipeline_dev_toolkit.monitoring import FairnessABTestAnalyzer
+from fairpipe.monitoring import FairnessABTestAnalyzer
 
 # Compare two model versions
 ab_analyzer = FairnessABTestAnalyzer()
@@ -1240,7 +1240,7 @@ See `demo.ipynb` for a complete example.
 Implement custom fairness metrics:
 
 ```python
-from fairness_pipeline_dev_toolkit.metrics.base import BaseMetric
+from fairpipe.metrics.base import BaseMetric
 
 class CustomFairnessMetric(BaseMetric):
     def compute(self, y_true, y_pred, sensitive_features):
@@ -1285,7 +1285,7 @@ Advanced MLflow logging:
 
 ```python
 import mlflow
-from fairness_pipeline_dev_toolkit.integration.mlflow_logger import log_workflow_results
+from fairpipe.integration.mlflow_logger import log_workflow_results
 
 with mlflow.start_run():
     # Log custom parameters

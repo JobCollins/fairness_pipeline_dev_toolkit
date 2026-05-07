@@ -2,11 +2,10 @@
 
 Complete API documentation for the Fairness Pipeline Development Toolkit.
 
-> **Namespace note:** All APIs documented here are available under both the `fairpipe.*` and
-> `fairness_pipeline_dev_toolkit.*` namespaces. The `fairpipe` package is a thin re-export shim —
-> object identity is fully preserved (`fairpipe.metrics.FairnessAnalyzer is
-> fairness_pipeline_dev_toolkit.metrics.FairnessAnalyzer` evaluates to `True`). Either namespace
-> may be used interchangeably.
+> **Namespace note:** All APIs documented here use the `fairpipe.*` namespace (e.g.
+> `from fairpipe.metrics import FairnessAnalyzer`). The legacy `fairness_pipeline_dev_toolkit.*`
+> namespace continues to work for backward compatibility — both resolve to the same objects
+> (object identity is preserved across the shim).
 
 ---
 
@@ -30,7 +29,7 @@ Complete API documentation for the Fairness Pipeline Development Toolkit.
 
 Main class for computing fairness metrics with statistical validation.
 
-**Location:** `fairness_pipeline_dev_toolkit.metrics.FairnessAnalyzer`
+**Location:** `fairpipe.metrics.FairnessAnalyzer`
 
 **Constructor:**
 
@@ -252,7 +251,7 @@ result = analyzer.mae_parity_difference(
 
 Result object returned by all metric computations.
 
-**Location:** `fairness_pipeline_dev_toolkit.metrics.MetricResult`
+**Location:** `fairpipe.metrics.MetricResult`
 
 **Attributes:**
 - `metric` (str): Name of the metric (e.g., "demographic_parity_difference")
@@ -263,7 +262,7 @@ Result object returned by all metric computations.
 
 **Example:**
 ```python
-from fairness_pipeline_dev_toolkit.metrics import MetricResult
+from fairpipe.metrics import MetricResult
 
 result = MetricResult(
     metric="demographic_parity_difference",
@@ -278,7 +277,7 @@ result = MetricResult(
 
 Column-bound proxy returned by `FairnessAnalyzer.from_dataframe()`. Stores a DataFrame and column names so metric methods can be called without repeating column arguments.
 
-**Location:** `fairness_pipeline_dev_toolkit.metrics.FairnessAnalyzerDataFrameProxy`
+**Location:** `fairpipe.metrics.FairnessAnalyzerDataFrameProxy`
 
 **Methods:** exposes the same three metric methods as `FairnessAnalyzer` — `demographic_parity_difference(**kwargs)`, `equalized_odds_difference(**kwargs)`, `mae_parity_difference(**kwargs)` — forwarding all keyword arguments to the underlying analyzer.
 
@@ -309,7 +308,7 @@ mae = proxy.mae_parity_difference()
 
 Load a tabular data file into a DataFrame with automatic format detection.
 
-**Location:** `fairness_pipeline_dev_toolkit.io.load_data` (also `fairpipe.load_data`)
+**Location:** `fairpipe.io.load_data` (also `fairpipe.load_data`)
 
 ```python
 def load_data(path: str | Path) -> pd.DataFrame
@@ -352,7 +351,7 @@ fairpipe pipeline --config pipeline.config.yml --csv data.parquet --out-csv outp
 
 Configuration dataclass for pipeline operations.
 
-**Location:** `fairness_pipeline_dev_toolkit.pipeline.config.PipelineConfig`
+**Location:** `fairpipe.pipeline.config.PipelineConfig`
 
 **Attributes:**
 - `sensitive` (List[str]): List of sensitive attribute column names
@@ -381,7 +380,7 @@ def load_config(
 
 **Example:**
 ```python
-from fairness_pipeline_dev_toolkit.pipeline import load_config
+from fairpipe.pipeline import load_config
 
 config = load_config("pipeline.config.yml")
 config = load_config("config.yml", profile="training")
@@ -404,7 +403,7 @@ def find_config_file(
 
 **Example:**
 ```python
-from fairness_pipeline_dev_toolkit.pipeline.config import find_config_file
+from fairpipe.pipeline.config import find_config_file
 
 config_path = find_config_file("pipeline.config.yml")
 if config_path:
@@ -430,7 +429,7 @@ def build_pipeline(
 
 **Example:**
 ```python
-from fairness_pipeline_dev_toolkit.pipeline import build_pipeline, load_config
+from fairpipe.pipeline import build_pipeline, load_config
 
 config = load_config("pipeline.config.yml")
 pipeline = build_pipeline(config)
@@ -455,7 +454,7 @@ def apply_pipeline(
 
 **Example:**
 ```python
-from fairness_pipeline_dev_toolkit.pipeline import apply_pipeline
+from fairpipe.pipeline import apply_pipeline
 
 transformed_df, metadata = apply_pipeline(pipeline, df)
 ```
@@ -479,7 +478,7 @@ def run_detectors(
 
 **Example:**
 ```python
-from fairness_pipeline_dev_toolkit.pipeline import run_detectors, load_config
+from fairpipe.pipeline import run_detectors, load_config
 
 config = load_config("pipeline.config.yml")
 report = run_detectors(df, config)
@@ -492,11 +491,11 @@ print(report.body)
 
 Reweight instances to balance sensitive attribute distributions.
 
-**Location:** `fairness_pipeline_dev_toolkit.pipeline.InstanceReweighting`
+**Location:** `fairpipe.pipeline.InstanceReweighting`
 
 **Usage:**
 ```python
-from fairness_pipeline_dev_toolkit.pipeline import InstanceReweighting
+from fairpipe.pipeline import InstanceReweighting
 
 transformer = InstanceReweighting(sensitive="gender")
 transformed_df = transformer.fit_transform(df)
@@ -506,11 +505,11 @@ transformed_df = transformer.fit_transform(df)
 
 Remove disparate impact by repairing features.
 
-**Location:** `fairness_pipeline_dev_toolkit.pipeline.DisparateImpactRemover`
+**Location:** `fairpipe.pipeline.DisparateImpactRemover`
 
 **Usage:**
 ```python
-from fairness_pipeline_dev_toolkit.pipeline import DisparateImpactRemover
+from fairpipe.pipeline import DisparateImpactRemover
 
 transformer = DisparateImpactRemover(
     features=["score", "age"],
@@ -524,11 +523,11 @@ transformed_df = transformer.fit_transform(df)
 
 Reweigh instances based on sensitive attribute and target label.
 
-**Location:** `fairness_pipeline_dev_toolkit.pipeline.ReweighingTransformer`
+**Location:** `fairpipe.pipeline.ReweighingTransformer`
 
 **Usage:**
 ```python
-from fairness_pipeline_dev_toolkit.pipeline import ReweighingTransformer
+from fairpipe.pipeline import ReweighingTransformer
 
 transformer = ReweighingTransformer(sensitive="gender", target="y")
 transformed_df = transformer.fit_transform(df)
@@ -538,11 +537,11 @@ transformed_df = transformer.fit_transform(df)
 
 Drop proxy variables that are highly correlated with sensitive attributes.
 
-**Location:** `fairness_pipeline_dev_toolkit.pipeline.ProxyDropper`
+**Location:** `fairpipe.pipeline.ProxyDropper`
 
 **Usage:**
 ```python
-from fairness_pipeline_dev_toolkit.pipeline import ProxyDropper
+from fairpipe.pipeline import ProxyDropper
 
 transformer = ProxyDropper(
     sensitive="gender",
@@ -559,7 +558,7 @@ transformed_df = transformer.fit_transform(df)
 
 Execute the complete end-to-end workflow: baseline measurement → transform+train → validation.
 
-**Location:** `fairness_pipeline_dev_toolkit.integration.execute_workflow`
+**Location:** `fairpipe.integration.execute_workflow`
 
 ```python
 def execute_workflow(
@@ -588,8 +587,8 @@ def execute_workflow(
 
 **Example:**
 ```python
-from fairness_pipeline_dev_toolkit.integration import execute_workflow
-from fairness_pipeline_dev_toolkit.pipeline import load_config
+from fairpipe.integration import execute_workflow
+from fairpipe.pipeline import load_config
 import pandas as pd
 
 config = load_config("config.yml")
@@ -613,7 +612,7 @@ else:
 
 Result object from workflow execution.
 
-**Location:** `fairness_pipeline_dev_toolkit.integration.WorkflowResult`
+**Location:** `fairpipe.integration.WorkflowResult`
 
 **Attributes:**
 - `baseline_metrics` (Dict[str, Any]): Baseline fairness metrics
@@ -629,7 +628,7 @@ Result object from workflow execution.
 
 Validation result from workflow execution.
 
-**Location:** `fairness_pipeline_dev_toolkit.integration.ValidationResult`
+**Location:** `fairpipe.integration.ValidationResult`
 
 **Attributes:**
 - `passed` (bool): Whether validation passed
@@ -643,7 +642,7 @@ Validation result from workflow execution.
 
 Log workflow results to MLflow.
 
-**Location:** `fairness_pipeline_dev_toolkit.integration.log_workflow_results`
+**Location:** `fairpipe.integration.log_workflow_results`
 
 ```python
 def log_workflow_results(
@@ -660,7 +659,7 @@ def log_workflow_results(
 
 **Example:**
 ```python
-from fairness_pipeline_dev_toolkit.integration import log_workflow_results
+from fairpipe.integration import log_workflow_results
 
 log_workflow_results(
     result=result,
@@ -673,7 +672,7 @@ log_workflow_results(
 
 Generate a markdown report from workflow results.
 
-**Location:** `fairness_pipeline_dev_toolkit.integration.to_markdown_report`
+**Location:** `fairpipe.integration.to_markdown_report`
 
 ```python
 def to_markdown_report(
@@ -688,7 +687,7 @@ def to_markdown_report(
 
 **Example:**
 ```python
-from fairness_pipeline_dev_toolkit.integration import to_markdown_report
+from fairpipe.integration import to_markdown_report
 
 to_markdown_report(result, "artifacts/report.md")
 ```
@@ -697,7 +696,7 @@ to_markdown_report(result, "artifacts/report.md")
 
 Pytest plugin for asserting fairness in tests.
 
-**Location:** `fairness_pipeline_dev_toolkit.integration.assert_fairness`
+**Location:** `fairpipe.integration.assert_fairness`
 
 ```python
 def assert_fairness(
@@ -721,7 +720,7 @@ def assert_fairness(
 **Example:**
 ```python
 import pytest
-from fairness_pipeline_dev_toolkit.integration import assert_fairness
+from fairpipe.integration import assert_fairness
 
 def test_model_fairness():
     y_pred = model.predict(X_test)
@@ -741,10 +740,10 @@ def test_model_fairness():
 
 Fairlearn reductions wrapper for scikit-learn models.
 
-**Location:** `fairness_pipeline_dev_toolkit.training.ReductionsWrapper`
+**Location:** `fairpipe.training.ReductionsWrapper`
 
 ```python
-from fairness_pipeline_dev_toolkit.training import ReductionsWrapper
+from fairpipe.training import ReductionsWrapper
 from sklearn.linear_model import LogisticRegression
 
 model = ReductionsWrapper(
@@ -760,11 +759,11 @@ predictions = model.predict(X_test)
 
 PyTorch loss function with fairness regularizer.
 
-**Location:** `fairness_pipeline_dev_toolkit.training.FairnessRegularizerLoss`
+**Location:** `fairpipe.training.FairnessRegularizerLoss`
 
 **Usage:**
 ```python
-from fairness_pipeline_dev_toolkit.training import FairnessRegularizerLoss
+from fairpipe.training import FairnessRegularizerLoss
 
 criterion = FairnessRegularizerLoss(
     base_loss=nn.BCELoss(),
@@ -778,11 +777,11 @@ loss = criterion(predictions, targets)
 
 Lagrangian constraint-based trainer for PyTorch models.
 
-**Location:** `fairness_pipeline_dev_toolkit.training.LagrangianFairnessTrainer`
+**Location:** `fairpipe.training.LagrangianFairnessTrainer`
 
 **Usage:**
 ```python
-from fairness_pipeline_dev_toolkit.training import LagrangianFairnessTrainer
+from fairpipe.training import LagrangianFairnessTrainer
 
 trainer = LagrangianFairnessTrainer(
     model=model,
@@ -796,11 +795,11 @@ trainer.train(X_train, y_train, sensitive_train)
 
 Group-specific calibration for prediction scores.
 
-**Location:** `fairness_pipeline_dev_toolkit.training.GroupFairnessCalibrator`
+**Location:** `fairpipe.training.GroupFairnessCalibrator`
 
 **Usage:**
 ```python
-from fairness_pipeline_dev_toolkit.training import GroupFairnessCalibrator
+from fairpipe.training import GroupFairnessCalibrator
 
 calibrator = GroupFairnessCalibrator(method="platt", min_samples=20)
 calibrated_scores = calibrator.fit_transform(scores, y_true, groups)
@@ -810,11 +809,11 @@ calibrated_scores = calibrator.fit_transform(scores, y_true, groups)
 
 Pareto frontier utilities for fairness-accuracy trade-offs.
 
-**Location:** `fairness_pipeline_dev_toolkit.training.sweep_pareto`, `plot_pareto`
+**Location:** `fairpipe.training.sweep_pareto`, `plot_pareto`
 
 **Usage:**
 ```python
-from fairness_pipeline_dev_toolkit.training import sweep_pareto, plot_pareto
+from fairpipe.training import sweep_pareto, plot_pareto
 
 pareto_points = sweep_pareto(
     model_fn=lambda eta: train_model(eta=eta),
@@ -831,10 +830,10 @@ plot_pareto(pareto_points, output_path="pareto.png")
 
 Real-time fairness metric tracking with sliding windows.
 
-**Location:** `fairness_pipeline_dev_toolkit.monitoring.RealTimeFairnessTracker`
+**Location:** `fairpipe.monitoring.RealTimeFairnessTracker`
 
 ```python
-from fairness_pipeline_dev_toolkit.monitoring import (
+from fairpipe.monitoring import (
     RealTimeFairnessTracker,
     TrackerConfig,
     ColumnMap
@@ -858,10 +857,10 @@ tracker.process_batch(df, column_map)
 
 Drift detection and alerting for production monitoring.
 
-**Location:** `fairness_pipeline_dev_toolkit.monitoring.FairnessDriftAndAlertEngine`
+**Location:** `fairpipe.monitoring.FairnessDriftAndAlertEngine`
 
 ```python
-from fairness_pipeline_dev_toolkit.monitoring import (
+from fairpipe.monitoring import (
     FairnessDriftAndAlertEngine,
     DriftConfig
 )
@@ -877,10 +876,10 @@ alerts = engine.check_drift(reference_metrics, current_metrics)
 
 Dashboard for visualizing fairness metrics over time.
 
-**Location:** `fairness_pipeline_dev_toolkit.monitoring.FairnessReportingDashboard`
+**Location:** `fairpipe.monitoring.FairnessReportingDashboard`
 
 ```python
-from fairness_pipeline_dev_toolkit.monitoring import (
+from fairpipe.monitoring import (
     FairnessReportingDashboard,
     ReportConfig
 )
@@ -895,11 +894,11 @@ dashboard.generate_report(output_path="artifacts/report.html")
 
 A/B testing utilities for fairness comparisons.
 
-**Location:** `fairness_pipeline_dev_toolkit.monitoring.FairnessABTestAnalyzer`
+**Location:** `fairpipe.monitoring.FairnessABTestAnalyzer`
 
 **Usage:**
 ```python
-from fairness_pipeline_dev_toolkit.monitoring import FairnessABTestAnalyzer
+from fairpipe.monitoring import FairnessABTestAnalyzer
 
 analyzer = FairnessABTestAnalyzer()
 results = analyzer.compare(
@@ -916,7 +915,7 @@ results = analyzer.compare(
 
 All exceptions inherit from `FairnessToolkitError` and provide structured error information with user-friendly messages.
 
-**Location:** `fairness_pipeline_dev_toolkit.exceptions`
+**Location:** `fairpipe.exceptions`
 
 ```python
 # Base exception
@@ -970,7 +969,7 @@ ConfigValidationError(
 
 **Example:**
 ```python
-from fairness_pipeline_dev_toolkit.exceptions import ConfigValidationError
+from fairpipe.exceptions import ConfigValidationError
 
 try:
     config = load_config("config.yml")
@@ -997,7 +996,7 @@ MetricComputationError(
 
 **Example:**
 ```python
-from fairness_pipeline_dev_toolkit.exceptions import MetricComputationError
+from fairpipe.exceptions import MetricComputationError
 
 try:
     result = analyzer.demographic_parity_difference(...)
@@ -1067,10 +1066,10 @@ DependencyError(
 
 **Example:**
 ```python
-from fairness_pipeline_dev_toolkit.exceptions import DependencyError
+from fairpipe.exceptions import DependencyError
 
 try:
-    from fairness_pipeline_dev_toolkit.training import ReductionsWrapper
+    from fairpipe.training import ReductionsWrapper
 except DependencyError as e:
     print(f"Error: {e.message}")
     print(f"Missing: {e.context.get('dependency')}")
@@ -1081,7 +1080,7 @@ except DependencyError as e:
 
 **Basic Exception Handling:**
 ```python
-from fairness_pipeline_dev_toolkit.exceptions import (
+from fairpipe.exceptions import (
     FairnessToolkitError,
     ConfigValidationError,
     MetricComputationError
@@ -1121,10 +1120,10 @@ except ConfigValidationError as e:
 
 Compute bootstrap confidence intervals.
 
-**Location:** `fairness_pipeline_dev_toolkit.stats.bootstrap.bootstrap_ci`
+**Location:** `fairpipe.stats.bootstrap.bootstrap_ci`
 
 ```python
-from fairness_pipeline_dev_toolkit.stats.bootstrap import bootstrap_ci
+from fairpipe.stats.bootstrap import bootstrap_ci
 
 ci = bootstrap_ci(
     data=samples,
@@ -1139,10 +1138,10 @@ ci = bootstrap_ci(
 
 Compute Bayesian confidence intervals for binomial proportions.
 
-**Location:** `fairness_pipeline_dev_toolkit.stats.bayesian.beta_binomial_interval`
+**Location:** `fairpipe.stats.bayesian.beta_binomial_interval`
 
 ```python
-from fairness_pipeline_dev_toolkit.stats.bayesian import beta_binomial_interval
+from fairpipe.stats.bayesian import beta_binomial_interval
 
 ci = beta_binomial_interval(successes=50, trials=100, level=0.95)
 ```
@@ -1151,10 +1150,10 @@ ci = beta_binomial_interval(successes=50, trials=100, level=0.95)
 
 Effect size computations.
 
-**Location:** `fairness_pipeline_dev_toolkit.stats.effect_size`
+**Location:** `fairpipe.stats.effect_size`
 
 ```python
-from fairness_pipeline_dev_toolkit.stats.effect_size import risk_ratio, cohens_d
+from fairpipe.stats.effect_size import risk_ratio, cohens_d
 
 rr = risk_ratio(p1=0.6, p2=0.4)
 d = cohens_d(group1_errors, group2_errors)
@@ -1167,12 +1166,8 @@ d = cohens_d(group1_errors, group2_errors)
 Get the toolkit version:
 
 ```python
-from fairness_pipeline_dev_toolkit import __version__
-print(__version__)  # "0.6.5"
-
-# Alternatively, via the fairpipe namespace:
-import fairpipe
-print(fairpipe.__version__)  # "0.6.5"
+from fairpipe import __version__
+print(__version__)  # "0.7.1"
 ```
 
 ---
@@ -1204,12 +1199,12 @@ docker run -p 8000:8000 fairpipe-api
 
 ### `create_app()`
 
-**Location:** `fairness_pipeline_dev_toolkit.api.app.create_app`
+**Location:** `fairpipe.api.app.create_app`
 
 FastAPI application factory. Creates the app, attaches a `ResultStore` singleton to `app.state.store`, registers all routers, and installs the global exception handler.
 
 ```python
-from fairness_pipeline_dev_toolkit.api.app import create_app
+from fairpipe.api.app import create_app
 
 app = create_app()
 ```
@@ -1218,7 +1213,7 @@ app = create_app()
 
 ### `ResultStore`
 
-**Location:** `fairness_pipeline_dev_toolkit.api.store.ResultStore`
+**Location:** `fairpipe.api.store.ResultStore`
 
 Thread-safe in-memory result store. Backed by `collections.OrderedDict` with LRU eviction when the cap is reached.
 

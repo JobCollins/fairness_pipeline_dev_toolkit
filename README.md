@@ -319,44 +319,44 @@ else:
 ### Core Components
 
 **Metrics:**
-- `fairness_pipeline_dev_toolkit.metrics.FairnessAnalyzer` - Main class for computing fairness metrics (accepts `np.ndarray`, `pd.Series`, or `list`)
-- `fairness_pipeline_dev_toolkit.metrics.FairnessAnalyzerDataFrameProxy` - Column-bound proxy returned by `from_dataframe()`
-- `fairness_pipeline_dev_toolkit.metrics.MetricResult` - Result object containing metric values and metadata
+- `fairpipe.metrics.FairnessAnalyzer` - Main class for computing fairness metrics (accepts `np.ndarray`, `pd.Series`, or `list`)
+- `fairpipe.metrics.FairnessAnalyzerDataFrameProxy` - Column-bound proxy returned by `from_dataframe()`
+- `fairpipe.metrics.MetricResult` - Result object containing metric values and metadata
 
 **I/O:**
-- `fairness_pipeline_dev_toolkit.io.load_data` - Load `.csv`, `.parquet`, or `.pq` files into a DataFrame (also available as `fairpipe.load_data`)
+- `fairpipe.io.load_data` - Load `.csv`, `.parquet`, or `.pq` files into a DataFrame (also available as `fairpipe.load_data`)
 
 **Pipeline:**
-- `fairness_pipeline_dev_toolkit.pipeline.config.PipelineConfig` - Configuration dataclass
-- `fairness_pipeline_dev_toolkit.pipeline.config.load_config` - Load configuration from YAML
-- `fairness_pipeline_dev_toolkit.pipeline.build_pipeline` - Build pipeline from config
-- `fairness_pipeline_dev_toolkit.pipeline.apply_pipeline` - Apply pipeline to data
-- `fairness_pipeline_dev_toolkit.pipeline.run_detectors` - Run bias detection
+- `fairpipe.pipeline.config.PipelineConfig` - Configuration dataclass
+- `fairpipe.pipeline.config.load_config` - Load configuration from YAML
+- `fairpipe.pipeline.build_pipeline` - Build pipeline from config
+- `fairpipe.pipeline.apply_pipeline` - Apply pipeline to data
+- `fairpipe.pipeline.run_detectors` - Run bias detection
 
 **Transformers:**
-- `fairness_pipeline_dev_toolkit.pipeline.InstanceReweighting` - Instance reweighing transformer
-- `fairness_pipeline_dev_toolkit.pipeline.DisparateImpactRemover` - Disparate impact removal
-- `fairness_pipeline_dev_toolkit.pipeline.ReweighingTransformer` - Reweighing transformer
-- `fairness_pipeline_dev_toolkit.pipeline.ProxyDropper` - Proxy variable dropper
+- `fairpipe.pipeline.InstanceReweighting` - Instance reweighing transformer
+- `fairpipe.pipeline.DisparateImpactRemover` - Disparate impact removal
+- `fairpipe.pipeline.ReweighingTransformer` - Reweighing transformer
+- `fairpipe.pipeline.ProxyDropper` - Proxy variable dropper
 
 **Integration:**
-- `fairness_pipeline_dev_toolkit.integration.execute_workflow` - Execute end-to-end workflow
-- `fairness_pipeline_dev_toolkit.integration.WorkflowResult` - Workflow execution result
-- `fairness_pipeline_dev_toolkit.integration.ValidationResult` - Validation result
+- `fairpipe.integration.execute_workflow` - Execute end-to-end workflow
+- `fairpipe.integration.WorkflowResult` - Workflow execution result
+- `fairpipe.integration.ValidationResult` - Validation result
 
 **Training:**
-- `fairness_pipeline_dev_toolkit.training.ReductionsWrapper` - Fairlearn reductions wrapper
-- `fairness_pipeline_dev_toolkit.training.FairnessRegularizerLoss` - PyTorch fairness regularizer
-- `fairness_pipeline_dev_toolkit.training.LagrangianFairnessTrainer` - Lagrangian constraint trainer
-- `fairness_pipeline_dev_toolkit.training.GroupFairnessCalibrator` - Group-specific calibration
+- `fairpipe.training.ReductionsWrapper` - Fairlearn reductions wrapper
+- `fairpipe.training.FairnessRegularizerLoss` - PyTorch fairness regularizer
+- `fairpipe.training.LagrangianFairnessTrainer` - Lagrangian constraint trainer
+- `fairpipe.training.GroupFairnessCalibrator` - Group-specific calibration
 
 **Monitoring:**
-- `fairness_pipeline_dev_toolkit.monitoring.RealTimeFairnessTracker` - Real-time metric tracking
-- `fairness_pipeline_dev_toolkit.monitoring.FairnessDriftAndAlertEngine` - Drift detection and alerting
-- `fairness_pipeline_dev_toolkit.monitoring.FairnessReportingDashboard` - Reporting dashboard
+- `fairpipe.monitoring.RealTimeFairnessTracker` - Real-time metric tracking
+- `fairpipe.monitoring.FairnessDriftAndAlertEngine` - Drift detection and alerting
+- `fairpipe.monitoring.FairnessReportingDashboard` - Reporting dashboard
 
 **REST API (optional — requires `fairpipe[api]`):**
-- `fairness_pipeline_dev_toolkit.api.create_app` - FastAPI application factory
+- `fairpipe.api.create_app` - FastAPI application factory
 - `GET /health` - Version and liveness check
 - `POST /validate` - Compute fairness metrics from JSON arrays
 - `POST /pipeline` - Run bias detection + mitigation on an uploaded file
@@ -364,14 +364,14 @@ else:
 - `GET /results/{run_id}` - Retrieve a stored result by run ID
 
 **Exceptions:**
-- `fairness_pipeline_dev_toolkit.exceptions.FairnessToolkitError` - Base exception
-- `fairness_pipeline_dev_toolkit.exceptions.ConfigValidationError` - Configuration validation error
-- `fairness_pipeline_dev_toolkit.exceptions.MetricComputationError` - Metric computation error
-- `fairness_pipeline_dev_toolkit.exceptions.PipelineExecutionError` - Pipeline execution error
+- `fairpipe.exceptions.FairnessToolkitError` - Base exception
+- `fairpipe.exceptions.ConfigValidationError` - Configuration validation error
+- `fairpipe.exceptions.MetricComputationError` - Metric computation error
+- `fairpipe.exceptions.PipelineExecutionError` - Pipeline execution error
 
-> **Note:** All APIs listed above are also importable via the `fairpipe.*` namespace (e.g.
-> `fairpipe.metrics.FairnessAnalyzer`, `fairpipe.pipeline.build_pipeline`). Both namespaces
-> are identical objects — object identity is preserved across the shim.
+> **Note:** The legacy `fairness_pipeline_dev_toolkit.*` namespace continues to work unchanged
+> for backward compatibility (e.g. `from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer`).
+> Both namespaces resolve to identical objects — object identity is preserved across the shim.
 
 See [API Reference](docs/api.md) for complete documentation.
 
