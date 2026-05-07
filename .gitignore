@@ -23,3 +23,5 @@ test_pypi_venv/
 docs/VERSIONING.md
 docs/DEPLOYMENT_ASSESSMENT.md
 RELEASE.md
+
+.hypothesis/
