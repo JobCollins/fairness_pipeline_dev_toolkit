@@ -16,6 +16,7 @@ Complete API documentation for the Fairness Pipeline Development Toolkit.
 - [I/O Utilities](#io-utilities)
 - [Pipeline Utilities](#pipeline-utilities)
 - [Integration & Workflow](#integration--workflow)
+- [REST API](#rest-api)
 - [Training](#training)
 - [Monitoring](#monitoring)
 - [Exceptions](#exceptions)
@@ -1173,6 +1174,220 @@ print(__version__)  # "0.6.5"
 import fairpipe
 print(fairpipe.__version__)  # "0.6.5"
 ```
+
+---
+
+## REST API
+
+The REST API is an optional extra that exposes fairpipe over HTTP. It is intended for non-Python ML stacks and interactive demos via Swagger UI.
+
+**Installation:**
+```bash
+pip install fairpipe[api]
+```
+
+**Start the server:**
+```bash
+fairpipe serve --host 0.0.0.0 --port 8000
+# Swagger UI: http://localhost:8000/docs
+# ReDoc:      http://localhost:8000/redoc
+```
+
+**Docker:**
+```bash
+docker build -t fairpipe-api .
+docker run -p 8000:8000 fairpipe-api
+# or: docker compose up
+```
+
+---
+
+### `create_app()`
+
+**Location:** `fairness_pipeline_dev_toolkit.api.app.create_app`
+
+FastAPI application factory. Creates the app, attaches a `ResultStore` singleton to `app.state.store`, registers all routers, and installs the global exception handler.
+
+```python
+from fairness_pipeline_dev_toolkit.api.app import create_app
+
+app = create_app()
+```
+
+---
+
+### `ResultStore`
+
+**Location:** `fairness_pipeline_dev_toolkit.api.store.ResultStore`
+
+Thread-safe in-memory result store. Backed by `collections.OrderedDict` with LRU eviction when the cap is reached.
+
+```python
+ResultStore(maxsize: int = 500)
+```
+
+**Methods:**
+- `put(run_id: str, result: dict) -> None` — store a result (evicts oldest if at capacity)
+- `get(run_id: str) -> dict | None` — retrieve a result (returns `None` if not found)
+
+---
+
+### Endpoints
+
+#### `GET /health`
+
+Returns server version and current UTC timestamp.
+
+**Response 200:**
+```json
+{
+  "status": "ok",
+  "version": "0.7.0",
+  "timestamp": "2026-05-07T10:00:00.000000+00:00"
+}
+```
+
+---
+
+#### `POST /validate`
+
+Compute fairness metrics from JSON arrays. Results are stored in `ResultStore` and retrievable via `GET /results/{run_id}`.
+
+**Request body:**
+```json
+{
+  "y_pred":        [1, 0, 1, 0],
+  "sensitive":     ["M", "F", "M", "F"],
+  "y_true":        [1, 0, 0, 1],
+  "y_score":       null,
+  "with_ci":       false,
+  "ci_level":      0.95,
+  "with_effects":  false,
+  "min_group_size": 5,
+  "backend":       "native",
+  "threshold":     0.05
+}
+```
+
+**Required fields:** `y_pred`, `sensitive`
+
+**Validation:** `len(y_pred)` must equal `len(sensitive)`. Returns `422` if lengths differ.
+
+**Response 200:**
+```json
+{
+  "run_id":  "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "status":  "success",
+  "passed":  true,
+  "metrics": {
+    "demographic_parity_difference": {
+      "metric": "demographic_parity_difference",
+      "value":  0.0312,
+      "ci":     [0.0201, 0.0441],
+      "effect_size": null,
+      "n_per_group": {"M": 2, "F": 2}
+    }
+  },
+  "timestamp": "2026-05-07T10:00:00.000000+00:00"
+}
+```
+
+**Note:** `passed=false` (DPD > threshold) returns HTTP 200, not 500.
+
+---
+
+#### `POST /pipeline`
+
+Run bias detection and mitigation on an uploaded CSV or Parquet file.
+
+**Request:** `multipart/form-data`
+- `file`: CSV or Parquet file upload
+- `config`: YAML pipeline config string
+
+**Response 200:**
+```json
+{
+  "run_id": "...",
+  "status": "success",
+  "detector_report": { "meta": {}, "body": {} },
+  "transformed_rows": 1000,
+  "transformers_applied": ["reweigh"],
+  "timestamp": "..."
+}
+```
+
+**Error:** Returns `422` if the config has no `pipeline:` section.
+
+---
+
+#### `POST /workflow`
+
+Execute the full 3-step workflow (baseline → transform+train → validate) on an uploaded file.
+
+**Request:** `multipart/form-data`
+- `file`: CSV or Parquet file upload
+- `config`: YAML integrated workflow config string
+- `min_group_size`: integer (optional, default `30`)
+- `train_size`: float (optional, default `0.8`)
+
+**Response 200:**
+```json
+{
+  "run_id": "...",
+  "status": "success",
+  "validation": {
+    "passed": true,
+    "message": "Fairness threshold met.",
+    "improvement": -0.312,
+    "baseline_metric_value": 0.0814,
+    "final_metric_value": 0.0312,
+    "threshold": 0.05
+  },
+  "baseline_metrics": { "demographic_parity_difference": { "value": 0.0814, ... } },
+  "final_metrics":    { "demographic_parity_difference": { "value": 0.0312, ... } },
+  "timestamp": "..."
+}
+```
+
+---
+
+#### `GET /results/{run_id}`
+
+Retrieve a stored result from any previous `/validate`, `/pipeline`, or `/workflow` call.
+
+**Response 200:**
+```json
+{
+  "run_id":     "3fa85f64-...",
+  "endpoint":   "/validate",
+  "result":     { ... },
+  "created_at": "2026-05-07T10:00:00.000000+00:00"
+}
+```
+
+**Response 404:**
+```json
+{
+  "error":   "NotFound",
+  "message": "No result found for run_id: 3fa85f64-..."
+}
+```
+
+---
+
+### Global Error Handler
+
+Unhandled exceptions return HTTP 500:
+
+```json
+{
+  "error":   "InternalServerError",
+  "message": "<exception message>",
+  "run_id":  null
+}
+```
+
+`HTTPException` (e.g. `422` validation errors) passes through normally and is not affected by this handler.
 
 ---
 

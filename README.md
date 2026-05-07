@@ -1,7 +1,7 @@
 # Fairness Pipeline Development Toolkit
 
-**Version:** 0.6.5 
-**Status:** Production-ready | Available on [PyPI](https://pypi.org/project/fairpipe/)  
+**Version:** 0.7.0
+**Status:** Production-ready | Available on [PyPI](https://pypi.org/project/fairpipe/)
 ![Coverage](https://img.shields.io/badge/coverage-86%25-green)
 
 
@@ -43,6 +43,9 @@ pip install fairpipe
 Install additional features using extra dependency groups:
 
 ```bash
+# REST API server (FastAPI + Swagger UI)
+pip install fairpipe[api]
+
 # Training methods (PyTorch-based fairness-aware training)
 pip install fairpipe[training]
 
@@ -53,10 +56,11 @@ pip install fairpipe[monitoring]
 pip install fairpipe[adapters]
 
 # Install all optional dependencies
-pip install fairpipe[training,monitoring,adapters]
+pip install fairpipe[api,training,monitoring,adapters]
 ```
 
 **Optional dependency groups:**
+- **`api`**: FastAPI REST server — enables `fairpipe serve` and all HTTP endpoints
 - **`training`**: PyTorch-based training methods (regularized loss, Lagrangian constraints, calibration)
 - **`monitoring`**: Production monitoring tools (Streamlit/Dash dashboards, drift detection, alerting)
 - **`adapters`**: External metric backends (Fairlearn, Aequitas) for compatibility with existing tools
@@ -113,6 +117,14 @@ fairpipe run-pipeline \
   --config config.yml \
   --csv data.csv \
   --output-dir artifacts/
+```
+
+Start the REST API server:
+
+```bash
+pip install fairpipe[api]
+fairpipe serve --host 0.0.0.0 --port 8000
+# → Swagger UI at http://localhost:8000/docs
 ```
 
 ### 3. Quick Python Usage
@@ -343,6 +355,14 @@ else:
 - `fairness_pipeline_dev_toolkit.monitoring.FairnessDriftAndAlertEngine` - Drift detection and alerting
 - `fairness_pipeline_dev_toolkit.monitoring.FairnessReportingDashboard` - Reporting dashboard
 
+**REST API (optional — requires `fairpipe[api]`):**
+- `fairness_pipeline_dev_toolkit.api.create_app` - FastAPI application factory
+- `GET /health` - Version and liveness check
+- `POST /validate` - Compute fairness metrics from JSON arrays
+- `POST /pipeline` - Run bias detection + mitigation on an uploaded file
+- `POST /workflow` - Execute full 3-step workflow on an uploaded file
+- `GET /results/{run_id}` - Retrieve a stored result by run ID
+
 **Exceptions:**
 - `fairness_pipeline_dev_toolkit.exceptions.FairnessToolkitError` - Base exception
 - `fairness_pipeline_dev_toolkit.exceptions.ConfigValidationError` - Configuration validation error
@@ -494,6 +514,29 @@ fairpipe calibrate \
 ```
 
 **Required CSV columns:** `score`, `y`, `g` (scores, labels, groups)
+
+### `fairpipe serve`
+Start the REST API server (requires `pip install fairpipe[api]`).
+
+```bash
+fairpipe serve \
+  --host 127.0.0.1 \
+  --port 8000 \
+  --workers 2
+```
+
+**Optional arguments:**
+- `--host`: Bind host (default: `127.0.0.1`)
+- `--port`: Bind port (default: `8000`)
+- `--reload`: Enable auto-reload for development
+- `--workers`: Number of worker processes (default: `1`)
+
+On startup prints:
+```
+fairpipe API v0.7.0 running on http://127.0.0.1:8000
+  → Swagger UI: http://127.0.0.1:8000/docs
+  → ReDoc:      http://127.0.0.1:8000/redoc
+```
 
 ### `fairpipe sample-check`
 Lightweight pre-commit check for sample data existence.
@@ -726,7 +769,47 @@ tracker = RealTimeFairnessTracker(
 tracker.process_batch(df, column_map)
 ```
 
-### 5. Integration Module
+### 5. REST API Module
+
+**Purpose**: Expose fairpipe over HTTP for non-Python ML stacks and conference demos.
+
+**Requires:** `pip install fairpipe[api]`
+
+**Key Components:**
+- `create_app()`: FastAPI application factory
+- `ResultStore`: Thread-safe in-memory result store (500-entry LRU cache)
+- Swagger UI at `/docs`, ReDoc at `/redoc`
+
+**Endpoints:**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/health` | Version and liveness check |
+| `POST` | `/validate` | Compute fairness metrics from JSON arrays |
+| `POST` | `/pipeline` | Run bias detection + mitigation on an uploaded CSV/Parquet |
+| `POST` | `/workflow` | Execute the full 3-step workflow on an uploaded file |
+| `GET` | `/results/{run_id}` | Retrieve a stored result by run ID |
+
+**Usage:**
+```bash
+# Start the server
+fairpipe serve --host 0.0.0.0 --port 8000
+
+# Validate via HTTP
+curl -X POST http://localhost:8000/validate \
+  -H "Content-Type: application/json" \
+  -d '{"y_pred":[1,0,1,0],"sensitive":["A","A","B","B"],"threshold":0.05,"min_group_size":1}'
+```
+
+**Docker:**
+```bash
+docker build -t fairpipe-api .
+docker run -p 8000:8000 fairpipe-api
+# or
+docker compose up
+```
+
+### 6. Integration Module
 
 **Purpose**: Orchestrate end-to-end workflows.
 
@@ -756,9 +839,9 @@ fairpipe run-pipeline --config config.yml --csv data.csv --output-dir artifacts/
    - No support for distributed computing (Spark, Dask, Ray)
    - Large datasets may require external orchestration
 
-3. **No Service Layer**
-   - CLI runs once and exits (no long-running service)
-   - No REST API or HTTP endpoints
+3. **No Authentication or Persistence**
+   - REST API has no built-in authentication (future version)
+   - Result store is in-memory only — results are lost on server restart
    - No job queue or scheduling
 
 4. **Limited Error Handling**
@@ -812,7 +895,7 @@ pytest tests/monitoring/ -q
 ```
 
 The test suite includes:
-- **725 tests** across all modules with **86% code coverage**
+- **738 tests** across all modules with **86% code coverage**
 - Integration tests for orchestrator and MLflow
 - Expanded integration tests with comprehensive edge case coverage
 - Property-based tests using Hypothesis for statistical invariants
@@ -828,7 +911,8 @@ The test suite includes:
 ```
 fairness_pipeline_dev_toolkit/
 ├── fairness_pipeline_dev_toolkit/    # Main package
-│   ├── cli/                          # CLI commands
+│   ├── api/                          # REST API (FastAPI) — optional [api] extra
+│   ├── cli/                          # CLI commands (includes `serve`)
 │   ├── integration/                  # Workflow orchestrator, MLflow, reporting
 │   ├── measurement/                  # FairnessAnalyzer API
 │   ├── metrics/                      # Core metrics + adapters
@@ -838,6 +922,8 @@ fairness_pipeline_dev_toolkit/
 │   ├── stats/                        # Statistical validation
 │   └── utils/                        # Shared utilities
 ├── fairpipe/                         # Compatibility shim (mirrors public API)
+├── Dockerfile                        # Docker image for the REST API server
+├── docker-compose.yml                # Compose file (port 8000)
 ├── tests/                            # Test suite
 ├── artifacts/                        # Generated outputs (gitignored)
 ├── apps/                             # Monitoring dashboards (Streamlit/Dash)
@@ -908,5 +994,5 @@ Run `fairpipe validate` directly in your CI/CD pipeline with the official GitHub
 
 ---
 
-**Version**: 0.6.5  
-**Last Updated**: 2026-05-07 (D2: array-like inputs, DataFrame proxy, Parquet support)
+**Version**: 0.7.0
+**Last Updated**: 2026-05-07 (D4: FastAPI REST API, fairpipe serve CLI, Docker support)

@@ -79,9 +79,39 @@ fairpipe validate \
     --out report.md
 ```
 
+### REST API Server
+
+Start a local HTTP server with Swagger UI — useful for non-Python stacks or demos:
+
+```bash
+pip install fairpipe[api]
+fairpipe serve --host 127.0.0.1 --port 8000
+```
+
+Then open `http://127.0.0.1:8000/docs` in your browser, or call the API directly:
+
+```bash
+curl -X POST http://localhost:8000/validate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "y_pred": [1, 0, 1, 0, 1, 0],
+    "sensitive": ["A", "A", "A", "B", "B", "B"],
+    "threshold": 0.05,
+    "min_group_size": 1
+  }'
+```
+
+**Docker:**
+```bash
+# From the repo root
+docker build -t fairpipe-api .
+docker run -p 8000:8000 fairpipe-api
+# or: docker compose up
+```
+
 ## Next Steps
 
 - Read the [User Guide](DOCS.md) for comprehensive documentation
-- Check out the [API Reference](api.md) for detailed API documentation
+- Check out the [API Reference](api.md) for detailed API documentation — including the full REST API endpoint reference
 - See the [Integration Guide](integration_guide.md) for CI/CD integration
 - Review [Performance](PERFORMANCE.md) for optimization tips
