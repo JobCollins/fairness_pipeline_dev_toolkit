@@ -145,8 +145,8 @@ Use this pattern when you want to integrate fairness directly into your training
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
-from fairness_pipeline_dev_toolkit.pipeline import InstanceReweighting
-from fairness_pipeline_dev_toolkit.training import ReductionsWrapper
+from fairpipe.pipeline import InstanceReweighting
+from fairpipe.training import ReductionsWrapper
 
 # Option 1: Add fairness transformer to preprocessing
 preprocessing_pipeline = Pipeline([
@@ -176,7 +176,7 @@ fair_model.fit(X_train_transformed, y_train, sensitive_features=A_train)
 y_pred = fair_model.predict(X_test_transformed)
 
 # Validate
-from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
+from fairpipe.metrics import FairnessAnalyzer
 analyzer = FairnessAnalyzer()
 result = analyzer.demographic_parity_difference(
     y_pred=y_pred,
@@ -190,7 +190,7 @@ print(f"Final DPD: {result.value:.4f}")
 ```python
 import torch
 import torch.nn as nn
-from fairness_pipeline_dev_toolkit.training import (
+from fairpipe.training import (
     FairnessRegularizerLoss,
     LagrangianFairnessTrainer
 )
@@ -234,8 +234,8 @@ trainer.train(X_train, y_train, sensitive_train)
 #### Use Case: Custom Training Loop
 
 ```python
-from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
-from fairness_pipeline_dev_toolkit.pipeline import build_pipeline, apply_pipeline, load_config
+from fairpipe.metrics import FairnessAnalyzer
+from fairpipe.pipeline import build_pipeline, apply_pipeline, load_config
 
 # Load configuration
 config = load_config("pipeline.config.yml")
@@ -308,7 +308,7 @@ jobs:
         run: |
           python -c "
           import pandas as pd
-          from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
+          from fairpipe.metrics import FairnessAnalyzer
           
           df = pd.read_csv('test_predictions.csv')
           analyzer = FairnessAnalyzer(min_group_size=30)
@@ -458,8 +458,8 @@ jobs:
 # tests/test_fairness.py
 import pytest
 import pandas as pd
-from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
-from fairness_pipeline_dev_toolkit.integration import assert_fairness
+from fairpipe.metrics import FairnessAnalyzer
+from fairpipe.integration import assert_fairness
 
 def test_model_fairness():
     """Test that model predictions meet fairness threshold."""
@@ -514,7 +514,7 @@ pytest tests/test_fairness.py -v
 
 import sys
 import pandas as pd
-from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
+from fairpipe.metrics import FairnessAnalyzer
 
 def main():
     predictions_path = "predictions.csv"
@@ -552,7 +552,7 @@ Use this pattern to monitor fairness metrics in production systems.
 #### Use Case: Real-Time Tracking
 
 ```python
-from fairness_pipeline_dev_toolkit.monitoring import (
+from fairpipe.monitoring import (
     RealTimeFairnessTracker,
     TrackerConfig,
     ColumnMap
@@ -593,7 +593,7 @@ while True:
 #### Use Case: Drift Detection
 
 ```python
-from fairness_pipeline_dev_toolkit.monitoring import (
+from fairpipe.monitoring import (
     FairnessDriftAndAlertEngine,
     DriftConfig
 )
@@ -633,7 +633,7 @@ alerts = check_drift(current_metrics)
 #### Use Case: Dashboard Integration
 
 ```python
-from fairness_pipeline_dev_toolkit.monitoring import (
+from fairpipe.monitoring import (
     FairnessReportingDashboard,
     ReportConfig
 )
@@ -662,11 +662,11 @@ Use this pattern to log fairness metrics alongside model metrics in MLflow.
 #### Use Case: Logging Workflow Results
 
 ```python
-from fairness_pipeline_dev_toolkit.integration import (
+from fairpipe.integration import (
     execute_workflow,
     log_workflow_results
 )
-from fairness_pipeline_dev_toolkit.pipeline import load_config
+from fairpipe.pipeline import load_config
 import pandas as pd
 
 # Load configuration and data
@@ -695,8 +695,8 @@ log_workflow_results(
 
 ```python
 import mlflow
-from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
-from fairness_pipeline_dev_toolkit.integration import log_fairness_metrics
+from fairpipe.metrics import FairnessAnalyzer
+from fairpipe.integration import log_fairness_metrics
 
 # Start MLflow run
 mlflow.start_run(run_name="fairness_evaluation")
@@ -731,7 +731,7 @@ mlflow.end_run()
 The toolkit supports automatic configuration file discovery:
 
 ```python
-from fairness_pipeline_dev_toolkit.pipeline.config import find_config_file, load_config
+from fairpipe.pipeline.config import find_config_file, load_config
 
 # Find config file (checks environment variables and default locations)
 config_path = find_config_file("config.yml")
@@ -746,7 +746,7 @@ else:
 
 ```python
 import os
-from fairness_pipeline_dev_toolkit.pipeline.config import load_config
+from fairpipe.pipeline.config import load_config
 
 # Set configuration path via environment variable
 os.environ["FAIRPIPE_CONFIG_PATH"] = "production_config.yml"
@@ -756,7 +756,7 @@ config = load_config(os.environ["FAIRPIPE_CONFIG_PATH"])
 ### Programmatic Configuration
 
 ```python
-from fairness_pipeline_dev_toolkit.pipeline.config import PipelineConfig, PipelineStep
+from fairpipe.pipeline.config import PipelineConfig, PipelineStep
 
 # Create configuration programmatically
 config = PipelineConfig(
@@ -799,7 +799,7 @@ export FAIRPIPE_MLFLOW_EXPERIMENT="fairness_workflow"
 Access in Python:
 
 ```python
-from fairness_pipeline_dev_toolkit.config.env import (
+from fairpipe.config.env import (
     FAIRPIPE_CONFIG_PATH,
     FAIRPIPE_MIN_GROUP_SIZE,
     FAIRPIPE_MLFLOW_EXPERIMENT,
@@ -877,7 +877,7 @@ result = analyzer.demographic_parity_difference(
 Always handle edge cases:
 
 ```python
-from fairness_pipeline_dev_toolkit.exceptions import (
+from fairpipe.exceptions import (
     MetricComputationError,
     ConfigValidationError
 )
@@ -906,7 +906,7 @@ Log fairness metrics for tracking over time:
 
 ```python
 import logging
-from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
+from fairpipe.metrics import FairnessAnalyzer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -969,7 +969,7 @@ analyzer = FairnessAnalyzer(backend="native")  # Always works
 - Use `find_config_file()` to locate config
 
 ```python
-from fairness_pipeline_dev_toolkit.pipeline.config import find_config_file
+from fairpipe.pipeline.config import find_config_file
 
 config_path = find_config_file("config.yml")
 if config_path:
@@ -1129,7 +1129,7 @@ result = requests.get(f"http://localhost:8000/results/{run_id}").json()
 For embedding the API inside an existing FastAPI or ASGI application:
 
 ```python
-from fairness_pipeline_dev_toolkit.api.app import create_app
+from fairpipe.api.app import create_app
 
 app = create_app()
 
