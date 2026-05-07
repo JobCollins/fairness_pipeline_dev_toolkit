@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.7.0] — 2026-05-07
+
+### Added
+
+- **REST API (`fairpipe[api]`)**: Optional FastAPI REST server exposing five HTTP endpoints —
+  `GET /health`, `POST /validate`, `POST /pipeline`, `POST /workflow`, and `GET /results/{run_id}`.
+  Swagger UI available at `/docs`, ReDoc at `/redoc`.
+- **`fairpipe serve` CLI command**: Start the REST API server with `--host`, `--port`, `--reload`,
+  and `--workers` options. Lazy-imports `uvicorn` and `fastapi` so the core CLI remains functional
+  when the `api` extra is not installed.
+- **`ResultStore`**: Thread-safe in-memory LRU result cache (500-entry cap) used by all API routes
+  to persist results retrievable via `GET /results/{run_id}`.
+- **Dockerfile & `docker-compose.yml`**: Run the REST API in Docker with
+  `docker build -t fairpipe-api . && docker run -p 8000:8000 fairpipe-api` or `docker compose up`.
+- **13 new API tests** in `tests/api/test_api.py` covering all endpoints, thread safety, error
+  handling, and the "passed=false is not 500" contract. Tests auto-skip when the `api` extra is
+  absent. Total test count: 738.
+
+### Changed
+
+- CI (`ci.yml`) now installs `.[dev,api]` so all API tests run on every push.
+
+---
+
 ## [v0.6.5] — 2026-02-03
 
 ### Changed

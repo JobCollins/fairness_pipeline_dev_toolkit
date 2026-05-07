@@ -13,6 +13,7 @@ This guide demonstrates how to integrate the Fairness Pipeline Development Toolk
   - [CI/CD Integration](#cicd-integration)
   - [Production Monitoring](#production-monitoring)
   - [MLflow Integration](#mlflow-integration)
+- [REST API & Docker](#rest-api--docker)
 - [Configuration Management](#configuration-management)
 - [Environment Variables](#environment-variables)
 - [Best Practices](#best-practices)
@@ -44,13 +45,16 @@ pip install fairpipe[adapters]
 
 # All features
 pip install fairpipe[training,monitoring,adapters]
+
+# For the REST API server
+pip install fairpipe[api]
 ```
 
 ### Verify Installation
 
 ```python
 import fairpipe
-print(fairpipe.__version__)  # Should print "0.6.5"
+print(fairpipe.__version__)  # Should print "0.7.0"
 
 # Test CLI
 import subprocess
@@ -999,9 +1003,147 @@ result = analyzer.demographic_parity_difference(
 
 ---
 
+---
+
+## REST API & Docker
+
+The `api` extra exposes all fairpipe functionality over HTTP, enabling integration from any language or framework. It is also useful for interactive demos via Swagger UI.
+
+### Starting the Server
+
+```bash
+pip install fairpipe[api]
+
+# Development (single worker, auto-reload)
+fairpipe serve --reload
+
+# Production-style (multiple workers)
+fairpipe serve --host 0.0.0.0 --port 8000 --workers 4
+```
+
+On startup:
+```
+fairpipe API v0.7.0 running on http://127.0.0.1:8000
+  → Swagger UI: http://127.0.0.1:8000/docs
+  → ReDoc:      http://127.0.0.1:8000/redoc
+```
+
+### Docker
+
+A `Dockerfile` and `docker-compose.yml` are provided at the repository root.
+
+```bash
+# Build and run
+docker build -t fairpipe-api .
+docker run -p 8000:8000 fairpipe-api
+
+# Or with Compose
+docker compose up
+```
+
+Pass environment variables to configure behaviour:
+```bash
+docker run -p 8000:8000 \
+  -e FAIRPIPE_MIN_GROUP_SIZE=30 \
+  fairpipe-api
+```
+
+### Calling the API
+
+**Health check:**
+```bash
+curl http://localhost:8000/health
+```
+
+**Validate fairness:**
+```bash
+curl -X POST http://localhost:8000/validate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "y_pred":    [1, 0, 1, 0, 1, 0],
+    "sensitive": ["A", "A", "A", "B", "B", "B"],
+    "threshold": 0.05,
+    "min_group_size": 1
+  }'
+```
+
+**Run pipeline (file upload):**
+```bash
+curl -X POST http://localhost:8000/pipeline \
+  -F "file=@data.csv;type=text/csv" \
+  -F 'config=sensitive: ["sensitive"]
+pipeline:
+  - name: reweigh
+    transformer: "InstanceReweighting"
+    params: {}'
+```
+
+**Run full workflow (file upload):**
+```bash
+curl -X POST http://localhost:8000/workflow \
+  -F "file=@data.csv;type=text/csv" \
+  -F "min_group_size=30" \
+  -F "train_size=0.8" \
+  -F 'config=sensitive: ["sensitive"]
+pipeline:
+  - name: reweigh
+    transformer: "InstanceReweighting"
+    params: {}
+training:
+  method: "reductions"
+  target_column: "y"
+  params:
+    constraint: "demographic_parity"
+    eps: 0.05
+fairness_metric: "demographic_parity_difference"
+validation_threshold: 0.10'
+```
+
+**Retrieve a stored result:**
+```bash
+curl http://localhost:8000/results/<run_id>
+```
+
+### Python Client Example
+
+```python
+import requests
+
+# Validate via HTTP
+resp = requests.post("http://localhost:8000/validate", json={
+    "y_pred":    [1, 0, 1, 0, 1, 0],
+    "sensitive": ["A", "A", "A", "B", "B", "B"],
+    "threshold": 0.05,
+    "min_group_size": 1,
+})
+body = resp.json()
+print(f"passed={body['passed']}, DPD={body['metrics']['demographic_parity_difference']['value']}")
+
+# Retrieve result later
+run_id = body["run_id"]
+result = requests.get(f"http://localhost:8000/results/{run_id}").json()
+```
+
+### Using the App Factory Directly
+
+For embedding the API inside an existing FastAPI or ASGI application:
+
+```python
+from fairness_pipeline_dev_toolkit.api.app import create_app
+
+app = create_app()
+
+# Mount under a prefix
+from fastapi import FastAPI
+root = FastAPI()
+root.mount("/fairness", app)
+```
+
+---
+
 ## Next Steps
 
-- Read the [API Reference](api.md) for complete API documentation
+- Read the [API Reference](api.md) for complete API and REST endpoint documentation
 - Explore the demo notebooks (`demo_*.ipynb`) for more examples
 - Review the [README](../README.md) for quick start guide
 - Check [ARCHITECTURE.md](ADR-001-architecture.md) for design decisions
