@@ -13,8 +13,8 @@ pip install fairpipe
 For development installation:
 
 ```bash
-git clone https://github.com/your-org/fairness_pipeline_dev_toolkit.git
-cd fairness_pipeline_dev_toolkit
+git clone https://github.com/SvrusIO/fAIr
+cd fAIr
 pip install -e .[dev]
 ```
 
@@ -23,7 +23,7 @@ pip install -e .[dev]
 ### Basic Usage
 
 ```python
-from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
+from fairpipe.metrics import FairnessAnalyzer
 import numpy as np
 
 # Create analyzer
@@ -44,7 +44,7 @@ print(f"95% CI: {result.ci}")
 
 ```bash
 # Validate fairness from CSV
-python -m fairness_pipeline_dev_toolkit.cli.main validate \
+fairpipe validate \
     --csv data.csv \
     --y-true y_true \
     --y-pred y_pred \
