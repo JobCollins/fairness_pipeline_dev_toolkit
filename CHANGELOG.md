@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.7.1] — 2026-05-07
+
+### Fixed
+
+- **README usage examples**: All Python snippets in the Usage Examples section now import from the
+  `fairpipe.*` namespace (e.g. `from fairpipe.metrics import FairnessAnalyzer`) instead of the
+  internal `fairness_pipeline_dev_toolkit.*` namespace.
+- **Version assertion in `test_namespace.py`**: Updated hardcoded version string from `0.6.5` →
+  `0.7.1` so the test suite passes against the current release.
+
+---
+
 ## [v0.7.0] — 2026-05-07
 
 ### Added

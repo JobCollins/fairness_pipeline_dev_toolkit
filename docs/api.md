@@ -1242,7 +1242,7 @@ Returns server version and current UTC timestamp.
 ```json
 {
   "status": "ok",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "timestamp": "2026-05-07T10:00:00.000000+00:00"
 }
 ```
