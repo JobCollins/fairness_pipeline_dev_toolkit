@@ -2,6 +2,7 @@
 Tests for the fairpipe REST API.
 
 Requires: pip install fairpipe[api]
+Skipped automatically when fastapi or httpx is not installed.
 """
 
 from __future__ import annotations
@@ -9,9 +10,13 @@ from __future__ import annotations
 import threading
 
 import pytest
-from fastapi.testclient import TestClient
 
-from fairness_pipeline_dev_toolkit.api.app import create_app
+pytest.importorskip("fastapi", reason="requires fairpipe[api]")
+pytest.importorskip("httpx", reason="requires fairpipe[api]")
+
+from fastapi.testclient import TestClient  # noqa: E402
+
+from fairness_pipeline_dev_toolkit.api.app import create_app  # noqa: E402
 
 
 @pytest.fixture(scope="module")
