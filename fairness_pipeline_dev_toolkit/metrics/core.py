@@ -8,6 +8,7 @@ import pandas as pd
 
 from ..stats.bootstrap import bootstrap_ci
 from ..stats.effect_size import cohens_d, risk_ratio
+from ..utils.array_utils import to_numpy_1d
 from ..utils.intersectional import build_intersectional_labels, min_group_mask
 from .aequitas_adapter import AequitasAdapter
 from .fairlearn_adapter import FairlearnAdapter
@@ -64,6 +65,32 @@ class FairnessAnalyzer:
 
         self._cache: Dict[str, Any] = {}
 
+    @classmethod
+    def from_dataframe(
+        cls,
+        df: pd.DataFrame,
+        y_pred_col: str,
+        sensitive_col: str,
+        y_true_col: Optional[str] = None,
+        y_score_col: Optional[str] = None,
+        min_group_size: int = 30,
+        backend: str = "native",
+    ) -> "FairnessAnalyzerDataFrameProxy":
+        """Create a proxy bound to a DataFrame, so metric calls need no column args.
+
+        Raises KeyError if any specified column is not present in *df*.
+        """
+        for col in filter(None, [y_pred_col, sensitive_col, y_true_col, y_score_col]):
+            if col not in df.columns:
+                raise KeyError(
+                    f"Column '{col}' not found in DataFrame. "
+                    f"Available columns: {list(df.columns)}"
+                )
+        analyzer = cls(min_group_size=min_group_size, backend=backend)
+        return FairnessAnalyzerDataFrameProxy(
+            analyzer, df, y_pred_col, sensitive_col, y_true_col, y_score_col
+        )
+
     @property
     def backend(self) -> str:
         return self._backend
@@ -104,7 +131,7 @@ class FairnessAnalyzer:
         ci_samples: int = 1000,
         with_effect_size: bool = True,
     ):
-        yp = np.asarray(y_pred)
+        yp = to_numpy_1d(y_pred, "y_pred")
 
         if intersectional:
             if attrs_df is None:
@@ -119,7 +146,7 @@ class FairnessAnalyzer:
             sens = np.asarray(labels)[mask]
             yp = yp[mask]
         else:
-            sens = np.asarray(sensitive)
+            sens = to_numpy_1d(sensitive, "sensitive")
 
         # Core metric via adapter (native)
         mr = self._adapter.demographic_parity_difference(
@@ -188,8 +215,8 @@ class FairnessAnalyzer:
         ci_samples: int = 1000,
         with_effect_size: bool = True,  # note: effect size less canonical here; we omit or set None
     ):
-        yt = np.asarray(y_true)
-        yp = np.asarray(y_pred)
+        yt = to_numpy_1d(y_true, "y_true")
+        yp = to_numpy_1d(y_pred, "y_pred")
 
         if intersectional:
             if attrs_df is None:
@@ -205,7 +232,7 @@ class FairnessAnalyzer:
             yt = yt[mask]
             yp = yp[mask]
         else:
-            sens = np.asarray(sensitive)
+            sens = to_numpy_1d(sensitive, "sensitive")
 
         mr = self._adapter.equalized_odds_difference(
             y_true=yt, y_pred=yp, sensitive=sens, min_group_size=self.min_group_size
@@ -305,8 +332,8 @@ class FairnessAnalyzer:
         ci_samples: int = 1000,
         with_effect_size: bool = True,  # If desired, Cohen's d on absolute errors pairwise is possible
     ):
-        yt = np.asarray(y_true)
-        yp = np.asarray(y_pred)
+        yt = to_numpy_1d(y_true, "y_true")
+        yp = to_numpy_1d(y_pred, "y_pred")
 
         if intersectional:
             if attrs_df is None:
@@ -322,7 +349,7 @@ class FairnessAnalyzer:
             yt = yt[mask]
             yp = yp[mask]
         else:
-            sens = np.asarray(sensitive)
+            sens = to_numpy_1d(sensitive, "sensitive")
 
         mr = self._adapter.mae_parity_difference(
             y_true=yt, y_pred=yp, sensitive=sens, min_group_size=self.min_group_size
@@ -382,3 +409,60 @@ class FairnessAnalyzer:
             res.effect_size = cohens_d(x, y)
 
         return res
+
+
+class FairnessAnalyzerDataFrameProxy:
+    """Bound proxy returned by :meth:`FairnessAnalyzer.from_dataframe`.
+
+    Stores a DataFrame and column names so that metric methods can be called
+    without repeating column arguments each time.
+    """
+
+    def __init__(
+        self,
+        analyzer: FairnessAnalyzer,
+        df: pd.DataFrame,
+        y_pred_col: str,
+        sensitive_col: str,
+        y_true_col: Optional[str] = None,
+        y_score_col: Optional[str] = None,
+    ) -> None:
+        self._analyzer = analyzer
+        self._df = df
+        self._y_pred_col = y_pred_col
+        self._sensitive_col = sensitive_col
+        self._y_true_col = y_true_col
+        self._y_score_col = y_score_col
+
+    def demographic_parity_difference(self, **kwargs) -> Result:
+        return self._analyzer.demographic_parity_difference(
+            y_pred=self._df[self._y_pred_col],
+            sensitive=self._df[self._sensitive_col],
+            **kwargs,
+        )
+
+    def equalized_odds_difference(self, **kwargs) -> Result:
+        if self._y_true_col is None:
+            raise ValueError(
+                "y_true_col must be specified in from_dataframe() to call "
+                "equalized_odds_difference()."
+            )
+        return self._analyzer.equalized_odds_difference(
+            y_true=self._df[self._y_true_col],
+            y_pred=self._df[self._y_pred_col],
+            sensitive=self._df[self._sensitive_col],
+            **kwargs,
+        )
+
+    def mae_parity_difference(self, **kwargs) -> Result:
+        if self._y_true_col is None:
+            raise ValueError(
+                "y_true_col must be specified in from_dataframe() to call "
+                "mae_parity_difference()."
+            )
+        return self._analyzer.mae_parity_difference(
+            y_true=self._df[self._y_true_col],
+            y_pred=self._df[self._y_pred_col],
+            sensitive=self._df[self._sensitive_col],
+            **kwargs,
+        )

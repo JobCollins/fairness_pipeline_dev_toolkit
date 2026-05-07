@@ -14,5 +14,6 @@ Internal modules (do not import directly):
 
 from .base import MetricResult
 from .core import FairnessAnalyzer as FairnessAnalyzer
+from .core import FairnessAnalyzerDataFrameProxy as FairnessAnalyzerDataFrameProxy
 
-__all__ = ["FairnessAnalyzer", "MetricResult"]
+__all__ = ["FairnessAnalyzer", "FairnessAnalyzerDataFrameProxy", "MetricResult"]
