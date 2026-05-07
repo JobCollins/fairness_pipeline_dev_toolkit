@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade "pip>=25.3"
-          pip install -e .[dev] -r requirements.txt
+          pip install -e ".[dev,api]" -r requirements.txt
 
       - name: Debug Black version
         run: |
