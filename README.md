@@ -118,7 +118,7 @@ fairpipe run-pipeline \
 ### 3. Quick Python Usage
 
 ```python
-from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
+from fairpipe.metrics import FairnessAnalyzer
 import pandas as pd
 
 # Load your data
@@ -342,6 +342,10 @@ else:
 - `fairness_pipeline_dev_toolkit.exceptions.ConfigValidationError` - Configuration validation error
 - `fairness_pipeline_dev_toolkit.exceptions.MetricComputationError` - Metric computation error
 - `fairness_pipeline_dev_toolkit.exceptions.PipelineExecutionError` - Pipeline execution error
+
+> **Note:** All APIs listed above are also importable via the `fairpipe.*` namespace (e.g.
+> `fairpipe.metrics.FairnessAnalyzer`, `fairpipe.pipeline.build_pipeline`). Both namespaces
+> are identical objects — object identity is preserved across the shim.
 
 See [API Reference](docs/api.md) for complete documentation.
 
@@ -631,7 +635,7 @@ See [Integration Guide](docs/integration_guide.md) for more details.
 
 **Usage:**
 ```python
-from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
+from fairpipe.metrics import FairnessAnalyzer
 
 analyzer = FairnessAnalyzer(min_group_size=30, backend="native")
 result = analyzer.demographic_parity_difference(
@@ -668,7 +672,7 @@ fairpipe pipeline --config pipeline.config.yml --csv data.csv --out-csv output.c
 
 **Usage:**
 ```python
-from fairness_pipeline_dev_toolkit.training import ReductionsWrapper
+from fairpipe.training import ReductionsWrapper
 from sklearn.linear_model import LogisticRegression
 
 model = ReductionsWrapper(
@@ -692,7 +696,7 @@ model.fit(X_train, y_train, sensitive_features=A_train)
 
 **Usage:**
 ```python
-from fairness_pipeline_dev_toolkit.monitoring import RealTimeFairnessTracker, TrackerConfig
+from fairpipe.monitoring import RealTimeFairnessTracker, TrackerConfig
 
 tracker = RealTimeFairnessTracker(
     TrackerConfig(window_size=10_000, min_group_size=30),
@@ -787,7 +791,7 @@ pytest tests/monitoring/ -q
 ```
 
 The test suite includes:
-- **709 tests** across all modules with **86% code coverage**
+- **713 tests** across all modules with **86% code coverage**
 - Integration tests for orchestrator and MLflow
 - Expanded integration tests with comprehensive edge case coverage
 - Property-based tests using Hypothesis for statistical invariants
@@ -812,6 +816,7 @@ fairness_pipeline_dev_toolkit/
 │   ├── monitoring/                   # Production monitoring tools
 │   ├── stats/                        # Statistical validation
 │   └── utils/                        # Shared utilities
+├── fairpipe/                         # Compatibility shim (mirrors public API)
 ├── tests/                            # Test suite
 ├── artifacts/                        # Generated outputs (gitignored)
 ├── apps/                             # Monitoring dashboards (Streamlit/Dash)
@@ -865,4 +870,4 @@ This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) fo
 ---
 
 **Version**: 0.6.5  
-**Last Updated**: 2026-02-03
+**Last Updated**: 2026-05-07

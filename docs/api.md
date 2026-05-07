@@ -2,6 +2,12 @@
 
 Complete API documentation for the Fairness Pipeline Development Toolkit.
 
+> **Namespace note:** All APIs documented here are available under both the `fairpipe.*` and
+> `fairness_pipeline_dev_toolkit.*` namespaces. The `fairpipe` package is a thin re-export shim —
+> object identity is fully preserved (`fairpipe.metrics.FairnessAnalyzer is
+> fairness_pipeline_dev_toolkit.metrics.FairnessAnalyzer` evaluates to `True`). Either namespace
+> may be used interchangeably.
+
 ---
 
 ## Table of Contents
@@ -86,7 +92,7 @@ def demographic_parity_difference(
 
 **Example:**
 ```python
-from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
+from fairpipe.metrics import FairnessAnalyzer
 import numpy as np
 
 analyzer = FairnessAnalyzer(min_group_size=30)
@@ -1044,8 +1050,11 @@ Get the toolkit version:
 
 ```python
 from fairness_pipeline_dev_toolkit import __version__
-
 print(__version__)  # "0.6.5"
+
+# Alternatively, via the fairpipe namespace:
+import fairpipe
+print(fairpipe.__version__)  # "0.6.5"
 ```
 
 ---
