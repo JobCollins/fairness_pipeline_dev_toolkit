@@ -7,8 +7,12 @@ Skipped automatically when fastapi or httpx is not installed.
 
 from __future__ import annotations
 
+import io
+import textwrap
 import threading
 
+import numpy as np
+import pandas as pd
 import pytest
 
 pytest.importorskip("fastapi", reason="requires fairpipe[api]")
@@ -171,3 +175,148 @@ def test_concurrent_store(client):
     r2 = client.get(f"/results/{results['t2']}")
     assert r1.status_code == 200
     assert r2.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# POST /pipeline — multipart CSV + YAML config
+# ---------------------------------------------------------------------------
+
+_PIPELINE_CONFIG = textwrap.dedent(
+    """
+    sensitive: ["sensitive"]
+    alpha: 0.05
+    pipeline:
+      - name: reweigh
+        transformer: "InstanceReweighting"
+        params: {}
+    """
+)
+
+
+def _make_pipeline_csv() -> bytes:
+    rng = np.random.default_rng(0)
+    n = 200
+    df = pd.DataFrame(
+        {
+            "sensitive": rng.choice(["A", "B"], size=n),
+            "score": rng.uniform(0, 1, size=n),
+            "y_true": rng.integers(0, 2, size=n),
+        }
+    )
+    buf = io.BytesIO()
+    df.to_csv(buf, index=False)
+    return buf.getvalue()
+
+
+def test_pipeline_basic(client):
+    r = client.post(
+        "/pipeline",
+        files={"file": ("data.csv", _make_pipeline_csv(), "text/csv")},
+        data={"config": _PIPELINE_CONFIG},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "success"
+    assert "run_id" in body
+    assert "detector_report" in body
+    assert body["transformed_rows"] == 200
+    assert len(body["transformers_applied"]) > 0
+
+
+def test_pipeline_stores_result(client):
+    r = client.post(
+        "/pipeline",
+        files={"file": ("data.csv", _make_pipeline_csv(), "text/csv")},
+        data={"config": _PIPELINE_CONFIG},
+    )
+    assert r.status_code == 200
+    run_id = r.json()["run_id"]
+    r2 = client.get(f"/results/{run_id}")
+    assert r2.status_code == 200
+    assert r2.json()["run_id"] == run_id
+
+
+def test_pipeline_invalid_config(client):
+    """Config with no pipeline steps → 422."""
+    config_no_steps = textwrap.dedent(
+        """
+        sensitive: ["sensitive"]
+        alpha: 0.05
+        """
+    )
+    r = client.post(
+        "/pipeline",
+        files={"file": ("data.csv", _make_pipeline_csv(), "text/csv")},
+        data={"config": config_no_steps},
+    )
+    assert r.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# POST /workflow — multipart CSV + YAML config
+# ---------------------------------------------------------------------------
+
+_WORKFLOW_CONFIG = textwrap.dedent(
+    """
+    sensitive: ["sensitive"]
+    alpha: 0.05
+    pipeline:
+      - name: reweigh
+        transformer: "InstanceReweighting"
+        params: {}
+    training:
+      method: "reductions"
+      target_column: "y"
+      params:
+        constraint: "demographic_parity"
+        eps: 0.05
+        T: 5
+    fairness_metric: "demographic_parity_difference"
+    validation_threshold: 0.20
+    """
+)
+
+
+def _make_workflow_csv() -> bytes:
+    rng = np.random.default_rng(42)
+    n = 300
+    sensitive = rng.choice(["A", "B"], size=n, p=[0.6, 0.4])
+    f0 = rng.standard_normal(n)
+    f1 = rng.standard_normal(n)
+    bias = (sensitive == "B").astype(float) * 0.4
+    y = ((f0 + f1 + bias + rng.standard_normal(n) * 0.1) > 0).astype(int)
+    df = pd.DataFrame({"sensitive": sensitive, "f0": f0, "f1": f1, "y": y})
+    buf = io.BytesIO()
+    df.to_csv(buf, index=False)
+    return buf.getvalue()
+
+
+def test_workflow_basic(client):
+    pytest.importorskip("sklearn", reason="scikit-learn required for workflow")
+    r = client.post(
+        "/workflow",
+        files={"file": ("data.csv", _make_workflow_csv(), "text/csv")},
+        data={"config": _WORKFLOW_CONFIG, "min_group_size": "10", "train_size": "0.8"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "success"
+    assert "run_id" in body
+    assert "validation" in body
+    assert "passed" in body["validation"]
+    assert "baseline_metrics" in body
+    assert "final_metrics" in body
+
+
+def test_workflow_stores_result(client):
+    pytest.importorskip("sklearn", reason="scikit-learn required for workflow")
+    r = client.post(
+        "/workflow",
+        files={"file": ("data.csv", _make_workflow_csv(), "text/csv")},
+        data={"config": _WORKFLOW_CONFIG, "min_group_size": "10", "train_size": "0.8"},
+    )
+    assert r.status_code == 200
+    run_id = r.json()["run_id"]
+    r2 = client.get(f"/results/{run_id}")
+    assert r2.status_code == 200
+    assert r2.json()["run_id"] == run_id
