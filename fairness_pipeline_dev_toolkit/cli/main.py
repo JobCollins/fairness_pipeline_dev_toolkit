@@ -584,6 +584,44 @@ def cmd_run_pipeline(args: argparse.Namespace) -> int:
         return 1
 
 
+def cmd_serve(args: argparse.Namespace) -> int:
+    """Start the fairpipe REST API server."""
+    try:
+        import uvicorn  # noqa: PLC0415
+
+        from fairness_pipeline_dev_toolkit.api.app import create_app  # noqa: PLC0415
+    except ImportError:
+        print(
+            "Error: REST API requires fairpipe[api]. " "Install with: pip install 'fairpipe[api]'"
+        )
+        return 1
+
+    host: str = args.host
+    port: int = args.port
+
+    print(f"fairpipe API v0.7.0 running on http://{host}:{port}")
+    print(f"  → Swagger UI: http://{host}:{port}/docs")
+    print(f"  → ReDoc:      http://{host}:{port}/redoc")
+
+    if args.reload:
+        uvicorn.run(
+            "fairness_pipeline_dev_toolkit.api.app:create_app",
+            factory=True,
+            host=host,
+            port=port,
+            reload=True,
+        )
+    else:
+        workers = args.workers if args.workers > 1 else 1
+        uvicorn.run(
+            create_app(),
+            host=host,
+            port=port,
+            workers=workers,
+        )
+    return 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     """Main CLI entry point."""
     # Set up logging based on environment or defaults
@@ -741,6 +779,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     p_run.add_argument("--mlflow-run-name", help="MLflow run name (optional)")
     p_run.set_defaults(func=cmd_run_pipeline)
+
+    # REST API server
+    p_serve = sub.add_parser("serve", help="Start the fairpipe REST API server")
+    p_serve.add_argument("--host", default="127.0.0.1", help="Bind host (default: 127.0.0.1)")
+    p_serve.add_argument("--port", type=int, default=8000, help="Bind port (default: 8000)")
+    p_serve.add_argument("--reload", action="store_true", help="Enable auto-reload for development")
+    p_serve.add_argument(
+        "--workers", type=int, default=1, help="Number of worker processes (default: 1)"
+    )
+    p_serve.set_defaults(func=cmd_serve)
 
     args = parser.parse_args(argv)
     if not hasattr(args, "func"):
