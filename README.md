@@ -829,10 +829,10 @@ fairpipe run-pipeline --config config.yml --csv data.csv --output-dir artifacts/
 
 ### Known Limitations
 
-1. **File-Based I/O Only**
-   - Input/output assumes CSV or Parquet files (`.csv`, `.parquet`, `.pq`)
+1. **No Streaming Data Support**
+   - No real-time or streaming inference
+   - Batch processing only (CSV, Parquet, and in-memory DataFrames supported)
    - No database connectors (SQL, etc.)
-   - No streaming data support
 
 2. **Single-Threaded Execution**
    - All processing is single-threaded/single-process
