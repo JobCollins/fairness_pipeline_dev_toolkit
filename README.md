@@ -876,6 +876,24 @@ This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) fo
 
 ---
 
+## GitHub Action
+
+Run `fairpipe validate` directly in your CI/CD pipeline with the official GitHub composite action:
+
+```yaml
+- uses: SvrusIO/fairpipe-action@v1
+  with:
+    csv: data/predictions.csv
+    y-true: y_true
+    y-pred: y_pred
+    sensitive: gender
+    threshold: "0.05"
+```
+
+**[SvrusIO/fairpipe-action](https://github.com/SvrusIO/fairpipe-action)** — computes fairness metrics, writes a markdown report to the job summary, and optionally fails the workflow when DPD exceeds the threshold.
+
+---
+
 ## Additional Resources
 
 - **API Reference**: See [docs/api.md](docs/api.md) for complete API documentation
