@@ -1,6 +1,6 @@
 # Fairness Pipeline Development Toolkit
 
-**Version:** 0.7.1
+**Version:** 0.7.2
 **Status:** Production-ready | Available on [PyPI](https://pypi.org/project/fairpipe/)
 ![Coverage](https://img.shields.io/badge/coverage-86%25-green)
 
@@ -533,7 +533,7 @@ fairpipe serve \
 
 On startup prints:
 ```
-fairpipe API v0.7.1 running on http://127.0.0.1:8000
+fairpipe API v0.7.2 running on http://127.0.0.1:8000
   → Swagger UI: http://127.0.0.1:8000/docs
   → ReDoc:      http://127.0.0.1:8000/redoc
 ```
@@ -994,5 +994,5 @@ Run `fairpipe validate` directly in your CI/CD pipeline with the official GitHub
 
 ---
 
-**Version**: 0.7.1
+**Version**: 0.7.2
 **Last Updated**: 2026-05-07 (D4: FastAPI REST API, fairpipe serve CLI, Docker support)

@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.7.2] — 2026-05-07
+
+### Fixed
+
+- **Docs namespace cleanup**: All Python examples across `README.md`, `DOCS.md`, `docs/api.md`,
+  and `docs/integration_guide.md` now import from the `fairpipe.*` namespace. The
+  `fairness_pipeline_dev_toolkit.*` namespace continues to work for backward compatibility.
+
+---
+
 ## [v0.7.1] — 2026-05-07
 
 ### Fixed
