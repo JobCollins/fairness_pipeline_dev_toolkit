@@ -68,19 +68,17 @@ Use this pattern when you want to validate fairness of existing model prediction
 #### Use Case: Post-Training Validation
 
 ```python
-import pandas as pd
-from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
+from fairpipe.io import load_data
+from fairpipe.metrics import FairnessAnalyzer
 
-# Load predictions
-df = pd.read_csv("predictions.csv")
+# Load predictions — CSV or Parquet, auto-detected
+df = load_data("predictions.csv")   # or "predictions.parquet"
 
-# Initialize analyzer
+# Pass Series directly — no .to_numpy() needed
 analyzer = FairnessAnalyzer(min_group_size=30)
-
-# Compute fairness metrics
 result = analyzer.demographic_parity_difference(
-    y_pred=df["y_pred"].to_numpy(),
-    sensitive=df["gender"].to_numpy(),
+    y_pred=df["y_pred"],
+    sensitive=df["gender"],
     with_ci=True,
     ci_level=0.95
 )
@@ -100,19 +98,21 @@ else:
 #!/usr/bin/env python3
 """Validate fairness for multiple models."""
 
-import pandas as pd
-from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
 import sys
 
+from fairpipe.io import load_data
+from fairpipe.metrics import FairnessAnalyzer
+
+
 def validate_model(predictions_path: str, threshold: float = 0.05) -> bool:
-    """Validate fairness for a single model."""
-    df = pd.read_csv(predictions_path)
+    """Validate fairness for a single model. Accepts .csv or .parquet paths."""
+    df = load_data(predictions_path)
     analyzer = FairnessAnalyzer(min_group_size=30)
-    
+
     result = analyzer.demographic_parity_difference(
-        y_pred=df["y_pred"].to_numpy(),
-        sensitive=df["gender"].to_numpy(),
-        with_ci=True
+        y_pred=df["y_pred"],
+        sensitive=df["gender"],
+        with_ci=True,
     )
     
     passed = result.value <= threshold

@@ -118,24 +118,26 @@ fairpipe run-pipeline \
 ### 3. Quick Python Usage
 
 ```python
+from fairpipe.io import load_data
 from fairpipe.metrics import FairnessAnalyzer
-import pandas as pd
 
-# Load your data
-df = pd.read_csv("data.csv")
+# Load your data — CSV or Parquet, auto-detected by extension
+df = load_data("data.csv")   # or "data.parquet"
 
-# Initialize analyzer
+# Pass DataFrame columns directly — no .to_numpy() needed
 analyzer = FairnessAnalyzer(min_group_size=30)
-
-# Compute demographic parity difference with confidence intervals
 result = analyzer.demographic_parity_difference(
-    y_pred=df["y_pred"].to_numpy(),
-    sensitive=df["gender"].to_numpy(),
+    y_pred=df["y_pred"],     # pd.Series, list, or np.ndarray all accepted
+    sensitive=df["gender"],
     with_ci=True
 )
 
 print(f"DPD: {result.value:.4f}")
 print(f"95% CI: [{result.ci[0]:.4f}, {result.ci[1]:.4f}]")
+
+# Or use the DataFrame proxy to avoid repeating column names
+proxy = FairnessAnalyzer.from_dataframe(df, y_pred_col="y_pred", sensitive_col="gender")
+result = proxy.demographic_parity_difference(with_ci=True)
 ```
 
 For more examples, see [Usage Examples](#usage-examples) below or check the [Integration Guide](docs/integration_guide.md).
@@ -305,8 +307,12 @@ else:
 ### Core Components
 
 **Metrics:**
-- `fairness_pipeline_dev_toolkit.metrics.FairnessAnalyzer` - Main class for computing fairness metrics
+- `fairness_pipeline_dev_toolkit.metrics.FairnessAnalyzer` - Main class for computing fairness metrics (accepts `np.ndarray`, `pd.Series`, or `list`)
+- `fairness_pipeline_dev_toolkit.metrics.FairnessAnalyzerDataFrameProxy` - Column-bound proxy returned by `from_dataframe()`
 - `fairness_pipeline_dev_toolkit.metrics.MetricResult` - Result object containing metric values and metadata
+
+**I/O:**
+- `fairness_pipeline_dev_toolkit.io.load_data` - Load `.csv`, `.parquet`, or `.pq` files into a DataFrame (also available as `fairpipe.load_data`)
 
 **Pipeline:**
 - `fairness_pipeline_dev_toolkit.pipeline.config.PipelineConfig` - Configuration dataclass
@@ -628,21 +634,31 @@ See [Integration Guide](docs/integration_guide.md) for more details.
 **Purpose**: Compute fairness metrics with statistical validation.
 
 **Key Components:**
-- `FairnessAnalyzer`: Unified API for fairness metrics
+- `FairnessAnalyzer`: Unified API for fairness metrics — accepts `np.ndarray`, `pd.Series`, or `list`
+- `FairnessAnalyzer.from_dataframe()`: Column-bound proxy for DataFrame-native workflows
 - Adapters: `native`, `fairlearn`, `aequitas`
 - Metrics: demographic parity, equalized odds, MAE parity
 - Statistical validation: bootstrap CIs, effect sizes
 
-**Usage:**
+**Usage (array inputs):**
 ```python
 from fairpipe.metrics import FairnessAnalyzer
 
 analyzer = FairnessAnalyzer(min_group_size=30, backend="native")
 result = analyzer.demographic_parity_difference(
-    y_pred=y_pred,
-    sensitive=sensitive,
+    y_pred=df["y_pred"],       # pd.Series, list, or np.ndarray
+    sensitive=df["gender"],
     with_ci=True
 )
+```
+
+**Usage (DataFrame proxy):**
+```python
+proxy = FairnessAnalyzer.from_dataframe(
+    df, y_pred_col="y_pred", sensitive_col="gender", y_true_col="y_true"
+)
+result = proxy.demographic_parity_difference(with_ci=True)
+result_eod = proxy.equalized_odds_difference()
 ```
 
 ### 2. Pipeline Module
@@ -653,10 +669,15 @@ result = analyzer.demographic_parity_difference(
 - **Detectors**: Representation, statistical, proxy analysis
 - **Transformers**: `InstanceReweighting`, `DisparateImpactRemover`, `ProxyDropper`, `ReweighingTransformer`
 - **Orchestration**: YAML-based pipeline configuration
+- **I/O**: `load_data()` — all CLI `--csv` arguments accept `.csv`, `.parquet`, or `.pq`
 
 **Usage:**
 ```bash
+# CSV (original)
 fairpipe pipeline --config pipeline.config.yml --csv data.csv --out-csv output.csv
+
+# Parquet (new in v0.6.5)
+fairpipe pipeline --config pipeline.config.yml --csv data.parquet --out-csv output.csv
 ```
 
 ### 3. Training Module
@@ -726,8 +747,8 @@ fairpipe run-pipeline --config config.yml --csv data.csv --output-dir artifacts/
 ### Known Limitations
 
 1. **File-Based I/O Only**
-   - Input/output assumes CSV files
-   - No database connectors (SQL, Parquet, etc.)
+   - Input/output assumes CSV or Parquet files (`.csv`, `.parquet`, `.pq`)
+   - No database connectors (SQL, etc.)
    - No streaming data support
 
 2. **Single-Threaded Execution**
@@ -791,7 +812,7 @@ pytest tests/monitoring/ -q
 ```
 
 The test suite includes:
-- **713 tests** across all modules with **86% code coverage**
+- **725 tests** across all modules with **86% code coverage**
 - Integration tests for orchestrator and MLflow
 - Expanded integration tests with comprehensive edge case coverage
 - Property-based tests using Hypothesis for statistical invariants
@@ -870,4 +891,4 @@ This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) fo
 ---
 
 **Version**: 0.6.5  
-**Last Updated**: 2026-05-07
+**Last Updated**: 2026-05-07 (D2: array-like inputs, DataFrame proxy, Parquet support)

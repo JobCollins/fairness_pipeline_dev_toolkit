@@ -13,6 +13,7 @@ Complete API documentation for the Fairness Pipeline Development Toolkit.
 ## Table of Contents
 
 - [Core Metrics](#core-metrics)
+- [I/O Utilities](#io-utilities)
 - [Pipeline Utilities](#pipeline-utilities)
 - [Integration & Workflow](#integration--workflow)
 - [Training](#training)
@@ -49,6 +50,54 @@ FairnessAnalyzer(
 **Properties:**
 - `backend` (str): The currently active backend adapter name
 
+**Class Methods:**
+
+#### `from_dataframe()`
+
+Create a column-bound proxy from a DataFrame so that metric methods need no column arguments per call.
+
+```python
+@classmethod
+def from_dataframe(
+    cls,
+    df: pd.DataFrame,
+    y_pred_col: str,
+    sensitive_col: str,
+    y_true_col: str | None = None,
+    y_score_col: str | None = None,
+    min_group_size: int = 30,
+    backend: str = "native",
+) -> FairnessAnalyzerDataFrameProxy
+```
+
+**Parameters:**
+- `df` (pd.DataFrame): Input DataFrame
+- `y_pred_col` (str): Column name for predictions
+- `sensitive_col` (str): Column name for the sensitive attribute
+- `y_true_col` (str, optional): Column name for ground-truth labels (required for EOD/MAE methods)
+- `y_score_col` (str, optional): Column name for prediction scores
+- `min_group_size` (int): Minimum group size (default: 30)
+- `backend` (str): Backend adapter (default: `"native"`)
+
+**Raises:** `KeyError` if any specified column is not present in `df`:
+`"Column '{col}' not found in DataFrame. Available columns: [...]"`
+
+**Example:**
+```python
+from fairpipe.metrics import FairnessAnalyzer
+
+proxy = FairnessAnalyzer.from_dataframe(
+    df,
+    y_pred_col="y_pred",
+    sensitive_col="gender",
+    y_true_col="y_true",
+)
+result = proxy.demographic_parity_difference(with_ci=True)
+result_eod = proxy.equalized_odds_difference()
+```
+
+---
+
 **Methods:**
 
 #### `demographic_parity_difference()`
@@ -57,8 +106,8 @@ Compute the demographic parity difference (DPD) metric.
 
 ```python
 def demographic_parity_difference(
-    y_pred: np.ndarray,
-    sensitive: np.ndarray | pd.Series,
+    y_pred: np.ndarray | pd.Series | list,
+    sensitive: np.ndarray | pd.Series | list,
     *,
     intersectional: bool = False,
     attrs_df: Optional[pd.DataFrame] = None,
@@ -72,8 +121,8 @@ def demographic_parity_difference(
 ```
 
 **Parameters:**
-- `y_pred` (np.ndarray): Binary predictions (0/1) or continuous scores
-- `sensitive` (np.ndarray | pd.Series): Sensitive attribute values
+- `y_pred` (np.ndarray | pd.Series | list): Binary predictions (0/1) or continuous scores
+- `sensitive` (np.ndarray | pd.Series | list): Sensitive attribute values
 - `intersectional` (bool): If True, compute intersectional fairness across multiple attributes
 - `attrs_df` (pd.DataFrame, optional): Required if `intersectional=True`. DataFrame containing all sensitive attributes
 - `columns` (List[str], optional): Column names in `attrs_df` to use for intersectional analysis
@@ -112,9 +161,9 @@ Compute the equalized odds difference (EOD) metric.
 
 ```python
 def equalized_odds_difference(
-    y_true: np.ndarray,
-    y_pred: np.ndarray,
-    sensitive: np.ndarray | pd.Series,
+    y_true: np.ndarray | pd.Series | list,
+    y_pred: np.ndarray | pd.Series | list,
+    sensitive: np.ndarray | pd.Series | list,
     *,
     intersectional: bool = False,
     attrs_df: Optional[pd.DataFrame] = None,
@@ -128,9 +177,9 @@ def equalized_odds_difference(
 ```
 
 **Parameters:**
-- `y_true` (np.ndarray): Ground truth binary labels (0/1)
-- `y_pred` (np.ndarray): Binary predictions (0/1)
-- `sensitive` (np.ndarray | pd.Series): Sensitive attribute values
+- `y_true` (np.ndarray | pd.Series | list): Ground truth binary labels (0/1)
+- `y_pred` (np.ndarray | pd.Series | list): Binary predictions (0/1)
+- `sensitive` (np.ndarray | pd.Series | list): Sensitive attribute values
 - `intersectional` (bool): If True, compute intersectional fairness
 - `attrs_df` (pd.DataFrame, optional): Required if `intersectional=True`
 - `columns` (List[str], optional): Column names for intersectional analysis
@@ -158,9 +207,9 @@ Compute the mean absolute error (MAE) parity difference for regression tasks.
 
 ```python
 def mae_parity_difference(
-    y_true: np.ndarray,
-    y_pred: np.ndarray,
-    sensitive: np.ndarray | pd.Series,
+    y_true: np.ndarray | pd.Series | list,
+    y_pred: np.ndarray | pd.Series | list,
+    sensitive: np.ndarray | pd.Series | list,
     *,
     intersectional: bool = False,
     attrs_df: Optional[pd.DataFrame] = None,
@@ -174,9 +223,9 @@ def mae_parity_difference(
 ```
 
 **Parameters:**
-- `y_true` (np.ndarray): Ground truth continuous values
-- `y_pred` (np.ndarray): Predicted continuous values
-- `sensitive` (np.ndarray | pd.Series): Sensitive attribute values
+- `y_true` (np.ndarray | pd.Series | list): Ground truth continuous values
+- `y_pred` (np.ndarray | pd.Series | list): Predicted continuous values
+- `sensitive` (np.ndarray | pd.Series | list): Sensitive attribute values
 - `intersectional` (bool): If True, compute intersectional fairness
 - `attrs_df` (pd.DataFrame, optional): Required if `intersectional=True`
 - `columns` (List[str], optional): Column names for intersectional analysis
@@ -222,6 +271,74 @@ result = MetricResult(
     effect_size=1.5,
     n_per_group={"M": 500, "F": 500}
 )
+```
+
+### `FairnessAnalyzerDataFrameProxy`
+
+Column-bound proxy returned by `FairnessAnalyzer.from_dataframe()`. Stores a DataFrame and column names so metric methods can be called without repeating column arguments.
+
+**Location:** `fairness_pipeline_dev_toolkit.metrics.FairnessAnalyzerDataFrameProxy`
+
+**Methods:** exposes the same three metric methods as `FairnessAnalyzer` — `demographic_parity_difference(**kwargs)`, `equalized_odds_difference(**kwargs)`, `mae_parity_difference(**kwargs)` — forwarding all keyword arguments to the underlying analyzer.
+
+**Example:**
+```python
+from fairpipe.metrics import FairnessAnalyzer
+import pandas as pd
+
+df = pd.read_csv("predictions.csv")
+proxy = FairnessAnalyzer.from_dataframe(
+    df,
+    y_pred_col="y_pred",
+    sensitive_col="gender",
+    y_true_col="y_true",
+    min_group_size=30,
+)
+
+dpd = proxy.demographic_parity_difference(with_ci=True)
+eod = proxy.equalized_odds_difference(with_ci=False)
+mae = proxy.mae_parity_difference()
+```
+
+---
+
+## I/O Utilities
+
+### `load_data()`
+
+Load a tabular data file into a DataFrame with automatic format detection.
+
+**Location:** `fairness_pipeline_dev_toolkit.io.load_data` (also `fairpipe.load_data`)
+
+```python
+def load_data(path: str | Path) -> pd.DataFrame
+```
+
+**Supported formats:** `.csv`, `.parquet`, `.pq` — detected automatically from the file extension.
+
+**Parameters:**
+- `path` (str | Path): Path to the data file
+
+**Returns:** `pd.DataFrame`
+
+**Raises:**
+- `FileNotFoundError`: `"File not found: {path}"`
+- `ValueError`: `"Unsupported file format '{ext}'. Supported: .csv, .parquet, .pq"`
+
+**Example:**
+```python
+from fairpipe.io import load_data
+
+df_csv     = load_data("data.csv")
+df_parquet = load_data("data.parquet")
+df_pq      = load_data("data.pq")
+```
+
+All CLI commands that accept `--csv` use `load_data()` internally, so `.parquet` and `.pq` paths work transparently:
+
+```bash
+fairpipe validate --csv data.parquet --y-true y_true --y-pred y_pred --sensitive gender
+fairpipe pipeline --config pipeline.config.yml --csv data.parquet --out-csv output.csv
 ```
 
 ---
