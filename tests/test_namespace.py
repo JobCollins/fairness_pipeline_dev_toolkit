@@ -1,6 +1,27 @@
 """Tests that the fairpipe shim namespace is correct and object identity is preserved."""
 
 
+def test_fairpipe_measurement_shim():
+    """`fairpipe.measurement` mirrors the toolkit facade; no optional monitoring deps."""
+    from fairpipe.measurement import (
+        FairnessAnalyzer,
+        assert_fairness,
+        to_markdown_report,
+    )
+    from fairpipe.metrics import FairnessAnalyzer as FairnessAnalyzer_metrics
+
+    assert FairnessAnalyzer is FairnessAnalyzer_metrics
+    assert callable(assert_fairness)
+    assert callable(to_markdown_report)
+
+
+def test_fairpipe_integration_exports_log_fairness_metrics():
+    from fairpipe.integration import execute_workflow, log_fairness_metrics
+
+    assert callable(log_fairness_metrics)
+    assert callable(execute_workflow)
+
+
 def test_top_level_imports():
     import fairpipe  # noqa: F401
     from fairpipe import FairnessAnalyzer, MetricResult  # noqa: F401
