@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.7.3] — 2026-05-12
+
+### Added
+
+- **`fairpipe.stats` shims**: `fairpipe.stats`, `fairpipe.stats.bootstrap`, `fairpipe.stats.bayesian`,
+  `fairpipe.stats.effect_size`, and `fairpipe.stats.multipletests` are now importable via the
+  `fairpipe.*` compatibility layer, matching the existing shim pattern for other modules.
+- **`fairpipe.api` shims**: `fairpipe.api`, `fairpipe.api.app`, `fairpipe.api.store`,
+  `fairpipe.api.models`, and `fairpipe.api.routes` are now importable via `fairpipe.*`.
+- **`fairpipe.integration.reporting` shim**: `from fairpipe.integration.reporting import
+  generate_training_fairness_report` (and other reporting helpers) now resolves correctly.
+- **`log_fairness_metrics` export**: Added to `fairness_pipeline_dev_toolkit.integration.__all__`
+  and the `fairpipe.integration` shim; previously existed in `mlflow_logger` but was not exported.
+
+### Fixed
+
+- **`assert_fairness` comparators**: `">="` and `">"` were listed in the docstring but not
+  implemented — any comparator other than `"<="` silently applied `<`. All four comparators
+  (`<=`, `<`, `>=`, `>`) are now correctly dispatched; invalid values raise `ValueError`.
+- **Lazy imports in `fairness_pipeline_dev_toolkit.training`**: All six exports (`ReductionsWrapper`,
+  `FairnessRegularizerLoss`, `LagrangianFairnessTrainer`, `GroupFairnessCalibrator`, `sweep_pareto`,
+  `plot_pareto`) are now resolved via `__getattr__`, so importing the module no longer fails when
+  PyTorch or Fairlearn are not installed.
+- **Lazy import of `FairnessReportingDashboard`** in `fairness_pipeline_dev_toolkit.monitoring`:
+  deferred via `__getattr__` so the monitoring module loads cleanly without `fairpipe[monitoring]`.
+- **`benjamini_hochberg` docstring**: Clarified that the first return value is adjusted p-values
+  in ascending-sorted order, not mapped back to the original input order.
+
+---
+
 ## [v0.7.2] — 2026-05-07
 
 ### Fixed
