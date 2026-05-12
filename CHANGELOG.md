@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.7.4] — 2026-05-12
+
+### Changed
+
+- **README**: Reduced to install, documentation links, minimal quick start, development, and
+  project links—detailed CLI, API, configuration, and module content lives in the
+  [hosted documentation](https://SvrusIO.github.io/fAIr) and `docs/`.
+
+### Fixed
+
+- **`__version__` sync**: `fairness_pipeline_dev_toolkit.__version__` and the namespace test now
+  match `pyproject.toml` (they had drifted behind earlier releases).
+
+### Documentation
+
+- Example version strings in `DOCS.md`, `docs/api.md`, and `docs/integration_guide.md` updated to
+  **0.7.4** where they showed stale values.
+
+---
+
 ## [v0.7.3] — 2026-05-12
 
 ### Added

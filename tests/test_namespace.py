@@ -85,7 +85,7 @@ def test_same_objects():
 def test_version_accessible():
     import fairpipe
 
-    assert fairpipe.__version__ == "0.7.2"
+    assert fairpipe.__version__ == "0.7.4"
 
 
 def test_legacy_imports_still_work():
