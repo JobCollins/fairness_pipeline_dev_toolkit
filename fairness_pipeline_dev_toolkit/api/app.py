@@ -11,14 +11,14 @@ from .store import ResultStore
 
 logger = logging.getLogger(__name__)
 
-_API_VERSION = "0.7.0"
-
 
 def create_app() -> FastAPI:
     """Factory that creates and configures the FastAPI application."""
+    from fairness_pipeline_dev_toolkit import __version__ as _pkg_version
+
     app = FastAPI(
         title="fairpipe API",
-        version=_API_VERSION,
+        version=_pkg_version,
         description=(
             "REST API for the fairpipe fairness toolkit. "
             "Compute fairness metrics, run bias pipelines, and execute full workflows over HTTP."

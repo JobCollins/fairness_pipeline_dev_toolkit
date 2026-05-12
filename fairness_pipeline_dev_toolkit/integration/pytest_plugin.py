@@ -26,7 +26,7 @@ def assert_fairness(
     Args:
         value: The computed fairness metric value e.g demographic parity difference.
         threshold: maximum allowed disparity e.g. 0.10 for 10%.
-        comparator: Comparison operator as a string. One of "<=", "<", ">=", ">".
+        comparator: Comparison operator as a string: "<=", "<", ">=", or ">".
         allow_nan: If True and value is Nan, the check passes silently. (useful when groups are too small)
         context: Optional context string to include in failure messages.
 
@@ -39,7 +39,17 @@ def assert_fairness(
         suffix = f" | {context}" if context else ""
         raise AssertionError(f"Fairness metric is NaN (insufficient data?){suffix}")
 
-    ok = (value <= threshold) if comparator == "<=" else (value < threshold)
+    if comparator == "<=":
+        ok = value <= threshold
+    elif comparator == "<":
+        ok = value < threshold
+    elif comparator == ">=":
+        ok = value >= threshold
+    elif comparator == ">":
+        ok = value > threshold
+    else:
+        raise ValueError(f"comparator must be one of '<=', '<', '>=', '>'; got {comparator!r}")
+
     if not ok:
         suffix = f" | {context}" if context else ""
         raise AssertionError(

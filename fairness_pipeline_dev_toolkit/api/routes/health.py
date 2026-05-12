@@ -4,17 +4,17 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter
 
+from fairness_pipeline_dev_toolkit import __version__ as _pkg_version
+
 from ..models.responses import HealthResponse
 
 router = APIRouter()
-
-_API_VERSION = "0.7.0"
 
 
 @router.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
     return HealthResponse(
         status="ok",
-        version=_API_VERSION,
+        version=_pkg_version,
         timestamp=datetime.now(timezone.utc).isoformat(),
     )

@@ -18,7 +18,12 @@ def bonferroni(pvals):
 def benjamini_hochberg(pvals) -> Tuple[np.ndarray, np.ndarray]:
     """
     Benjamini-Hochberg correction for controlling the false discovery rate.
-    Returns a tuple of (p_adjusted_sorted_order, order_idx).
+    Returns
+    -------
+    adjusted_sorted : np.ndarray
+        BH-adjusted p-values in **ascending-sorted p-value order** (not original input order).
+    sorted_idx : np.ndarray
+        Indices that sort the input p-values ascending; align with ``adjusted_sorted`` entry-wise.
     """
     pvals = np.asarray(pvals, dtype=float)
     n_tests = pvals.size

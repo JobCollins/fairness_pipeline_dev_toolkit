@@ -22,6 +22,22 @@ def test_fairpipe_integration_exports_log_fairness_metrics():
     assert callable(execute_workflow)
 
 
+def test_fairpipe_stats_shim_identity():
+    from fairness_pipeline_dev_toolkit.stats.bootstrap import bootstrap_ci as src_ci
+    from fairpipe.stats.bootstrap import bootstrap_ci as shim_ci
+
+    assert shim_ci is src_ci
+
+
+def test_fairpipe_api_shim_identity():
+    from fairness_pipeline_dev_toolkit.api import create_app as src_create
+    from fairpipe.api import ResultStore
+    from fairpipe.api import create_app as shim_create
+
+    assert shim_create is src_create
+    assert ResultStore is not None
+
+
 def test_top_level_imports():
     import fairpipe  # noqa: F401
     from fairpipe import FairnessAnalyzer, MetricResult  # noqa: F401
