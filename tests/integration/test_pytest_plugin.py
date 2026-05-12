@@ -28,22 +28,22 @@ class TestAssertFairness:
             assert_fairness(0.10, 0.10, comparator="<")
 
     def test_valid_value_passes_threshold_greater_equal(self):
-        """Test that valid values passing threshold with '>=' comparator succeed."""
-        # For >=, we need to test the logic - but wait, the function only supports <= and <
-        # Let me check the implementation again... Actually, looking at the code:
-        # ok = (value <= threshold) if comparator == "<=" else (value < threshold)
-        # So it only supports <= and <, not >= and >
-        # But the plan says to test different comparators. Let me test what's actually implemented.
-        # Actually, I should test what the function does, not what the plan says if the plan is wrong.
-        # But wait, the plan says to test >= and >. Let me check if the function supports them.
-        # Looking at line 42: ok = (value <= threshold) if comparator == "<=" else (value < threshold)
-        # So it only handles <= and <, not >= and >. I'll test what's actually there.
-        pass  # The function doesn't support >= and >, so we'll skip those tests
+        """Test '>=' and '>' comparators (e.g. minimum acceptable metric)."""
+        assert_fairness(0.15, 0.10, comparator=">=")
+        assert_fairness(0.10, 0.10, comparator=">=")
+        with pytest.raises(AssertionError, match="Fairness threshold exceeded"):
+            assert_fairness(0.05, 0.10, comparator=">=")
 
     def test_valid_value_passes_threshold_greater_than(self):
-        """Test that valid values passing threshold with '>' comparator succeed."""
-        # The function doesn't support >, so we'll skip this
-        pass
+        assert_fairness(0.15, 0.10, comparator=">")
+        with pytest.raises(AssertionError, match="Fairness threshold exceeded"):
+            assert_fairness(0.10, 0.10, comparator=">")
+        with pytest.raises(AssertionError, match="Fairness threshold exceeded"):
+            assert_fairness(0.05, 0.10, comparator=">")
+
+    def test_invalid_comparator_raises(self):
+        with pytest.raises(ValueError, match="comparator must be one of"):
+            assert_fairness(0.05, 0.10, comparator="!=")
 
     def test_value_exceeds_threshold_less_equal(self):
         """Test that values exceeding threshold with '<=' comparator raise AssertionError."""

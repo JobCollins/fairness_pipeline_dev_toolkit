@@ -1,6 +1,6 @@
 # Part Five · The fairpipe toolchain (as implemented)
 
-**fairpipe** is the PyPI package name for this toolkit. It is published by **Svrus LLC** under the **Apache-2.0** license and requires **Python ≥ 3.10**. The installable artifact exposes two import roots on the same installation: **`fairpipe.*`** (compatibility shims) and **`fairness_pipeline_dev_toolkit.*`** (full source layout). This part uses **`fairpipe.*`** where shims exist, and **`fairness_pipeline_dev_toolkit.*`** only where no `fairpipe` submodule exists (notably the optional REST API and internal stats helpers).
+**fairpipe** is the PyPI package name for this toolkit. It is published by **Svrus LLC** under the **Apache-2.0** license and requires **Python ≥ 3.10**. The installable artifact exposes two import roots on the same installation: **`fairpipe.*`** (compatibility shims) and **`fairness_pipeline_dev_toolkit.*`** (full source layout). Examples below use **`fairpipe.*`** for shimmed areas—including **`fairpipe.stats`** and **`fairpipe.api`**. The **`fairness_pipeline_dev_toolkit.*`** names remain valid for the same objects when you prefer the implementation package or match internal module paths (e.g. Uvicorn’s import string in `fairpipe serve --reload`).
 
 The sections below are **reference + runnable examples**. Adjust paths and column names to your data. For the exact release number, see `pyproject.toml` or `fairpipe.__version__`.
 
@@ -33,7 +33,7 @@ pip install 'fairpipe[api]'
 
 ### Shim modules under `fairpipe`
 
-`fairpipe.metrics`, **`fairpipe.measurement`** (facade mirroring `fairness_pipeline_dev_toolkit.measurement`), `fairpipe.pipeline`, `fairpipe.training`, `fairpipe.monitoring`, `fairpipe.integration`, `fairpipe.exceptions`.
+`fairpipe.metrics`, **`fairpipe.measurement`** (facade mirroring `fairness_pipeline_dev_toolkit.measurement`), `fairpipe.pipeline`, `fairpipe.training`, `fairpipe.monitoring`, `fairpipe.integration`, `fairpipe.exceptions`, **`fairpipe.stats`** (e.g. `fairpipe.stats.bootstrap`, `fairpipe.stats.multipletests`), **`fairpipe.api`** (e.g. `fairpipe.api.app`).
 
 The **root** package re-exports: `FairnessAnalyzer`, `MetricResult`, `to_markdown_report`, `log_fairness_metrics`, `assert_fairness`, plus **`load_data`** from I/O.
 
@@ -45,6 +45,7 @@ from fairpipe.metrics import FairnessAnalyzer, MetricResult
 from fairpipe.measurement import FairnessAnalyzer, assert_fairness, to_markdown_report  # facade + stats helpers when available
 from fairpipe.pipeline import load_config, build_pipeline, apply_pipeline, run_detectors
 from fairpipe.integration import execute_workflow, log_fairness_metrics
+# fairpipe.stats.* — §1; fairpipe.api — §8 (install fairpipe[api] for create_app)
 ```
 
 ### Data loading
@@ -143,7 +144,7 @@ eo = analyzer.equalized_odds_difference(
 ### Reporting and tests
 
 - **`fairpipe.integration.to_markdown_report(results)`** — builds a Markdown table from a mapping of metric names to `MetricResult`-like objects or dicts.
-- **`fairpipe.integration.assert_fairness(value, threshold, comparator="<=", allow_nan=False, context=None)`** — pytest-style helper; raises **`AssertionError`** on breach (not a dedicated fairness exception type).
+- **`fairpipe.integration.assert_fairness(value, threshold, comparator="<=", allow_nan=False, context=None)`** — pytest-style helper; raises **`AssertionError`** on breach (not a dedicated fairness exception type). **`comparator`** is one of **`"<="`**, **`"<"`**, **`">="`**, **`">"`**; any other string raises **`ValueError`**.
 
 ```python
 from fairpipe import FairnessAnalyzer, to_markdown_report, assert_fairness
@@ -167,19 +168,21 @@ assert_fairness(
 )
 ```
 
-### Lower-level statistics (same install, not under `fairpipe.*`)
+### Lower-level statistics (`fairpipe.stats`)
 
-Examples: **`fairness_pipeline_dev_toolkit.stats.bootstrap.bootstrap_ci`** (`method` **`"percentile"`** or **`"bca"`**), **`fairness_pipeline_dev_toolkit.stats.multipletests.benjamini_hochberg`**. These are ordinary helpers; they are **not** wired into a single `Metrics.compute`-style entry point.
+Examples: **`fairpipe.stats.bootstrap.bootstrap_ci`** (`method` **`"percentile"`** or **`"bca"`**), **`fairpipe.stats.multipletests.benjamini_hochberg`**. These are ordinary helpers; they are **not** wired into a single `Metrics.compute`-style entry point. (Equivalent: **`fairness_pipeline_dev_toolkit.stats.*`**.)
+
+**`benjamini_hochberg(pvals)`** returns **`(adjusted_sorted, sorted_idx)`**: adjusted p-values are in **ascending sorted p-value order**, not remapped to the original input order; **`sorted_idx`** is **`numpy.argsort(pvals)`** and aligns entry-wise with **`adjusted_sorted`**. To recover original input order: `adjusted_orig = np.empty_like(adjusted_sorted); adjusted_orig[sorted_idx] = adjusted_sorted`.
 
 ```python
-from fairness_pipeline_dev_toolkit.stats.bootstrap import bootstrap_ci
-from fairness_pipeline_dev_toolkit.stats.multipletests import benjamini_hochberg
+from fairpipe.stats.bootstrap import bootstrap_ci
+from fairpipe.stats.multipletests import benjamini_hochberg
 import numpy as np
 
 x = np.random.randn(80)
 low, high = bootstrap_ci(x, lambda v: float(np.mean(v)), B=500, level=0.95, method="bca")
 
-adj, order = benjamini_hochberg([0.01, 0.04, 0.10])
+adjusted_sorted, sorted_idx = benjamini_hochberg([0.01, 0.04, 0.10])
 ```
 
 ---
@@ -554,10 +557,9 @@ fairpipe train-lagrangian --csv nn_demo.csv --fairness demographic_parity --out-
 
 ## §8 · Optional REST API (`fairpipe[api]`)
 
-**Import:** `from fairness_pipeline_dev_toolkit.api import create_app, ResultStore`  
-(There is **no** `fairpipe.api` shim; the CLI imports **`create_app`** from **`fairness_pipeline_dev_toolkit.api.app`**.)
+**Import:** `from fairpipe.api import create_app, ResultStore` (same objects as `fairness_pipeline_dev_toolkit.api`). For app-only imports: `from fairpipe.api.app import create_app`.
 
-**`create_app()`** returns a FastAPI app with routers for **health**, **validate**, **pipeline**, and **workflow** (`fairness_pipeline_dev_toolkit/api/routes/`). **`fairpipe serve`** runs this app via Uvicorn; with **`--reload`**, the import string is **`fairness_pipeline_dev_toolkit.api.app:create_app`** with **`factory=True`**.
+**`create_app()`** returns a FastAPI app with routers for **health**, **validate**, **pipeline**, and **workflow** (implementation lives under `fairness_pipeline_dev_toolkit/api/routes/`). **`fairpipe serve`** runs this app via Uvicorn. With **`--reload`**, the CLI passes **`fairness_pipeline_dev_toolkit.api.app:create_app`** with **`factory=True`** (hardcoded). For your own Uvicorn invocations you can import **`create_app`** from **`fairpipe.api`** or **`fairpipe.api.app`**, but that is separate from what **`fairpipe serve --reload`** uses.
 
 ```bash
 pip install 'fairpipe[api]'
@@ -566,7 +568,7 @@ fairpipe serve --host 127.0.0.1 --port 8000
 ```
 
 ```python
-from fairness_pipeline_dev_toolkit.api import create_app
+from fairpipe.api import create_app
 
 app = create_app()
 ```
@@ -621,7 +623,7 @@ A minimal GitHub Actions job can:
 2. Run **`fairpipe validate`** on a CSV with the required columns, or **`fairpipe pipeline --config … --csv …`**, or **`fairpipe run-pipeline`** when a full workflow config exists.
 3. Use **`assert_fairness`** in pytest on metric values your code reads from **`FairnessAnalyzer`** or workflow results.
 
-The repository documents a separate composite action (**[SvrusIO/fairpipe-action](https://github.com/SvrusIO/fairpipe-action)**) for validation in CI; that is **external** to the Python package itself.
+**README.md** documents an optional composite action (**[SvrusIO/fairpipe-action](https://github.com/SvrusIO/fairpipe-action)**) for validation in CI; it is **external** to the Python package and is **not** referenced from this repo’s `.github/workflows/` (use the README snippet if you want that wiring).
 
 ---
 

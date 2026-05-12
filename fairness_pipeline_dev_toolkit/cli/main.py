@@ -589,6 +589,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     try:
         import uvicorn  # noqa: PLC0415
 
+        from fairness_pipeline_dev_toolkit import __version__ as _pkg_version
         from fairness_pipeline_dev_toolkit.api.app import create_app  # noqa: PLC0415
     except ImportError:
         print(
@@ -599,7 +600,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     host: str = args.host
     port: int = args.port
 
-    print(f"fairpipe API v0.7.0 running on http://{host}:{port}")
+    print(f"fairpipe API v{_pkg_version} running on http://{host}:{port}")
     print(f"  → Swagger UI: http://{host}:{port}/docs")
     print(f"  → ReDoc:      http://{host}:{port}/redoc")
 

@@ -20,6 +20,7 @@ pytest.importorskip("httpx", reason="requires fairpipe[api]")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from fairness_pipeline_dev_toolkit import __version__ as _pkg_version  # noqa: E402
 from fairness_pipeline_dev_toolkit.api.app import create_app  # noqa: E402
 
 
@@ -40,7 +41,7 @@ def test_health(client):
     assert r.status_code == 200
     body = r.json()
     assert body["status"] == "ok"
-    assert body["version"] == "0.7.0"
+    assert body["version"] == _pkg_version
     assert "timestamp" in body
 
 
