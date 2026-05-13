@@ -1,0 +1,13 @@
+
+sensitive: ["race"]
+pipeline:
+  - name: reweigh
+    transformer: "InstanceReweighting"
+training:
+  method: "reductions"
+  target_column: "y_true"
+  params:
+    constraint: "demographic_parity"
+    eps: 0.05
+fairness_metric: "equalized_odds_difference"
+validation_threshold: 0.05
