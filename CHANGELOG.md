@@ -9,13 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- `docs/VERSIONING.md` and `docs/conf.py` aligned with the **v0.8.0** release; expanded the **v0.8.0**
+  changelog entry to list CLI, orchestration, logging, and `PipelineResult` changes shipped in
+  that release.
+
 ## [v0.8.0] — 2026-05-14
+
+### Added
+
+- **Pipeline config `features`**: Optional explicit feature list in YAML / `PipelineConfig`; when
+  omitted, `execute_workflow` auto-selects numeric columns (excluding target and sensitive) with a
+  logged warning.
+- **`fairpipe validate`**: `--threshold` and `--metric` for pass/fail (exit `0` / `1`) and a
+  **Threshold verdict** section in the Markdown report; `--metric` is required when `--threshold`
+  is set. `--quiet` and non-TTY stdout suppress INFO logs for clean piping.
+- **`PipelineResult`**: Structured return from `apply_pipeline` (`data`, `metadata`, `sample_weight`,
+  `transformers_applied`).
 
 ### Changed
 
-- **`apply_pipeline` return type**: Returns a `PipelineResult` dataclass (`data`, `metadata`,
-  `sample_weight`, `transformers_applied`) instead of a plain tuple. Tuple unpacking still works
-  but emits `DeprecationWarning`; prefer attribute access.
+- **`apply_pipeline` return type**: Uses `PipelineResult` instead of a plain tuple. Tuple unpacking
+  still works but emits `DeprecationWarning`; prefer attribute access.
+- **Logging**: Console handler defaults to **stderr** so stdout stays suitable for reports and pipes
+  (`setup_logging(..., console_stream=...)`).
+
+### Fixed
+
+- **`execute_workflow`**: Mixed-type DataFrames no longer break baseline / training feature matrices;
+  mitigation **sample weights** from reweighting transformers are applied to training (including
+  Fairlearn reductions via an internal mixer); sensitive columns are included in the frame passed to
+  the pipeline when needed for `InstanceReweighting`.
 
 ### Migration
 
