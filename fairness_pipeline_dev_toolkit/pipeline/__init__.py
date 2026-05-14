@@ -3,7 +3,7 @@ Public API for pipeline utilities.
 
 Public exports:
 - PipelineConfig, load_config
-- build_pipeline, apply_pipeline, run_detectors
+- build_pipeline, apply_pipeline, run_detectors, PipelineResult
 - InstanceReweighting, DisparateImpactRemover, ReweighingTransformer, ProxyDropper
 
 Internal modules (do not import directly):
@@ -12,7 +12,7 @@ Internal modules (do not import directly):
 """
 
 from .config import PipelineConfig, load_config
-from .orchestration import apply_pipeline, build_pipeline, run_detectors
+from .orchestration import PipelineResult, apply_pipeline, build_pipeline, run_detectors
 from .transformers import (
     DisparateImpactRemover,
     InstanceReweighting,
@@ -25,6 +25,7 @@ __all__ = [
     "load_config",
     "build_pipeline",
     "apply_pipeline",
+    "PipelineResult",
     "run_detectors",
     "InstanceReweighting",
     "DisparateImpactRemover",

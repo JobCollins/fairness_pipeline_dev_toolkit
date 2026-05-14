@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import sys
 from dataclasses import dataclass
@@ -209,8 +210,57 @@ def _evaluate_metrics(
     return results
 
 
+_VALIDATE_METRIC_CHOICES = (
+    "demographic_parity_difference",
+    "equalized_odds_difference",
+    "mae_parity_difference",
+)
+
+
+def _extract_metric_scalar(metric_obj: object) -> float:
+    """Coerce a MetricResult-like object or dict to a float (same pattern as run_final_validation)."""
+    if metric_obj is None:
+        return 0.0
+    if hasattr(metric_obj, "value"):
+        return float(metric_obj.value)
+    if isinstance(metric_obj, dict):
+        return float(metric_obj.get("value", 0.0))
+    if isinstance(metric_obj, (int, float)):
+        return float(metric_obj)
+    return 0.0
+
+
+def _threshold_verdict_markdown(
+    *,
+    metric: str,
+    value: float,
+    threshold: float,
+    passed: bool,
+) -> str:
+    status = "PASS" if passed else "FAIL"
+    return (
+        "\n\n## Threshold verdict\n\n"
+        f"- **Metric**: `{metric}`\n"
+        f"- **Value**: {value:.6f}\n"
+        f"- **Threshold**: {threshold:.6f}\n"
+        "- **Rule**: pass if `abs(metric) <= threshold` (same convention as workflow validation).\n"
+        f"- **Result**: **{status}**\n"
+    )
+
+
+def _configure_validate_cli_logging(args: argparse.Namespace) -> None:
+    """Raise toolkit log level to ERROR when ``--quiet`` or when stdout is not a TTY (unless ``--verbose``)."""
+    toolkit = logging.getLogger("fairness_pipeline_dev_toolkit")
+    if getattr(args, "quiet", False):
+        toolkit.setLevel(logging.ERROR)
+        return
+    if not sys.stdout.isatty() and not getattr(args, "verbose", False):
+        toolkit.setLevel(logging.ERROR)
+
+
 def cmd_validate(args: argparse.Namespace) -> int:
     """Validate fairness metrics on a CSV file."""
+    _configure_validate_cli_logging(args)
     logger.info("Starting validation", extra={"csv": args.csv, "sensitive": args.sensitive})
 
     with PerformanceLogger(logger, "validate", csv=args.csv):
@@ -230,6 +280,32 @@ def cmd_validate(args: argparse.Namespace) -> int:
         )
 
         md = to_markdown_report(results, title="Fairness Validation Report (CLI)")
+        exit_code = 0
+
+        if args.threshold is not None:
+            if args.metric is None:
+                print(
+                    "error: --metric is required when --threshold is set",
+                    file=sys.stderr,
+                )
+                return 2
+            if args.metric not in results:
+                print(
+                    f"error: metric {args.metric!r} was not computed for these inputs "
+                    "(check --y-pred / --score columns vs metric choice).",
+                    file=sys.stderr,
+                )
+                return 2
+            value = _extract_metric_scalar(results[args.metric])
+            passed = abs(value) <= args.threshold
+            md += _threshold_verdict_markdown(
+                metric=args.metric,
+                value=value,
+                threshold=args.threshold,
+                passed=passed,
+            )
+            exit_code = 0 if passed else 1
+
         print(md)
 
         if args.out:
@@ -238,7 +314,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
 
         logger.info("Validation completed", extra={"output": args.out, "n_samples": len(df)})
 
-    return 0
+    return exit_code
 
 
 def cmd_sample_check(args: argparse.Namespace) -> int:
@@ -304,7 +380,7 @@ def cmd_pipeline_run(args: argparse.Namespace) -> int:
     pipe = build_pipeline(cfg)
 
     # 5) Apply pipeline
-    Xt, _ = apply_pipeline(pipe, df)
+    Xt = apply_pipeline(pipe, df).data
 
     # 6) Persist outputs
     if args.out_csv:
@@ -684,6 +760,36 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Bootstrap resamples (default 1000)",
     )
     p_val.add_argument("--with-effects", action="store_true", help="Compute effect sizes")
+    p_val.add_argument(
+        "--threshold",
+        type=float,
+        default=None,
+        help=(
+            "Optional: exit 1 when the selected metric is outside the acceptance band "
+            "(pass if abs(metric) <= threshold, same as workflow validation). "
+            "Omit this flag to preserve legacy behavior (always exit 0 on success). "
+            "Requires --metric when set."
+        ),
+    )
+    p_val.add_argument(
+        "--metric",
+        choices=list(_VALIDATE_METRIC_CHOICES),
+        default=None,
+        help="Fairness metric key to compare against --threshold (required when --threshold is set)",
+    )
+    p_val.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress informational toolkit logs on stderr (ERROR and above still shown)",
+    )
+    p_val.add_argument(
+        "--verbose",
+        action="store_true",
+        help=(
+            "When stdout is not a terminal (e.g. piping the Markdown report), keep INFO logs "
+            "on stderr; without this flag, toolkit log level is raised to ERROR for that case"
+        ),
+    )
 
     # NEW: add sample-check
     sample = sub.add_parser("sample-check")
