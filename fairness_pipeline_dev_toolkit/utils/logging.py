@@ -16,7 +16,7 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, TextIO
 
 # Default log format for structured logging
 DEFAULT_LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -64,6 +64,7 @@ def setup_logging(
     log_file: Optional[Path] = None,
     json_format: bool = True,
     include_console: bool = True,
+    console_stream: Optional[TextIO] = None,
 ) -> logging.Logger:
     """
     Set up structured logging for the application.
@@ -73,6 +74,7 @@ def setup_logging(
         log_file: Optional file path to write logs to
         json_format: Whether to use JSON format (True) or plain text (False)
         include_console: Whether to output logs to console
+        console_stream: Stream for the console handler (default ``sys.stderr``)
 
     Returns:
         Configured root logger
@@ -89,9 +91,10 @@ def setup_logging(
     else:
         formatter = logging.Formatter(DEFAULT_LOG_FORMAT)
 
-    # Console handler
+    # Console handler (stderr by default so stdout stays clean for piped CLI reports)
     if include_console:
-        console_handler = logging.StreamHandler(sys.stdout)
+        stream = sys.stderr if console_stream is None else console_stream
+        console_handler = logging.StreamHandler(stream)
         console_handler.setFormatter(formatter)
         root_logger.addHandler(console_handler)
 

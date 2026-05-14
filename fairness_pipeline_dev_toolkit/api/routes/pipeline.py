@@ -60,7 +60,7 @@ async def pipeline_run(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    Xt, _ = apply_pipeline(pipe, df)
+    Xt = apply_pipeline(pipe, df).data
     transformers_applied = [name for name, _ in pipe.steps]
 
     detector_dict = bias_report.to_dict()

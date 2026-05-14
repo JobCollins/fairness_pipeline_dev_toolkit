@@ -152,7 +152,8 @@ class TestPipelinePerformance:
 
         # Apply pipeline
         start = time.time()
-        transformed_df, metadata = apply_pipeline(pipeline, df)
+        pr = apply_pipeline(pipeline, df)
+        transformed_df = pr.data
         apply_time = time.time() - start
 
         total_time = build_time + apply_time

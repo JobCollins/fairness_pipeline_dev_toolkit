@@ -88,6 +88,45 @@ def test_load_config_empty_file(tmp_path):
         load_config(path=str(cfg_path))
 
 
+def test_load_config_features_field(tmp_path):
+    cfg_path = _write_yaml(
+        tmp_path,
+        {
+            "sensitive": ["attr"],
+            "features": ["x1", "x2"],
+            "pipeline": [],
+        },
+    )
+    cfg = load_config(path=str(cfg_path))
+    assert cfg.features == ["x1", "x2"]
+
+
+def test_load_config_features_empty_list_raises(tmp_path):
+    cfg_path = _write_yaml(
+        tmp_path,
+        {
+            "sensitive": ["attr"],
+            "features": [],
+            "pipeline": [],
+        },
+    )
+    with pytest.raises(ConfigValidationError, match="must not be empty"):
+        load_config(path=str(cfg_path))
+
+
+def test_load_config_features_invalid_entry_raises(tmp_path):
+    cfg_path = _write_yaml(
+        tmp_path,
+        {
+            "sensitive": ["attr"],
+            "features": [1, 2],
+            "pipeline": [],
+        },
+    )
+    with pytest.raises(ConfigValidationError, match="non-empty string"):
+        load_config(path=str(cfg_path))
+
+
 def test_load_config_invalid_transformer_name(tmp_path):
     """Test that invalid transformer name raises appropriate error."""
     cfg_path = _write_yaml(
