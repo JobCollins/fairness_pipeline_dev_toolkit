@@ -130,7 +130,8 @@ def profile_pipeline_operations():
 
     # Profile pipeline build and apply
     pipeline = build_pipeline(config)
-    transformed_df, metadata = apply_pipeline(pipeline, df)
+    pr = apply_pipeline(pipeline, df)
+    transformed_df = pr.data
 
     profiler.disable()
 

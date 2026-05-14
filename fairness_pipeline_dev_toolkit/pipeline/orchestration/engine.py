@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict
 
 import pandas as pd
 from sklearn.pipeline import Pipeline
@@ -16,6 +16,7 @@ from ..detectors import (
     StatisticalDisparityDetector,
 )
 from ..detectors.report import BiasReport
+from ..results import PipelineResult
 from ..transformers.disparate_impact import DisparateImpactRemover
 from ..transformers.instance_reweighting import InstanceReweighting
 from ..transformers.proxy_dropper import ProxyDropper
@@ -125,17 +126,24 @@ def build_pipeline(cfg: PipelineConfig) -> Pipeline:
     return Pipeline(steps=steps)
 
 
-def apply_pipeline(
-    pipe: Pipeline, X: pd.DataFrame
-) -> Tuple[pd.DataFrame, Optional[Dict[str, Any]]]:
+def apply_pipeline(pipe: Pipeline, X: pd.DataFrame) -> PipelineResult:
     """
-    Fit/transform convenience that also returns any auxiliary artifacts from steps:
-    - For InstanceReweighting: returns {'sample_weight': np.ndarray}
-    - Otherwise: {}
+    Fit/transform convenience that also returns auxiliary artifacts from steps.
+
+    Returns a :class:`~fairness_pipeline_dev_toolkit.pipeline.results.PipelineResult`.
+    For :class:`InstanceReweighting`, ``metadata`` and ``sample_weight`` carry weights.
     """
     Xt = pipe.fit_transform(X)
     artifacts: Dict[str, Any] = {}
-    for name, step in pipe.steps:
+    for _name, step in pipe.steps:
         if isinstance(step, InstanceReweighting):
             artifacts["sample_weight"] = step.sample_weight_
-    return Xt, (artifacts or None)
+    meta = artifacts or None
+    sw = artifacts.get("sample_weight") if artifacts else None
+    names = tuple(name for name, _ in pipe.steps)
+    return PipelineResult(
+        data=Xt,
+        metadata=meta,
+        sample_weight=sw,
+        transformers_applied=names,
+    )

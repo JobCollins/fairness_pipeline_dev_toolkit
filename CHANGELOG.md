@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.8.0] — 2026-05-14
+
+### Changed
+
+- **`apply_pipeline` return type**: Returns a `PipelineResult` dataclass (`data`, `metadata`,
+  `sample_weight`, `transformers_applied`) instead of a plain tuple. Tuple unpacking still works
+  but emits `DeprecationWarning`; prefer attribute access.
+
+### Migration
+
+Replace `Xt, meta = apply_pipeline(pipe, df)` with `result = apply_pipeline(pipe, df)` then
+`result.data`, `result.metadata`, and `result.sample_weight` as needed.
+
+---
+
 ## [v0.7.4] — 2026-05-12
 
 ### Changed

@@ -46,7 +46,9 @@ pipeline:
     assert pipe is not None, "Pipeline should be built successfully"
 
     # Apply pipeline
-    Xt, artifacts = apply_pipeline(pipe, df)
+    result = apply_pipeline(pipe, df)
+    Xt = result.data
+    artifacts = result.metadata
 
     # Enhanced assertions for transformed data
     assert Xt is not None, "Transformed data should not be None"
@@ -92,7 +94,9 @@ def test_pipeline_builder_returns_sample_weights_from_yaml():
     pipe = build_pipeline(cfg)
     assert pipe is not None, "Pipeline should be built successfully"
 
-    Xt, artifacts = apply_pipeline(pipe, df)
+    result = apply_pipeline(pipe, df)
+    Xt = result.data
+    artifacts = result.metadata
 
     # Enhanced assertions for transformed data
     assert isinstance(Xt, pd.DataFrame), "Transformed data should be a DataFrame"

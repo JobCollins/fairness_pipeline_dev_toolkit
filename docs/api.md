@@ -441,22 +441,26 @@ Apply a transformation pipeline to a DataFrame.
 
 ```python
 def apply_pipeline(
-    pipeline: List[Transformer],
-    df: pd.DataFrame
-) -> Tuple[pd.DataFrame, Dict[str, Any]]
+    pipeline: sklearn.pipeline.Pipeline,
+    df: pd.DataFrame,
+) -> PipelineResult
 ```
 
 **Parameters:**
-- `pipeline` (List[Transformer]): List of transformer objects
-- `df` (pd.DataFrame): Input DataFrame
+- `pipeline`: An sklearn `Pipeline` built with `build_pipeline(config)`.
+- `df` (pd.DataFrame): Input DataFrame (must include columns required by the steps).
 
-**Returns:** Tuple of (transformed DataFrame, metadata dictionary)
+**Returns:** `PipelineResult` with `data` (transformed DataFrame), `metadata` (step artifacts or
+`None`), `sample_weight` (optional array from instance reweighting), and `transformers_applied`
+(step names). Tuple unpacking `(df, meta)` is deprecated and warns; use attributes instead.
 
 **Example:**
 ```python
 from fairpipe.pipeline import apply_pipeline
 
-transformed_df, metadata = apply_pipeline(pipeline, df)
+result = apply_pipeline(pipeline, df)
+transformed_df = result.data
+metadata = result.metadata
 ```
 
 #### `run_detectors()`
@@ -1167,7 +1171,7 @@ Get the toolkit version:
 
 ```python
 from fairpipe import __version__
-print(__version__)  # "0.7.4"
+print(__version__)  # "0.8.0"
 ```
 
 ---
@@ -1237,7 +1241,7 @@ Returns server version and current UTC timestamp.
 ```json
 {
   "status": "ok",
-  "version": "0.7.4",
+  "version": "0.8.0",
   "timestamp": "2026-05-07T10:00:00.000000+00:00"
 }
 ```
