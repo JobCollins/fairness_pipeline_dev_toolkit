@@ -29,6 +29,7 @@ class TrainingConfig:
 @dataclass
 class PipelineConfig:
     sensitive: List[str]
+    features: Optional[List[str]] = None
     benchmarks: Optional[Dict[str, Dict[str, float]]] = None
     alpha: float = 0.05
     proxy_threshold: float = 0.30
@@ -164,6 +165,10 @@ def _validate_flat_config(raw: Dict[str, Any]) -> Dict[str, Any]:
             "Config field 'fairness_metric' must be a string when provided."
         )
 
+    features = cleaned.get("features")
+    if features is not None:
+        cleaned["features"] = _ensure_list_of_strings(features, "features")
+
     return cleaned
 
 
@@ -209,6 +214,7 @@ def _as_cfg(raw: Dict[str, Any]) -> PipelineConfig:
 
     return PipelineConfig(
         sensitive=list(raw.get("sensitive", [])),
+        features=raw.get("features"),
         benchmarks=raw.get("benchmarks"),
         alpha=float(raw.get("alpha", 0.05)),
         proxy_threshold=float(raw.get("proxy_threshold", 0.30)),

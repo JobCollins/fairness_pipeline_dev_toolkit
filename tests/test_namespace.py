@@ -60,6 +60,7 @@ def test_top_level_imports():
     from fairpipe.pipeline import (  # noqa: F401
         DisparateImpactRemover,
         InstanceReweighting,
+        PipelineResult,
         ProxyDropper,
         ReweighingTransformer,
         apply_pipeline,
@@ -85,7 +86,7 @@ def test_same_objects():
 def test_version_accessible():
     import fairpipe
 
-    assert fairpipe.__version__ == "0.7.4"
+    assert fairpipe.__version__ == "0.8.0"
 
 
 def test_legacy_imports_still_work():
@@ -112,6 +113,7 @@ def test_legacy_imports_still_work():
     from fairness_pipeline_dev_toolkit.pipeline import (  # noqa: F401
         DisparateImpactRemover,
         InstanceReweighting,
+        PipelineResult,
         ProxyDropper,
         ReweighingTransformer,
         apply_pipeline,

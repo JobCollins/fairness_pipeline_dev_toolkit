@@ -7,10 +7,13 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
+from sklearn.linear_model import LogisticRegression
 
 from fairness_pipeline_dev_toolkit.integration.orchestrator import (
     ValidationResult,
     WorkflowResult,
+    _MitigationSampleWeightMixer,
+    _resolve_feature_columns,
     run_baseline_measurement,
     run_final_validation,
 )
@@ -258,6 +261,184 @@ training:
     assert model is not None
     assert len(predictions) == len(y_test)
     assert set(predictions).issubset({0, 1})
+
+
+def test_resolve_feature_columns_missing_raises(sample_data):
+    """Explicit features list must exist in the dataframe."""
+    with pytest.raises(ValueError, match="not found"):
+        _resolve_feature_columns(
+            sample_data,
+            target_col="y",
+            sensitive=["sensitive"],
+            features=["f0", "nonexistent"],
+        )
+
+
+def test_resolve_feature_columns_auto_select_numeric(sample_data):
+    """Auto mode returns numeric columns excluding target and sensitive."""
+    cols = _resolve_feature_columns(
+        sample_data,
+        target_col="y",
+        sensitive=["sensitive"],
+        features=None,
+        log_auto_select_warning=False,
+    )
+    assert set(cols) == {"f0", "f1", "f2"}
+
+
+def test_mitigation_sample_weight_mixer_multiplies_weights():
+    """Fairlearn passes sample_weight into the base estimator; mixer multiplies by external weights."""
+    np.random.seed(0)
+    n = 40
+    X = np.random.randn(n, 2)
+    y = (X[:, 0] + np.random.randn(n) * 0.2 > 0).astype(int)
+    ext = np.ones(n)
+    ext[::2] = 2.0
+    inner = np.ones(n) * 3.0
+    mixed = _MitigationSampleWeightMixer(LogisticRegression(max_iter=500), ext)
+    mixed.fit(X, y, sample_weight=inner)
+    ref = LogisticRegression(max_iter=500).fit(X, y, sample_weight=ext * inner)
+    assert np.array_equal(mixed.predict(X), ref.predict(X))
+
+
+@pytest.mark.skipif(not TRAINING_AVAILABLE, reason="Training dependencies not available")
+def test_run_transform_explicit_features_excludes_non_numeric_string_column():
+    """String columns are ignored for modeling when explicit numeric `features` is set."""
+    np.random.seed(1)
+    n = 120
+    df = pd.DataFrame(
+        {
+            "f0": np.random.randn(n),
+            "f1": np.random.randn(n),
+            "notes": ["ok"] * n,
+            "sensitive": np.random.choice(["A", "B"], size=n),
+            "y": np.random.randint(0, 2, size=n),
+        }
+    )
+    config_text = """
+sensitive: ["sensitive"]
+features: ["f0", "f1"]
+pipeline: []
+training:
+  method: "reductions"
+  target_column: "y"
+  params:
+    constraint: "demographic_parity"
+    eps: 0.05
+    T: 5
+"""
+    config = load_config(text=config_text)
+    model, transformed_df, y_full, y_test, predictions = run_transform_and_train(
+        df, config, train_size=0.8, random_state=0
+    )
+    assert model is not None
+    assert "notes" not in transformed_df.columns
+    assert list(transformed_df.columns) == ["f0", "f1"]
+    assert len(predictions) == len(y_test)
+
+
+@pytest.mark.skipif(not TRAINING_AVAILABLE, reason="Training dependencies not available")
+def test_instance_reweighting_sample_weight_propagates_with_sensitive_in_pipeline_frame():
+    """Sensitive attributes in the pipeline frame yield non-trivial instance weights."""
+    from fairness_pipeline_dev_toolkit.pipeline.orchestration import (
+        apply_pipeline,
+        build_pipeline,
+    )
+
+    np.random.seed(2)
+    n = 300
+    df = pd.DataFrame(
+        {
+            "f0": np.random.randn(n),
+            "f1": np.random.randn(n),
+            "sensitive": ["A"] * 250 + ["B"] * 50,
+            "y": np.random.randint(0, 2, size=n),
+        }
+    )
+    config_text = """
+sensitive: ["sensitive"]
+features: ["f0", "f1"]
+benchmarks:
+  sensitive:
+    "A": 0.5
+    "B": 0.5
+pipeline:
+  - name: rw
+    transformer: "InstanceReweighting"
+    params: {}
+training:
+  method: "reductions"
+  target_column: "y"
+  params:
+    constraint: "demographic_parity"
+    eps: 0.05
+    T: 3
+"""
+    config = load_config(text=config_text)
+    pipe = build_pipeline(config)
+    rng = np.random.RandomState(42)
+    train_idx = rng.choice(df.index, size=220, replace=False)
+    X_train = df.loc[train_idx, ["f0", "f1"]].copy()
+    X_train["sensitive"] = df.loc[train_idx, "sensitive"].values
+    result = apply_pipeline(pipe, X_train)
+    assert result.metadata is not None
+    sw = np.asarray(result.metadata["sample_weight"], dtype=float)
+    assert sw.shape[0] == len(X_train)
+    assert np.ptp(sw) > 1e-6
+
+
+@pytest.mark.skipif(not TRAINING_AVAILABLE, reason="Training dependencies not available")
+def test_reductions_predictions_differ_with_instance_reweighting_weights():
+    """Mitigation weights must change training relative to uniform weights (regression guard)."""
+    np.random.seed(3)
+    n = 400
+    df = pd.DataFrame(
+        {
+            "f0": np.random.randn(n),
+            "f1": np.random.randn(n),
+            "sensitive": ["A"] * 320 + ["B"] * 80,
+            "y": ((np.random.randn(n) + (np.arange(n) % 80 == 0).astype(float) * 0.5) > 0).astype(
+                int
+            ),
+        }
+    )
+    base_cfg = """
+sensitive: ["sensitive"]
+features: ["f0", "f1"]
+benchmarks:
+  sensitive:
+    "A": 0.5
+    "B": 0.5
+pipeline:
+  - name: rw
+    transformer: "InstanceReweighting"
+    params: {}
+training:
+  method: "reductions"
+  target_column: "y"
+  params:
+    constraint: "demographic_parity"
+    eps: 0.05
+    T: 8
+fairness_metric: "demographic_parity_difference"
+"""
+    cfg_weighted = load_config(text=base_cfg)
+    _, _, _, y_test_w, pred_w = run_transform_and_train(
+        df, cfg_weighted, train_size=0.75, random_state=7
+    )
+
+    cfg_plain = load_config(
+        text=base_cfg.replace(
+            'pipeline:\n  - name: rw\n    transformer: "InstanceReweighting"\n    params: {}\n',
+            "pipeline: []\n",
+        )
+    )
+    _, _, _, y_test_u, pred_u = run_transform_and_train(
+        df, cfg_plain, train_size=0.75, random_state=7
+    )
+
+    assert np.array_equal(y_test_w, y_test_u)
+    assert not np.array_equal(pred_w, pred_u)
 
 
 def test_workflow_result_dataclass():

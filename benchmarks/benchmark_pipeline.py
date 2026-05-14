@@ -58,7 +58,8 @@ def benchmark_pipeline(df, config):
 
     # Apply pipeline
     start = time.time()
-    transformed_df, metadata = apply_pipeline(pipeline, df)
+    pr = apply_pipeline(pipeline, df)
+    transformed_df = pr.data
     transform_time = time.time() - start
 
     print(f"Pipeline transformation time: {transform_time:.3f} seconds")
