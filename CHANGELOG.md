@@ -9,24 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.9.0] — 2026-05-19
+
+### Added
+
+- **`execute_workflow` `random_state`**: Optional parameter (default `42`) to control the stratified
+  train/test split and downstream model RNGs for reproducible end-to-end runs.
+- **CLI**: `fairpipe run-pipeline --random-state` (default `42`).
+- **REST API**: `random_state` form field on `POST /workflow` (default `42`).
+
 ### Changed
 
-- **`execute_workflow`**: Added `random_state` parameter (default `42`). The workflow now uses one
-  stratified train/test split for baseline measurement, training, and final validation. Seeds are
-  propagated to `LogisticRegression`, default fairlearn base estimators, and PyTorch training paths.
-- **CLI / API**: `fairpipe run-pipeline --random-state` and REST `POST /workflow` form field
-  `random_state` (default `42`).
-
-### Documentation
-
-- `docs/VERSIONING.md` and `docs/conf.py` aligned with the **v0.8.0** release; expanded the **v0.8.0**
-  changelog entry to list CLI, orchestration, logging, and `PipelineResult` changes shipped in
-  that release.
+- **Integrated workflow split**: `execute_workflow` now builds **one** stratified train/test partition
+  (`WorkflowSplit`) shared by baseline measurement, transform-and-train, and final validation,
+  instead of three separate `train_test_split` calls. Default `random_state=42` preserves prior
+  behavior for existing callers.
+- **Training seeds**: Default `LogisticRegression` base estimators for the `reductions` method and
+  PyTorch training paths (`regularized`, `lagrangian`) receive `numpy` / `torch` seeds from
+  `random_state`.
 
 ### Fixed
 
 - **Release workflow**: Removed unsupported `make_latest` input from `softprops/action-gh-release@v1`
   so the “Create GitHub Release” step completes without errors.
+- **CLI tests**: `tests/cli/test_run_pipeline.py` mock `Args` objects include `random_state` for
+  `cmd_run_pipeline` compatibility.
+
+### Documentation
+
+- `docs/api.md` and `docs/playbook-part-five-fairpipe.md` document `random_state` and reproducibility.
+- `docs/conf.py` and `docs/VERSIONING.md` set to **0.9.0**.
 
 ## [v0.8.0] — 2026-05-14
 

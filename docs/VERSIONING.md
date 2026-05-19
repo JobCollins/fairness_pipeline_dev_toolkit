@@ -1,7 +1,7 @@
 # Versioning Strategy and Backward Compatibility Policy
 
 **Last Updated:** 2026-05-14  
-**Current Version:** 0.8.0
+**Current Version:** 0.9.0
 
 ---
 
