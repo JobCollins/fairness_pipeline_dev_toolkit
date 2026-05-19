@@ -6,12 +6,16 @@ PyPI package: **[fairpipe](https://pypi.org/project/fairpipe/)** · License: **A
 | | Fairlearn | AIF360 | **fairpipe** |
 |---|---|---|---|
 | Metrics library | ✅ | ✅ | ✅ |
-| End-to-end pipeline | ❌ | ❌ | ✅ |
+| Mitigation algorithms | ✅ | ✅ | ✅ |
+| DataFrame I/O | ✅ | ✅ | ✅ |
+| Parquet I/O | ❌ | ❌ | ✅ |
+| Orchestrated end-to-end pipeline | ⚠️ Partial | ⚠️ Partial | ✅ |
 | CI/CD integration | ❌ | ❌ | ✅ |
-| Production monitoring | ❌ | ❌ | ✅ |
 | GitHub Action | ❌ | ❌ | ✅ |
+| Production monitoring | ❌ | ❌ | ✅ |
 | REST API | ❌ | ❌ | ✅ |
-| DataFrame + Parquet I/O | ❌ | ❌ | ✅ |
+
+`Fairlearn` and `AIF360` provide individual pre/in/post-processing components; `fairpipe` provides a YAML-configured `baseline→transform→validate` workflow with CI/CD exit codes.
 
 [![PyPI version](https://img.shields.io/pypi/v/fairpipe.svg)](https://pypi.org/project/fairpipe/)
 [![Python versions](https://img.shields.io/pypi/pyversions/fairpipe.svg)](https://pypi.org/project/fairpipe/)
