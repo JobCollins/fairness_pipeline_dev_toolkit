@@ -68,6 +68,7 @@ validation_threshold: 0.20
             output_dir = output_dir_str
             min_group_size = 2
             train_size = 0.8
+            random_state = 42
             mlflow_experiment = None
             mlflow_run_name = None
             profile = None
@@ -98,6 +99,7 @@ validation_threshold: 0.20
                 output_dir = None
                 min_group_size = 30
                 train_size = 0.8
+                random_state = 42
                 mlflow_experiment = None
                 mlflow_run_name = None
                 profile = None
@@ -125,6 +127,7 @@ pipeline: []
             output_dir = None
             min_group_size = 30
             train_size = 0.8
+            random_state = 42
             mlflow_experiment = None
             mlflow_run_name = None
             profile = None
@@ -144,6 +147,7 @@ pipeline: []
             output_dir = None
             min_group_size = 30
             train_size = 0.8
+            random_state = 42
             mlflow_experiment = None
             mlflow_run_name = None
             profile = None
@@ -168,6 +172,7 @@ pipeline: []
             output_dir = output_dir_str
             min_group_size = 2
             train_size = 0.8
+            random_state = 42
             mlflow_experiment = "test_experiment"
             mlflow_run_name = "test_run"
             profile = None
@@ -203,6 +208,7 @@ pipeline: []
             output_dir = output_dir_str
             min_group_size = 2
             train_size = 0.8
+            random_state = 42
             mlflow_experiment = "test_experiment"
             mlflow_run_name = None
             profile = None
@@ -245,6 +251,7 @@ validation_threshold: 0.20
             output_dir = None
             min_group_size = 30
             train_size = 0.8
+            random_state = 42
             mlflow_experiment = None
             mlflow_run_name = None
             profile = None
@@ -267,6 +274,7 @@ validation_threshold: 0.20
             output_dir = output_dir_str
             min_group_size = 2
             train_size = 0.8
+            random_state = 42
             mlflow_experiment = None
             mlflow_run_name = None
             profile = None
@@ -292,6 +300,7 @@ validation_threshold: 0.20
             output_dir = output_dir_str
             min_group_size = 2
             train_size = 0.8
+            random_state = 42
             mlflow_experiment = None
             mlflow_run_name = None
             profile = None

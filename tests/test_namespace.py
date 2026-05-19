@@ -85,8 +85,10 @@ def test_same_objects():
 
 def test_version_accessible():
     import fairpipe
+    from fairness_pipeline_dev_toolkit import __version__ as src_version
 
-    assert fairpipe.__version__ == "0.8.0"
+    assert isinstance(fairpipe.__version__, str)
+    assert fairpipe.__version__ == src_version
 
 
 def test_legacy_imports_still_work():
