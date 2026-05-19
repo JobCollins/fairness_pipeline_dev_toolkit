@@ -583,7 +583,7 @@ def execute_workflow(
 - `output_dir` (str | Path): Directory to save artifacts (default: "artifacts")
 - `min_group_size` (int): Minimum group size for fairness analysis (default: 30)
 - `train_size` (float): Proportion of data for training (default: 0.8)
-- `random_state` (int): Random seed for train/test split (default: 42)
+- `random_state` (int): Random seed for a single stratified train/test split shared across baseline measurement, training, and final validation; also seeds `LogisticRegression` and PyTorch training where applicable (default: 42). Use the same `random_state` with the same data and config for reproducible runs.
 - `mlflow_experiment` (str, optional): MLflow experiment name (enables MLflow logging)
 - `mlflow_run_name` (str, optional): MLflow run name
 

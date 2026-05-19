@@ -58,6 +58,7 @@ async def workflow_run(
     config: str = Form(...),
     min_group_size: int = Form(30),
     train_size: float = Form(0.8),
+    random_state: int = Form(42),
     store: ResultStore = Depends(get_store),
 ):
     run_id = str(uuid.uuid4())
@@ -86,6 +87,7 @@ async def workflow_run(
         output_dir=None,
         min_group_size=min_group_size,
         train_size=train_size,
+        random_state=random_state,
     )
 
     vr = wf_result.validation_result

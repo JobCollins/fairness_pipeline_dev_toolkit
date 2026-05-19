@@ -58,3 +58,5 @@ examples/recruitment_demo/recruitment_model_best.pt
 Test subject/
 
 certificates.pem
+
+paths-to-remove.txt

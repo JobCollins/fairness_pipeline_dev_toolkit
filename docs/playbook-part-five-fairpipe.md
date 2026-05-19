@@ -426,7 +426,7 @@ for a in alerts:
 
 ### Exported from `fairpipe.integration`
 
-- **`execute_workflow(config, df, output_dir=None, min_group_size=30, train_size=0.8)`** → **`WorkflowResult`**  
+- **`execute_workflow(config, df, output_dir=None, min_group_size=30, train_size=0.8, random_state=42)`** → **`WorkflowResult`**  
   Runs the **three-step** flow: baseline measurement (when **`training`** + **`fairness_metric`** are set), transform + train, final validation against **`validation_threshold`**. Returns metrics dicts, **`ValidationResult`**, fitted **`model`**, **`transformed_df`**, **`predictions`**, and **`artifacts`**.
 - **`WorkflowResult`**, **`ValidationResult`**
 - **`log_workflow_results`** — MLflow-oriented logging helper when MLflow is active.
@@ -515,7 +515,7 @@ from fairpipe.exceptions import ConfigValidationError, FairnessToolkitError
 | `fairpipe train-regularized` | Demo sweep with `sweep_pareto` on CSV with columns `f*`, `y`, `s`; writes JSON (and optional PNG). |
 | `fairpipe train-lagrangian` | Train with `LagrangianFairnessTrainer`; `--fairness` `demographic_parity` or `equal_opportunity`; writes JSON. |
 | `fairpipe calibrate` | Group calibration: CSV cols `score`, `y`, `g`; `--method` `platt` or `isotonic`. |
-| `fairpipe run-pipeline` | Full `execute_workflow`; `--config` or **`FAIRPIPE_CONFIG_PATH`**; `--csv`; `--output-dir`; `--min-group-size`; `--train-size`; optional **`--mlflow-experiment`** / **`--mlflow-run-name`**. Exit code **1** if validation fails or an exception occurs. |
+| `fairpipe run-pipeline` | Full `execute_workflow`; `--config` or **`FAIRPIPE_CONFIG_PATH`**; `--csv`; `--output-dir`; `--min-group-size`; `--train-size`; **`--random-state`** (default `42`); optional **`--mlflow-experiment`** / **`--mlflow-run-name`**. Exit code **1** if validation fails or an exception occurs. |
 | `fairpipe serve` | Start HTTP API (requires **`fairpipe[api]`**); `--host`, `--port`, `--reload`, `--workers`. |
 
 ### Common environment variables

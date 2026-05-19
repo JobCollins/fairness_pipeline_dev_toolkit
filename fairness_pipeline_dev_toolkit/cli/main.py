@@ -564,6 +564,7 @@ def cmd_run_pipeline(args: argparse.Namespace) -> int:
             output_dir=args.output_dir,
             min_group_size=args.min_group_size,
             train_size=args.train_size,
+            random_state=args.random_state,
         )
 
         # Print results
@@ -878,6 +879,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     p_run.add_argument(
         "--train-size", type=float, default=0.8, help="Proportion of data for training"
+    )
+    p_run.add_argument(
+        "--random-state",
+        type=int,
+        default=42,
+        help="Random seed for stratified train/test split and model training",
     )
     p_run.add_argument(
         "--mlflow-experiment",

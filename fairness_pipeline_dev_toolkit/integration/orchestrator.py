@@ -149,12 +149,91 @@ class WorkflowResult:
     artifacts: Dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass
+class WorkflowSplit:
+    """Stratified train/test partition shared across workflow steps."""
+
+    X_train: pd.DataFrame
+    X_test: pd.DataFrame
+    y_train: np.ndarray
+    y_test: np.ndarray
+    s_train: np.ndarray
+    s_test: np.ndarray
+
+
+def _seed_workflow_rng(random_state: int) -> None:
+    """Seed numpy and PyTorch (if installed) for reproducible training."""
+    np.random.seed(random_state)
+    try:
+        import torch
+
+        torch.manual_seed(random_state)
+    except ImportError:
+        pass
+
+
+def _make_workflow_split(
+    df: pd.DataFrame,
+    config: PipelineConfig,
+    train_size: float,
+    random_state: int,
+    *,
+    log_feature_auto_select: bool = False,
+) -> WorkflowSplit:
+    """Create a single stratified train/test split for the integrated workflow."""
+    if config.training is None:
+        raise TrainingError(
+            "Configuration must include a 'training' section to build a workflow split.",
+            suggestion="Add a 'training' section with 'target_column' to your configuration.",
+        )
+
+    target_col = config.training.target_column
+    if target_col not in df.columns:
+        raise DataValidationError(
+            f"Target column '{target_col}' not found in dataframe.",
+            missing_columns=[target_col],
+            data_shape=df.shape,
+        )
+
+    y = df[target_col].to_numpy()
+    feature_cols = _resolve_feature_columns(
+        df,
+        target_col,
+        tuple(config.sensitive),
+        config.features,
+        log_auto_select_warning=log_feature_auto_select,
+    )
+    X = df[feature_cols]
+    if len(config.sensitive) == 1:
+        sensitive_features = df[config.sensitive[0]].to_numpy()
+    else:
+        sensitive_features = df[config.sensitive[0]].to_numpy()
+
+    X_train, X_test, y_train, y_test, s_train, s_test = train_test_split(
+        X,
+        y,
+        sensitive_features,
+        train_size=train_size,
+        random_state=random_state,
+        stratify=y,
+    )
+    return WorkflowSplit(
+        X_train=X_train,
+        X_test=X_test,
+        y_train=y_train,
+        y_test=y_test,
+        s_train=s_train,
+        s_test=s_test,
+    )
+
+
 def run_baseline_measurement(
     df: pd.DataFrame,
     config: PipelineConfig,
     min_group_size: int = 30,
     train_size: float = 0.8,
     random_state: int = 42,
+    split: Optional[WorkflowSplit] = None,
     *,
     log_feature_auto_select: bool = True,
 ) -> Dict[str, Any]:
@@ -170,7 +249,8 @@ def run_baseline_measurement(
         config: Pipeline configuration
         min_group_size: Minimum group size for fairness analysis
         train_size: Proportion of data for training (used for train/test split when computing baseline metrics)
-        random_state: Random seed for train/test split
+        random_state: Random seed for train/test split and baseline model
+        split: Optional precomputed split (shared with ``execute_workflow``)
 
     Returns:
         Dictionary with sensitive_attribute, data_shape, min_group_size, and optionally
@@ -194,28 +274,20 @@ def run_baseline_measurement(
             log_workflow_step(logger, "baseline_measurement", status="completed", n_samples=len(df))
             return results
 
-        y = df[target_col].to_numpy()
-        feature_cols = _resolve_feature_columns(
-            df,
-            target_col,
-            tuple(config.sensitive),
-            config.features,
-            log_auto_select_warning=log_feature_auto_select,
-        )
-        X = df[feature_cols]
-        if len(config.sensitive) == 1:
-            sensitive_features = df[config.sensitive[0]].to_numpy()
-        else:
-            sensitive_features = df[config.sensitive[0]].to_numpy()
+        if split is None:
+            split = _make_workflow_split(
+                df,
+                config,
+                train_size,
+                random_state,
+                log_feature_auto_select=log_feature_auto_select,
+            )
 
-        X_train, X_test, y_train, y_test, s_train, s_test = train_test_split(
-            X,
-            y,
-            sensitive_features,
-            train_size=train_size,
-            random_state=random_state,
-            stratify=y,
-        )
+        X_train = split.X_train
+        X_test = split.X_test
+        y_train = split.y_train
+        y_test = split.y_test
+        s_test = split.s_test
 
         baseline_model = LogisticRegression(max_iter=1000, random_state=random_state)
         baseline_model.fit(X_train.values, y_train)
@@ -264,6 +336,7 @@ def run_transform_and_train(
     config: PipelineConfig,
     train_size: float = 0.8,
     random_state: int = 42,
+    split: Optional[WorkflowSplit] = None,
     *,
     log_feature_auto_select: bool = True,
 ) -> Tuple[Any, pd.DataFrame, np.ndarray, np.ndarray, np.ndarray]:
@@ -276,11 +349,14 @@ def run_transform_and_train(
         df: Input dataframe
         config: Pipeline configuration with training section
         train_size: Proportion of data for training
-        random_state: Random seed for train/test split
+        random_state: Random seed for train/test split and model training
+        split: Optional precomputed split (shared with ``execute_workflow``)
 
     Returns:
         Tuple of (trained_model, transformed_df, y_train, y_test, predictions)
     """
+    _seed_workflow_rng(random_state)
+
     if config.training is None:
         raise TrainingError(
             "Configuration must include a 'training' section for Step 2 (Transform and Train).",
@@ -298,27 +374,20 @@ def run_transform_and_train(
             suggestion=f"Ensure the dataframe contains a column named '{target_col}' or update the 'target_column' in your configuration.",
         )
 
-    # Extract target and sensitive features
-    y = df[target_col].to_numpy()
-    if len(config.sensitive) == 1:
-        sensitive_features = df[config.sensitive[0]].to_numpy()
-    else:
-        # For multiple sensitive attributes, use first one for training
-        # (could be extended to support intersectional training)
-        sensitive_features = df[config.sensitive[0]].to_numpy()
+    if split is None:
+        split = _make_workflow_split(
+            df,
+            config,
+            train_size,
+            random_state,
+            log_feature_auto_select=log_feature_auto_select,
+        )
 
-    # Split data: model features exclude target and sensitive unless listed in config.features
-    feature_cols = _resolve_feature_columns(
-        df,
-        target_col,
-        tuple(config.sensitive),
-        config.features,
-        log_auto_select_warning=log_feature_auto_select,
-    )
-    X = df[feature_cols]
-    X_train, X_test, y_train, y_test, s_train, s_test = train_test_split(
-        X, y, sensitive_features, train_size=train_size, random_state=random_state, stratify=y
-    )
+    X_train = split.X_train
+    X_test = split.X_test
+    y_train = split.y_train
+    y_test = split.y_test
+    s_train = split.s_train
 
     train_sample_weight: Optional[np.ndarray] = None
 
@@ -383,7 +452,9 @@ def run_transform_and_train(
         constraint_name = params.get("constraint", "demographic_parity")
         eps = params.get("eps", 0.01)
         T = params.get("T", 50)
-        base_estimator = params.get("base_estimator", LogisticRegression(max_iter=1000))
+        base_estimator = params.get(
+            "base_estimator", LogisticRegression(max_iter=1000, random_state=random_state)
+        )
         if train_sample_weight is not None:
             base_estimator = _MitigationSampleWeightMixer(base_estimator, train_sample_weight)
 
@@ -661,6 +732,7 @@ def execute_workflow(
     output_dir: Optional[str] = None,
     min_group_size: int = 30,
     train_size: float = 0.8,
+    random_state: int = 42,
 ) -> WorkflowResult:
     """
     Main orchestrator executing the complete three-step workflow.
@@ -671,6 +743,7 @@ def execute_workflow(
         output_dir: Optional directory to save artifacts
         min_group_size: Minimum group size for fairness analysis
         train_size: Proportion of data for training
+        random_state: Random seed for the stratified train/test split and model training
 
     Returns:
         WorkflowResult with all metrics, model, and validation result
@@ -680,7 +753,13 @@ def execute_workflow(
     workflow_id = str(uuid.uuid4())[:8]
 
     logger.info(
-        "Starting workflow execution", extra={"workflow_id": workflow_id, "n_samples": len(df)}
+        "Starting workflow execution",
+        extra={"workflow_id": workflow_id, "n_samples": len(df), "random_state": random_state},
+    )
+
+    _seed_workflow_rng(random_state)
+    split = _make_workflow_split(
+        df, config, train_size, random_state, log_feature_auto_select=False
     )
 
     analyzer = FairnessAnalyzer(min_group_size=min_group_size, backend="native")
@@ -693,7 +772,8 @@ def execute_workflow(
         config,
         min_group_size,
         train_size=train_size,
-        random_state=42,
+        random_state=random_state,
+        split=split,
         log_feature_auto_select=True,
     )
     baseline_metrics = baseline_result.get("baseline_metrics", {})
@@ -710,7 +790,12 @@ def execute_workflow(
         logger, "transform_and_train", workflow_id=workflow_id, n_samples=len(df)
     ):
         model, transformed_df, y_full, y_test, predictions = run_transform_and_train(
-            df, config, train_size=train_size, log_feature_auto_select=False
+            df,
+            config,
+            train_size=train_size,
+            random_state=random_state,
+            split=split,
+            log_feature_auto_select=False,
         )
     log_workflow_step(logger, "transform_and_train", workflow_id=workflow_id, status="completed")
 
@@ -724,37 +809,8 @@ def execute_workflow(
     log_workflow_step(logger, "final_validation", workflow_id=workflow_id, status="started")
     logger.info("Step 3: Computing final metrics and validation...")
 
-    # Extract sensitive attributes for final metrics from original dataframe
-    # We need to reconstruct the test set indices to get the correct sensitive attributes
-    from sklearn.model_selection import train_test_split
-
-    target_col = config.training.target_column
-    y = df[target_col].to_numpy()
-    feature_cols = _resolve_feature_columns(
-        df,
-        target_col,
-        tuple(config.sensitive),
-        config.features,
-        log_auto_select_warning=False,
-    )
-    X = df[feature_cols]
-
-    # Recreate the same split to get test indices
-    _, X_test_split, _, _, _, s_test = train_test_split(
-        X,
-        y,
-        (
-            df[config.sensitive[0]].to_numpy()
-            if len(config.sensitive) == 1
-            else df[config.sensitive[0]].to_numpy()
-        ),
-        train_size=train_size,
-        random_state=42,
-        stratify=y,
-    )
-
-    # Get sensitive attributes for test set from original dataframe
-    test_indices = X_test_split.index
+    # Sensitive attributes for final metrics (same test indices as split)
+    test_indices = split.X_test.index
     if len(config.sensitive) == 1:
         sensitive_test = df.loc[test_indices, config.sensitive[0]].to_numpy()
         attrs_df_test = None

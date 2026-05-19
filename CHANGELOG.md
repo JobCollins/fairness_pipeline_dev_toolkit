@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`execute_workflow`**: Added `random_state` parameter (default `42`). The workflow now uses one
+  stratified train/test split for baseline measurement, training, and final validation. Seeds are
+  propagated to `LogisticRegression`, default fairlearn base estimators, and PyTorch training paths.
+- **CLI / API**: `fairpipe run-pipeline --random-state` and REST `POST /workflow` form field
+  `random_state` (default `42`).
+
 ### Documentation
 
 - `docs/VERSIONING.md` and `docs/conf.py` aligned with the **v0.8.0** release; expanded the **v0.8.0**

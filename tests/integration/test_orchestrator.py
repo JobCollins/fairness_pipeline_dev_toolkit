@@ -4,6 +4,8 @@ Tests for the integrated workflow orchestrator.
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -218,6 +220,74 @@ def test_execute_workflow_no_output_dir(sample_data, sample_config):
 
     assert isinstance(result, WorkflowResult)
     assert result.model is not None
+
+
+@pytest.mark.skipif(not TRAINING_AVAILABLE, reason="Training dependencies not available")
+def test_execute_workflow_reproducible_same_seed(sample_data, sample_config):
+    """Same random_state yields identical predictions and validation metrics."""
+    kwargs = dict(
+        config=sample_config,
+        df=sample_data,
+        min_group_size=20,
+        train_size=0.8,
+        random_state=0,
+    )
+    result_a = execute_workflow(**kwargs)
+    result_b = execute_workflow(**kwargs)
+
+    assert np.array_equal(result_a.predictions, result_b.predictions)
+    assert result_a.y_test is not None and result_b.y_test is not None
+    assert np.array_equal(result_a.y_test, result_b.y_test)
+    np.testing.assert_allclose(
+        result_a.validation_result.final_metric_value,
+        result_b.validation_result.final_metric_value,
+        equal_nan=True,
+    )
+    np.testing.assert_allclose(
+        result_a.validation_result.baseline_metric_value,
+        result_b.validation_result.baseline_metric_value,
+        equal_nan=True,
+    )
+
+
+@pytest.mark.skipif(not TRAINING_AVAILABLE, reason="Training dependencies not available")
+def test_execute_workflow_different_seed_differs(sample_data, sample_config):
+    """Different random_state values should produce different test partitions."""
+    common = dict(
+        config=sample_config,
+        df=sample_data,
+        min_group_size=20,
+        train_size=0.8,
+    )
+    result_0 = execute_workflow(**common, random_state=0)
+    result_1 = execute_workflow(**common, random_state=1)
+
+    assert not np.array_equal(result_0.predictions, result_1.predictions)
+
+
+@pytest.mark.skipif(not TRAINING_AVAILABLE, reason="Training dependencies not available")
+def test_workflow_single_train_test_split(sample_data, sample_config):
+    """execute_workflow should call train_test_split exactly once."""
+    import fairness_pipeline_dev_toolkit.integration.orchestrator as orch
+
+    original_split = orch.train_test_split
+    call_count = 0
+
+    def counting_split(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        return original_split(*args, **kwargs)
+
+    with patch.object(orch, "train_test_split", side_effect=counting_split):
+        execute_workflow(
+            config=sample_config,
+            df=sample_data,
+            min_group_size=20,
+            train_size=0.8,
+            random_state=42,
+        )
+
+    assert call_count == 1
 
 
 @pytest.mark.skipif(not TRAINING_AVAILABLE, reason="Training dependencies not available")

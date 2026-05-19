@@ -1,5 +1,6 @@
 
 sensitive: ["race"]
+features: ["age", "priors_count", "juv_fel_count", "juv_misd_count", "juv_other_count"]
 pipeline:
   - name: reweigh
     transformer: "InstanceReweighting"

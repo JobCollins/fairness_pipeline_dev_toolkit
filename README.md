@@ -3,6 +3,16 @@
 **Fairness measurement, mitigation, monitoring, and pipeline tooling** for ML workflows.  
 PyPI package: **[fairpipe](https://pypi.org/project/fairpipe/)** · License: **Apache-2.0** · Python **3.10+**
 
+| | Fairlearn | AIF360 | **fairpipe** |
+|---|---|---|---|
+| Metrics library | ✅ | ✅ | ✅ |
+| End-to-end pipeline | ❌ | ❌ | ✅ |
+| CI/CD integration | ❌ | ❌ | ✅ |
+| Production monitoring | ❌ | ❌ | ✅ |
+| GitHub Action | ❌ | ❌ | ✅ |
+| REST API | ❌ | ❌ | ✅ |
+| DataFrame + Parquet I/O | ❌ | ❌ | ✅ |
+
 [![PyPI version](https://img.shields.io/pypi/v/fairpipe.svg)](https://pypi.org/project/fairpipe/)
 [![Python versions](https://img.shields.io/pypi/pyversions/fairpipe.svg)](https://pypi.org/project/fairpipe/)
 [![Coverage](https://img.shields.io/badge/coverage-86%25-green)](https://github.com/SvrusIO/fAIr)
@@ -75,6 +85,37 @@ CLI commands, YAML configuration, workflow orchestration, training, monitoring, 
 
 ---
 
+## CI/CD Integration
+
+Add fairness validation to every pull request with the companion GitHub Action:
+
+```yaml
+# .github/workflows/fairness-check.yml
+name: Fairness Check
+on: [pull_request]
+
+jobs:
+  fairness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: SvrusIO/fairpipe-action@v1
+        with:
+          csv: data/predictions.csv
+          y-true: y_true
+          y-pred: y_pred
+          sensitive: gender
+          threshold: "0.05"
+          metric: "equalized_odds_difference"
+          fail-on-violation: "true"
+```
+
+Point `csv` at your predictions file. If equalized odds difference exceeds `0.05`, the PR is blocked. A full fairness report is written to the Actions job summary — metric values, confidence intervals, group breakdowns — permanently attached to the commit.
+
+→ **[SvrusIO/fairpipe-action](https://github.com/SvrusIO/fairpipe-action)**
+
+---
+
 ## Development
 
 ```bash
@@ -88,9 +129,15 @@ See **[CONTRIBUTING.md](CONTRIBUTING.md)** and **[SECURITY.md](SECURITY.md)**.
 
 ---
 
-## Optional: GitHub Action for CI
+## Case Studies
 
-Example composite action (metrics + optional threshold gate): **[SvrusIO/fairpipe-action](https://github.com/SvrusIO/fairpipe-action)** — usage snippets also appear in the integration / CI sections of the **hosted documentation**.
+**[COMPAS Recidivism Bias Analysis](case_studies/compas_racial_bias.ipynb)** —
+Reproduces ProPublica's 2016 Machine Bias finding. Measures an Equalized Odds
+Difference of **0.2116** on the COMPAS dataset and demonstrates a **53.9% reduction**
+via Instance Reweighting.
+
+[![Launch in Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/SvrusIO/fAIr/main?filepath=case_studies/compas_racial_bias.ipynb)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SvrusIO/fAIr/blob/main/case_studies/compas_racial_bias.ipynb)
 
 ---
 
