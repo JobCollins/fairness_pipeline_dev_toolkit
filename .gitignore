@@ -24,3 +24,37 @@ docs/DEPLOYMENT_ASSESSMENT.md
 RELEASE.md
 
 .hypothesis/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.cursor/
+
+# Python tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Test / coverage outputs (partially present today)
+coverage.xml
+htmlcov/
+
+# Local run outputs
+artifacts/
+artifacts_demo_report.*
+fairness_report.md
+recruitment_model_best.pt
+*.pt
+
+# Regeneratable dev samples (keep generator scripts)
+dev_sample.csv
+dev_sample_train.csv
+
+# Demo-generated data (examples/)
+examples/recruitment_demo/synthetic_recruitment_data.csv
+examples/recruitment_demo/recruitment_model_best.pt
+
+Test subject/
+
+certificates.pem
