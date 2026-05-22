@@ -63,5 +63,4 @@ paths-to-remove.txt
 
 # ACS case study (local WIP; compas notebook remains tracked)
 case_studies/acs_config.yml
-case_studies/acs_employment.ipynb
 case_studies/data/
