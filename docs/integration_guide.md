@@ -54,7 +54,7 @@ pip install fairpipe[api]
 
 ```python
 import fairpipe
-print(fairpipe.__version__)  # Should match installed fairpipe (e.g. "0.8.0")
+print(fairpipe.__version__)  # Should match installed fairpipe (e.g. "0.9.1")
 
 # Test CLI
 import subprocess
@@ -655,6 +655,41 @@ dashboard.generate_report(output_path="artifacts/fairness_dashboard.html")
 
 ---
 
+### Integrated workflow: imbalanced data and decision thresholds
+
+`execute_workflow()` accepts optional **runtime-only** training parameters (not in YAML, CLI, or REST):
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| `class_weight` | `"balanced"` | Passed to baseline `LogisticRegression` and the default reductions base estimator. Reduces all-majority predictions on skewed labels. |
+| `decision_threshold` | `None` | If set (e.g. `0.7`), binary labels use `predict_proba[:, 1] >= threshold` in **both** baseline and post-mitigation steps. If `None`, uses `predict()` (0.5). |
+
+**Feature scaling:** When `training` and `fairness_metric` are configured, baseline measurement fits a `StandardScaler` on the training split. Transform-and-train applies that same scaler with `transform` only (never refit on mitigated data) so before/after fairness metrics are comparable.
+
+```python
+from fairpipe.integration import execute_workflow
+from fairpipe.pipeline import load_config
+import pandas as pd
+
+config = load_config("workflow.yml")
+df = pd.read_csv("hiring.csv")
+
+result = execute_workflow(
+    config=config,
+    df=df,
+    class_weight="balanced",
+    decision_threshold=0.7,
+    random_state=42,
+)
+
+print(result.validation_result.message)
+print(result.predictions.mean())  # positive rate under selective threshold
+```
+
+Use `fairpipe run-pipeline` for config-driven runs; pass `class_weight` / `decision_threshold` only when calling `execute_workflow` from Python.
+
+---
+
 ### MLflow Integration
 
 Use this pattern to log fairness metrics alongside model metrics in MLflow.
@@ -1023,7 +1058,7 @@ fairpipe serve --host 0.0.0.0 --port 8000 --workers 4
 
 On startup:
 ```
-fairpipe API v0.8.0 running on http://127.0.0.1:8000
+fairpipe API v0.9.1 running on http://127.0.0.1:8000
   → Swagger UI: http://127.0.0.1:8000/docs
   → ReDoc:      http://127.0.0.1:8000/redoc
 ```

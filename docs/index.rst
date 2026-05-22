@@ -16,6 +16,7 @@ This toolkit provides a unified, statistically-rigorous framework for **detectin
    Performance <PERFORMANCE>
    Architecture <ADR-001-architecture>
    Versioning <VERSIONING>
+   Release Checklist <RELEASE>
    Deployment Assessment <DEPLOYMENT_ASSESSMENT>
    Contributing <../CONTRIBUTING>
    Security <../SECURITY>

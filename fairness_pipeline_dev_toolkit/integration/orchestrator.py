@@ -18,6 +18,7 @@ import pandas as pd
 from sklearn.base import BaseEstimator, ClassifierMixin, clone
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 from fairness_pipeline_dev_toolkit.exceptions import (
     DataValidationError,
@@ -234,6 +235,8 @@ def run_baseline_measurement(
     train_size: float = 0.8,
     random_state: int = 42,
     split: Optional[WorkflowSplit] = None,
+    class_weight: str | dict | None = "balanced",
+    decision_threshold: float | None = None,
     *,
     log_feature_auto_select: bool = True,
 ) -> Dict[str, Any]:
@@ -251,10 +254,18 @@ def run_baseline_measurement(
         train_size: Proportion of data for training (used for train/test split when computing baseline metrics)
         random_state: Random seed for train/test split and baseline model
         split: Optional precomputed split (shared with ``execute_workflow``)
+        class_weight: Passed to LogisticRegression. Use "balanced" for imbalanced
+            datasets to prevent the model from predicting the majority class for all
+            samples. Default: "balanced".
+        decision_threshold: Probability threshold for converting predicted scores to
+            binary predictions. If None, uses model.predict() which defaults to 0.5.
+            Set to a value between 0 and 1 to simulate selective classifiers such as
+            hiring screeners. Default: None (0.5 threshold).
 
     Returns:
         Dictionary with sensitive_attribute, data_shape, min_group_size, and optionally
-        baseline_metrics (metric name -> MetricResult when training/fairness_metric are set).
+        baseline_metrics (metric name -> MetricResult when training/fairness_metric are set),
+        scaler (fitted StandardScaler), and decision_threshold.
     """
     log_workflow_step(logger, "baseline_measurement", status="started", n_samples=len(df))
 
@@ -289,9 +300,22 @@ def run_baseline_measurement(
         y_test = split.y_test
         s_test = split.s_test
 
-        baseline_model = LogisticRegression(max_iter=1000, random_state=random_state)
-        baseline_model.fit(X_train.values, y_train)
-        baseline_predictions = baseline_model.predict(X_test.values)
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train.values)
+        X_test_scaled = scaler.transform(X_test.values)
+
+        baseline_model = LogisticRegression(
+            max_iter=1000, random_state=random_state, class_weight=class_weight
+        )
+        baseline_model.fit(X_train_scaled, y_train)
+        if decision_threshold is not None:
+            y_prob = baseline_model.predict_proba(X_test_scaled)[:, 1]
+            baseline_predictions = (y_prob >= decision_threshold).astype(int)
+        else:
+            baseline_predictions = baseline_model.predict(X_test_scaled)
+
+        results["scaler"] = scaler
+        results["decision_threshold"] = decision_threshold
 
         analyzer = FairnessAnalyzer(min_group_size=min_group_size, backend="native")
         metric_name = config.fairness_metric
@@ -337,6 +361,9 @@ def run_transform_and_train(
     train_size: float = 0.8,
     random_state: int = 42,
     split: Optional[WorkflowSplit] = None,
+    class_weight: str | dict | None = "balanced",
+    decision_threshold: float | None = None,
+    scaler: Optional[StandardScaler] = None,
     *,
     log_feature_auto_select: bool = True,
 ) -> Tuple[Any, pd.DataFrame, np.ndarray, np.ndarray, np.ndarray]:
@@ -351,6 +378,12 @@ def run_transform_and_train(
         train_size: Proportion of data for training
         random_state: Random seed for train/test split and model training
         split: Optional precomputed split (shared with ``execute_workflow``)
+        class_weight: Passed to LogisticRegression base estimator for reductions.
+            Default: "balanced".
+        decision_threshold: Probability threshold for binary predictions. If None,
+            uses model.predict() (0.5). Default: None.
+        scaler: Optional baseline-fitted StandardScaler; when provided, transformed
+            features are scaled with this scaler (not refit).
 
     Returns:
         Tuple of (trained_model, transformed_df, y_train, y_test, predictions)
@@ -426,6 +459,16 @@ def run_transform_and_train(
             f"sample_weight length {train_sample_weight.shape[0]} does not match "
             f"transformed training rows {len(X_train_transformed)}."
         )
+
+    if scaler is not None:
+        X_train_arr = scaler.transform(X_train_transformed.values)
+        X_test_arr = scaler.transform(X_test_transformed.values)
+    else:
+        X_train_arr = X_train_transformed.values
+        X_test_arr = X_test_transformed.values
+
+    prob_threshold = decision_threshold if decision_threshold is not None else 0.5
+
     # Train model based on method
     method = training_cfg.method
     params = training_cfg.params or {}
@@ -453,7 +496,8 @@ def run_transform_and_train(
         eps = params.get("eps", 0.01)
         T = params.get("T", 50)
         base_estimator = params.get(
-            "base_estimator", LogisticRegression(max_iter=1000, random_state=random_state)
+            "base_estimator",
+            LogisticRegression(max_iter=1000, random_state=random_state, class_weight=class_weight),
         )
         if train_sample_weight is not None:
             base_estimator = _MitigationSampleWeightMixer(base_estimator, train_sample_weight)
@@ -473,7 +517,7 @@ def run_transform_and_train(
         model = ReductionsWrapper(
             base_estimator=base_estimator, constraint=constraint, eps=eps, T=T
         )
-        model.fit(X_train_transformed.values, y_train, sensitive_features=s_train)
+        model.fit(X_train_arr, y_train, sensitive_features=s_train)
 
     elif method == "regularized":
         if train_sample_weight is not None:
@@ -517,9 +561,7 @@ def run_transform_and_train(
         else:
             s_train_encoded = s_train
 
-        X_train_tensor = torch.tensor(
-            X_train_transformed.values.astype(np.float32), dtype=torch.float32
-        )
+        X_train_tensor = torch.tensor(X_train_arr.astype(np.float32), dtype=torch.float32)
         y_train_tensor = torch.tensor(y_train.astype(np.int64), dtype=torch.int64)
         s_train_tensor = torch.tensor(s_train_encoded.astype(np.int64), dtype=torch.int64)
 
@@ -586,9 +628,7 @@ def run_transform_and_train(
         else:
             s_train_encoded = s_train
 
-        X_train_tensor = torch.tensor(
-            X_train_transformed.values.astype(np.float32), dtype=torch.float32
-        )
+        X_train_tensor = torch.tensor(X_train_arr.astype(np.float32), dtype=torch.float32)
         y_train_tensor = torch.tensor(y_train.astype(np.int64), dtype=torch.int64)
         s_train_tensor = torch.tensor(s_train_encoded.astype(np.int64), dtype=torch.int64)
 
@@ -620,19 +660,28 @@ def run_transform_and_train(
 
     # Generate predictions
     if method == "reductions":
-        predictions = model.predict(X_test_transformed.values)
+        if decision_threshold is not None:
+            if hasattr(model, "predict_proba"):
+                y_prob = model.predict_proba(X_test_arr)[:, 1]
+                predictions = (y_prob >= decision_threshold).astype(int)
+            else:
+                logger.warning(
+                    "decision_threshold requires predict_proba() which is not "
+                    "available on this model. Falling back to predict()."
+                )
+                predictions = model.predict(X_test_arr)
+        else:
+            predictions = model.predict(X_test_arr)
     else:
         # PyTorch models
         import torch
 
         with torch.no_grad():
-            X_test_tensor = torch.tensor(
-                X_test_transformed.values.astype(np.float32), dtype=torch.float32
-            )
+            X_test_tensor = torch.tensor(X_test_arr.astype(np.float32), dtype=torch.float32)
             logits = model(X_test_tensor).squeeze()
             if logits.ndim == 0:
                 logits = logits.unsqueeze(0)
-            predictions = (torch.sigmoid(logits) > 0.5).cpu().numpy().astype(int)
+            predictions = (torch.sigmoid(logits) > prob_threshold).cpu().numpy().astype(int)
 
     # Combine train and test for full transformed dataframe
     transformed_df = pd.concat([X_train_transformed, X_test_transformed], ignore_index=True)
@@ -733,6 +782,8 @@ def execute_workflow(
     min_group_size: int = 30,
     train_size: float = 0.8,
     random_state: int = 42,
+    class_weight: str | dict | None = "balanced",
+    decision_threshold: float | None = None,
 ) -> WorkflowResult:
     """
     Main orchestrator executing the complete three-step workflow.
@@ -744,6 +795,13 @@ def execute_workflow(
         min_group_size: Minimum group size for fairness analysis
         train_size: Proportion of data for training
         random_state: Random seed for the stratified train/test split and model training
+        class_weight: Passed to LogisticRegression. Use "balanced" for imbalanced
+            datasets to prevent the model from predicting the majority class for all
+            samples. Default: "balanced".
+        decision_threshold: Probability threshold for converting predicted scores to
+            binary predictions. If None, uses model.predict() which defaults to 0.5.
+            Set to a value between 0 and 1 to simulate selective classifiers such as
+            hiring screeners. Default: None (0.5 threshold).
 
     Returns:
         WorkflowResult with all metrics, model, and validation result
@@ -774,6 +832,8 @@ def execute_workflow(
         train_size=train_size,
         random_state=random_state,
         split=split,
+        class_weight=class_weight,
+        decision_threshold=decision_threshold,
         log_feature_auto_select=True,
     )
     baseline_metrics = baseline_result.get("baseline_metrics", {})
@@ -795,6 +855,9 @@ def execute_workflow(
             train_size=train_size,
             random_state=random_state,
             split=split,
+            class_weight=class_weight,
+            decision_threshold=decision_threshold,
+            scaler=baseline_result.get("scaler"),
             log_feature_auto_select=False,
         )
     log_workflow_step(logger, "transform_and_train", workflow_id=workflow_id, status="completed")

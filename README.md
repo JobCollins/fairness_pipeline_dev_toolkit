@@ -51,6 +51,8 @@ Built from this repo’s Sphinx sources; includes getting started, user guide, A
 | Integration guide | [docs/integration_guide.md](docs/integration_guide.md) |
 | Architecture / ADR | [docs/ADR-001-architecture.md](docs/ADR-001-architecture.md) |
 | Versioning | [docs/VERSIONING.md](docs/VERSIONING.md) |
+| Release checklist (mirror / PyPI) | [docs/RELEASE.md](docs/RELEASE.md) |
+| Changelog | [CHANGELOG.md](CHANGELOG.md) |
 
 ---
 

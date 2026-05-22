@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.9.1] — 2026-05-22
+
+### Added
+
+- **`execute_workflow` training controls** (runtime-only, not in YAML or CLI):
+  - `class_weight` (`str | dict | None`, default `"balanced"`) — passed to baseline and
+    reductions-path `LogisticRegression` to avoid degenerate majority-class predictions on
+    imbalanced data.
+  - `decision_threshold` (`float | None`, default `None`) — probability cutoff for binary
+    predictions via `predict_proba`; simulates selective classifiers (e.g. hiring screeners).
+    When `None`, uses `predict()` (sklearn default 0.5).
+- **`StandardScaler` in the integrated workflow**: fitted once on baseline training features
+  in `run_baseline_measurement()`; the same scaler is reused with **`transform` only** (never
+  refit) in `run_transform_and_train()` so before/after fairness comparisons share identical
+  scaling.
+
+### Changed
+
+- **Default `class_weight`**: Workflow baseline and default reductions base estimator now use
+  `class_weight="balanced"` instead of sklearn’s implicit `None`.
+
+### Documentation
+
+- `docs/api.md`, `docs/integration_guide.md`, `docs/playbook-part-five-fairpipe.md`, and
+  `DOCS.md` document `class_weight`, `decision_threshold`, and scaler behavior.
+- Version bumped to **0.9.1** in `pyproject.toml`, `fairness_pipeline_dev_toolkit.__version__`,
+  `docs/conf.py`, and `docs/VERSIONING.md`.
+
 ## [v0.9.0] — 2026-05-19
 
 ### Added

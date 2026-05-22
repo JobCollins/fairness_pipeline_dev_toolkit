@@ -22,8 +22,8 @@ sys.path.insert(0, str(project_root))
 project = "Fairness Pipeline Development Toolkit"
 copyright = "2026, Fairness Pipeline Development Toolkit Contributors"
 author = "Fairness Pipeline Development Toolkit Contributors"
-version = "0.9.0"
-release = "0.9.0"
+version = "0.9.1"
+release = "0.9.1"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

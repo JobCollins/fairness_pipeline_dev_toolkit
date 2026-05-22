@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fairpipe"
-version = "0.9.0"
+version = "0.9.1"
 description = "Production-ready toolkit for fairness measurement, mitigation, and monitoring."
 readme = "README.md"
 license = { text = "Apache-2.0" }

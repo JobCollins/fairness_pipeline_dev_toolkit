@@ -56,6 +56,35 @@ def sample_data():
 
 
 @pytest.fixture
+def sample_imbalanced_df():
+    """Create imbalanced sample data (~88% positive class)."""
+    np.random.seed(42)
+    n_samples = 200
+
+    df = pd.DataFrame(
+        {
+            "f0": np.random.randn(n_samples),
+            "f1": np.random.randn(n_samples),
+            "f2": np.random.randn(n_samples),
+            "sensitive": np.random.choice(["A", "B"], size=n_samples, p=[0.6, 0.4]),
+        }
+    )
+
+    bias = (df["sensitive"] == "B").astype(int) * 0.3
+    logits = df["f0"] + df["f1"] + bias + np.random.randn(n_samples) * 0.1
+    # Strong skew toward y=1 (majority class ~88%)
+    df["y"] = (logits > -1.5).astype(int)
+
+    return df
+
+
+@pytest.fixture
+def workflow_config(sample_config):
+    """Alias for end-to-end workflow config used by execute_workflow tests."""
+    return sample_config
+
+
+@pytest.fixture
 def sample_config():
     """Create sample config for testing."""
     config_text = """
@@ -288,6 +317,35 @@ def test_workflow_single_train_test_split(sample_data, sample_config):
         )
 
     assert call_count == 1
+
+
+@pytest.mark.skipif(not TRAINING_AVAILABLE, reason="Training dependencies not available")
+def test_execute_workflow_balanced_class_weight(sample_imbalanced_df, workflow_config):
+    """class_weight='balanced' should not produce degenerate all-one predictions."""
+    result = execute_workflow(
+        config=workflow_config,
+        df=sample_imbalanced_df,
+        class_weight="balanced",
+    )
+    assert result is not None
+    rate = float(result.predictions.mean())
+    assert 0.05 < rate < 0.95
+
+
+@pytest.mark.skipif(not TRAINING_AVAILABLE, reason="Training dependencies not available")
+def test_execute_workflow_custom_threshold(sample_data, workflow_config):
+    """decision_threshold runs to completion alongside default threshold."""
+    result_default = execute_workflow(
+        config=workflow_config,
+        df=sample_data,
+    )
+    result_threshold = execute_workflow(
+        config=workflow_config,
+        df=sample_data,
+        decision_threshold=0.7,
+    )
+    assert result_default is not None
+    assert result_threshold is not None
 
 
 @pytest.mark.skipif(not TRAINING_AVAILABLE, reason="Training dependencies not available")

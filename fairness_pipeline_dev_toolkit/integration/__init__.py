@@ -2,7 +2,7 @@
 Public API for integration utilities.
 
 Public exports:
-- execute_workflow, WorkflowResult, ValidationResult
+- execute_workflow (runtime: class_weight, decision_threshold), WorkflowResult, ValidationResult
 - log_workflow_results, log_fairness_metrics
 - to_markdown_report
 - assert_fairness

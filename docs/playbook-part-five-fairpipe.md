@@ -426,8 +426,9 @@ for a in alerts:
 
 ### Exported from `fairpipe.integration`
 
-- **`execute_workflow(config, df, output_dir=None, min_group_size=30, train_size=0.8, random_state=42)`** → **`WorkflowResult`**  
-  Runs the **three-step** flow: baseline measurement (when **`training`** + **`fairness_metric`** are set), transform + train, final validation against **`validation_threshold`**. Returns metrics dicts, **`ValidationResult`**, fitted **`model`**, **`transformed_df`**, **`predictions`**, and **`artifacts`**.
+- **`execute_workflow(config, df, output_dir=None, min_group_size=30, train_size=0.8, random_state=42, class_weight="balanced", decision_threshold=None)`** → **`WorkflowResult`**  
+  Runs the **three-step** flow: baseline measurement (when **`training`** + **`fairness_metric`** are set), transform + train, final validation against **`validation_threshold`**. Returns metrics dicts, **`ValidationResult`**, fitted **`model`**, **`transformed_df`**, **`predictions`**, and **`artifacts`**.  
+  **v0.9.1:** Baseline step fits **`StandardScaler`** once on training features; transform-and-train reuses it with **`transform` only**. **`class_weight`** (default `"balanced"`) and **`decision_threshold`** are **runtime Python parameters only** (not YAML / CLI).
 - **`WorkflowResult`**, **`ValidationResult`**
 - **`log_workflow_results`** — MLflow-oriented logging helper when MLflow is active.
 - **`to_markdown_report`**, **`assert_fairness`** — as in §1.
@@ -462,7 +463,14 @@ from fairpipe.integration import execute_workflow
 
 df = load_data("train.csv")  # must include feature columns, "y", "s"
 cfg = load_config("workflow.yml")
-result = execute_workflow(cfg, df, output_dir="artifacts/run1", min_group_size=30)
+result = execute_workflow(
+    cfg,
+    df,
+    output_dir="artifacts/run1",
+    min_group_size=30,
+    class_weight="balanced",
+    decision_threshold=0.7,  # optional selective cutoff
+)
 
 print(result.validation_result.passed, result.validation_result.message)
 print(result.final_metrics)

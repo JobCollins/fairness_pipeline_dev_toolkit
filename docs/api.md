@@ -568,24 +568,26 @@ Execute the complete end-to-end workflow: baseline measurement → transform+tra
 def execute_workflow(
     config: PipelineConfig,
     df: pd.DataFrame,
-    output_dir: str | Path = "artifacts",
+    output_dir: str | Path | None = None,
     min_group_size: int = 30,
     train_size: float = 0.8,
     random_state: int = 42,
-    mlflow_experiment: Optional[str] = None,
-    mlflow_run_name: Optional[str] = None
+    class_weight: str | dict | None = "balanced",
+    decision_threshold: float | None = None,
 ) -> WorkflowResult
 ```
 
 **Parameters:**
 - `config` (PipelineConfig): Pipeline configuration (must include `training` section)
 - `df` (pd.DataFrame): Input DataFrame
-- `output_dir` (str | Path): Directory to save artifacts (default: "artifacts")
+- `output_dir` (str | Path | None): Directory to save artifacts; if `None`, artifacts are not written to disk (default: `None`)
 - `min_group_size` (int): Minimum group size for fairness analysis (default: 30)
 - `train_size` (float): Proportion of data for training (default: 0.8)
 - `random_state` (int): Random seed for a single stratified train/test split shared across baseline measurement, training, and final validation; also seeds `LogisticRegression` and PyTorch training where applicable (default: 42). Use the same `random_state` with the same data and config for reproducible runs.
-- `mlflow_experiment` (str, optional): MLflow experiment name (enables MLflow logging)
-- `mlflow_run_name` (str, optional): MLflow run name
+- `class_weight` (str | dict | None): Passed to `LogisticRegression` in baseline measurement and as the default base estimator for the `reductions` training method. Use `"balanced"` for imbalanced labels (default: `"balanced"`). Not configurable via YAML or `fairpipe run-pipeline`.
+- `decision_threshold` (float | None): Probability threshold for binary predictions (`predict_proba` column 1 ≥ threshold). If `None`, uses `predict()` (implicit 0.5). Applied identically in baseline and post-mitigation steps (default: `None`). Runtime Python API only.
+
+**Scaling (baseline vs. mitigated features):** When `training` and `fairness_metric` are set, baseline measurement fits a `StandardScaler` on the training split feature matrix. Transform-and-train reuses that scaler with `transform` only (never refit) on pipeline-transformed features so before/after metrics are comparable.
 
 **Returns:** `WorkflowResult` object
 
@@ -603,7 +605,8 @@ result = execute_workflow(
     df=df,
     output_dir="artifacts/workflow",
     min_group_size=30,
-    mlflow_experiment="fairness_workflow"
+    class_weight="balanced",
+    decision_threshold=0.7,  # optional: selective classifier cutoff
 )
 
 if result.validation_result.passed:
@@ -1171,7 +1174,7 @@ Get the toolkit version:
 
 ```python
 from fairpipe import __version__
-print(__version__)  # "0.8.0"
+print(__version__)  # "0.9.1"
 ```
 
 ---
@@ -1241,7 +1244,7 @@ Returns server version and current UTC timestamp.
 ```json
 {
   "status": "ok",
-  "version": "0.8.0",
+  "version": "0.9.1",
   "timestamp": "2026-05-07T10:00:00.000000+00:00"
 }
 ```

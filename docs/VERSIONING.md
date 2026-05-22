@@ -1,7 +1,7 @@
 # Versioning Strategy and Backward Compatibility Policy
 
 **Last Updated:** 2026-05-14  
-**Current Version:** 0.9.0
+**Current Version:** 0.9.1
 
 ---
 
@@ -23,7 +23,7 @@ Version numbers follow the format: **MAJOR.MINOR.PATCH** (e.g., `0.5.0`)
 
 ### Current Status
 
-- **Current Version:** `0.8.0` (Beta)
+- **Current Version:** `0.9.1` (Beta)
 - **Development Status:** Beta (pre-1.0.0)
 - **Pre-1.0.0 Policy:** During the 0.x phase, MINOR version increments may include breaking changes. Once we reach 1.0.0, strict SemVer will be enforced.
 
@@ -135,7 +135,7 @@ These modules and their public exports are stable:
 - Transformer classes: `InstanceReweighting`, `DisparateImpactRemover`, `ReweighingTransformer`, `ProxyDropper`
 
 #### Integration (`fairpipe.integration`)
-- `execute_workflow()` function
+- `execute_workflow()` function (including runtime-only `class_weight` and `decision_threshold` since v0.9.1)
 - `WorkflowResult`, `ValidationResult` classes
 - `log_workflow_results()` function
 - `to_markdown_report()` function
@@ -315,12 +315,16 @@ pip show fairpipe
 
 ### Release Checklist
 
+See **[RELEASE.md](RELEASE.md)** for the mirror ([SvrusIO/fAIr](https://github.com/SvrusIO/fAIr)) and PyPI workflow.
+
 - [ ] Update version in `pyproject.toml`
-- [ ] Update `__version__` in `__init__.py`
+- [ ] Update `__version__` in `fairness_pipeline_dev_toolkit/__init__.py`
+- [ ] Update `docs/conf.py` `version` and `release`
 - [ ] Update `CHANGELOG.md` with release notes
-- [ ] Tag release in git: `git tag v0.5.0`
-- [ ] Build and publish to PyPI
-- [ ] Update documentation if needed
+- [ ] Update API and integration docs if the public surface changed
+- [ ] Tag release in git: `git tag v0.9.1` and push to mirror remotes
+- [ ] Build and publish to PyPI (`.github/workflows/release.yml` or manual)
+- [ ] Refresh hosted documentation
 
 ---
 

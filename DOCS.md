@@ -1,6 +1,6 @@
 # Fairness Pipeline Development Toolkit - Comprehensive User Guide
 
-**Version:** 0.8.0
+**Version:** 0.9.1
 
 This guide walks you through using the Fairness Pipeline Development Toolkit across the complete model development cycle—from initial data exploration to production monitoring. Whether you're building a new model or improving an existing one, this toolkit provides the tools and workflows to ensure fairness at every stage.
 
@@ -83,7 +83,7 @@ pip install -r requirements.txt
 fairpipe version
 ```
 
-You should see the version number (e.g., `0.8.0`).
+You should see the version number (e.g., `0.9.1`).
 
 ---
 
@@ -1155,9 +1155,34 @@ validation_threshold: 0.05
 
 ### What It Does
 
-1. **Baseline Measurement**: Audits raw data for fairness issues
-2. **Transform + Train**: Applies bias mitigation and trains fairness-aware model
-3. **Final Validation**: Compares to baseline and validates against threshold
+1. **Baseline Measurement**: Trains an unconstrained logistic model on scaled features and computes fairness metrics on the test split
+2. **Transform + Train**: Applies bias mitigation (e.g. instance reweighting), reuses the **same** `StandardScaler` (transform only), trains a fairness-constrained model, and predicts on the test set
+3. **Final Validation**: Compares post-mitigation metrics to baseline and checks `validation_threshold`
+
+### Python API (training options)
+
+`execute_workflow()` supports runtime parameters that are **not** in YAML or `fairpipe run-pipeline`:
+
+```python
+from fairpipe.integration import execute_workflow
+from fairpipe.pipeline import load_config
+from fairpipe import load_data
+
+cfg = load_config("config.yml")
+df = load_data("your_data.csv")
+
+result = execute_workflow(
+    cfg,
+    df,
+    output_dir="artifacts/",
+    class_weight="balanced",      # default; helps imbalanced hiring / fraud labels
+    decision_threshold=0.7,     # optional selective classifier cutoff
+    random_state=42,
+)
+```
+
+- **`class_weight`**: Passed to baseline and reductions-path `LogisticRegression` (default `"balanced"`).
+- **`decision_threshold`**: If set, both steps threshold `predict_proba` at that value; if `None`, uses `predict()` (0.5).
 
 ### Output
 
@@ -1332,8 +1357,8 @@ This guide has walked you through using the Fairness Pipeline Development Toolki
 
 ---
 
-**Version**: 0.8.0
-**Last Updated**: 2026-05-07 (D4: FastAPI REST API, fairpipe serve, Docker)
+**Version**: 0.9.1
+**Last Updated**: 2026-05-22 (integrated workflow: `class_weight`, `decision_threshold`, `StandardScaler`)
 
 For questions, issues, or contributions, please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
