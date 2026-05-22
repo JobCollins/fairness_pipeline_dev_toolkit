@@ -179,8 +179,9 @@ applicants by age, race, and disability.
   0.0036 of the 0.05 compliance threshold
 - Dataset: ACS 2018 1-Year California (196,604 individuals, folktables)
 
-[![Launch in Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/SvrusIO/fAIr/main?filepath=case_studies/acs_employment_bias.ipynb)
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SvrusIO/fAIr/blob/main/case_studies/acs_employment_bias.ipynb)
+[![Launch in Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/SvrusIO/fAIr/main?urlpath=%2Fdoc%2Ftree%2Fcase_studies%2Facs_employment.ipynb)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SvrusIO/fAIr/blob/main/case_studies/acs_employment.ipynb)
+
 
 ---
 
