@@ -137,13 +137,50 @@ See **[CONTRIBUTING.md](CONTRIBUTING.md)** and **[SECURITY.md](SECURITY.md)**.
 
 ## Case Studies
 
-**[COMPAS Recidivism Bias Analysis](case_studies/compas_racial_bias.ipynb)** —
-Reproduces ProPublica's 2016 Machine Bias finding. Measures an Equalized Odds
-Difference of **0.2116** on the COMPAS dataset and demonstrates a **53.9% reduction**
-via Instance Reweighting.
+Real-world bias audits demonstrating fairpipe's full pipeline — from
+measurement and detection through mitigation and CI/CD integration.
+
+---
+
+### [COMPAS Recidivism Bias Analysis](https://github.com/SvrusIO/fAIr/blob/main/case_studies/compas_racial_bias.ipynb)
+
+Reproduces ProPublica's 2016 *Machine Bias* investigation on the COMPAS
+recidivism algorithm used in US courtrooms.
+
+- **DPD = 0.2451** — Black defendants 24.5 percentage points more likely
+  to be flagged high-risk than white defendants
+- **EOD = 0.2116** — among defendants who will not reoffend, Black
+  defendants are 21 percentage points more likely to be incorrectly
+  labelled high-risk
+- **53.9% reduction in EOD** via Instance Reweighting
+- 28 features with statistically significant racial disparities detected
+- 23 proxy variables identified — removing the race column alone would
+  not fix this model
 
 [![Launch in Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/SvrusIO/fAIr/main?filepath=case_studies/compas_racial_bias.ipynb)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SvrusIO/fAIr/blob/main/case_studies/compas_racial_bias.ipynb)
+
+
+### [AI Hiring Bias — ACS Employment Analysis](https://github.com/SvrusIO/fAIr/blob/main/case_studies/acs_employment_bias.ipynb)
+
+Demonstrates the type of bias audit now required under NYC Local Law 144
+and the EU AI Act, framed around *Mobley v. Workday* — the 2025 class
+action alleging AI hiring tools discriminated against millions of
+applicants by age, race, and disability.
+
+- **DPD = 0.1046** — white candidates selected at 32.3% vs Black
+  candidates at 21.8%, a 10.5 percentage point gap with no race feature
+  in the model
+- **EOD = 0.1022** — 76.8% of qualified Black candidates incorrectly
+  rejected vs 66.6% of white candidates
+- All 5 prediction features show statistically significant racial
+  disparity — removing the race column alone would not fix this model
+- **47.6% reduction in EOD** via Instance Reweighting, closing to within
+  0.0036 of the 0.05 compliance threshold
+- Dataset: ACS 2018 1-Year California (196,604 individuals, folktables)
+
+[![Launch in Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/SvrusIO/fAIr/main?filepath=case_studies/acs_employment_bias.ipynb)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SvrusIO/fAIr/blob/main/case_studies/acs_employment_bias.ipynb)
 
 ---
 
