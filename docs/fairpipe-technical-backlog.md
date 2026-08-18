@@ -16,6 +16,9 @@
 | BL-003 | `execute_workflow` does not apply sample weights to model training | P0 | v0.7.3 |
 | BL-004 | `apply_pipeline` returns weights in opaque tuple — easy to discard silently | P1 | v0.8.0 |
 | BL-005 | CLI log output pollutes stdout alongside report content | P1 | v0.7.3 |
+| BL-006 | `test_risk_ratio_identity` Hypothesis flakiness under float edge cases | P2 | backlog |
+| BL-007 | Expand LLM counterfactual recorded-cache fixture to clear `min_group_size=5` | P1 | v0.8.0 |
+| BL-008 | Phase 2 LLM evaluators: per-evaluator recorded-cache fixtures (≥5/group) | P1 | v0.8.0 |
 
 ---
 
@@ -375,6 +378,104 @@ the CLI entry point where the logger is configured.
 
 ---
 
+## BL-006 — `test_risk_ratio_identity` Hypothesis flakiness (follow-up, non-blocking)
+
+### Where Discovered
+Full-suite runs with warnings enabled (`pytest -W default`) intermittently fail on
+`tests/property_based/test_property_based.py::TestEffectSizeProperties::test_risk_ratio_identity`.
+Hypothesis falsifying example: `rate1=1.544296017645972e-10`, `rate2=1e-10`. Observed during
+LLM evals Phase 0/1 validation; **not introduced by LLM evals**.
+
+### Impact
+**Low (test infra).** Default CI uses `--disable-warnings` and may not hit this every run, but
+the property test guard is unsound for denormal float edge cases near `1e-10`.
+
+### Root cause (likely)
+The "equal rates" precondition uses a tolerance that can treat distinct tiny rates as equal while
+`risk_ratio()` returns a value far from 1.0 due to floating-point division.
+
+### Suggested fix (later triage)
+- Tighten equality precondition (`math.isclose` aligned with `risk_ratio` semantics), **or**
+- Constrain Hypothesis `min_value` away from denormals, **or**
+- Skip identity assertion below a stable rate floor.
+
+**Acceptance criteria:**
+- `test_risk_ratio_identity` passes reliably across 100+ Hypothesis examples with `-W default`
+- No production `risk_ratio()` change unless a real numeric bug is confirmed
+
+---
+
+## BL-007 — Expand LLM counterfactual recorded-cache fixture to clear `min_group_size=5`
+
+### Where Discovered
+Phase 1 gate review of `case_studies/llm_counterfactual_fairness.ipynb`. The committed
+Anthropic cache replay fixture has **n=1 prompt per demographic group** (`woman`, `man`,
+`nonbinary`). Shared LLM eval guard now mirrors classifier semantics: groups below
+`DEFAULT_LLM_MIN_GROUP_SIZE=5` are excluded and the metric returns **`nan`**.
+
+### Impact
+**High (credibility).** The notebook is the primary artifact readers use to judge LLM fairness
+evals. The illustrative `allow_small_samples=True` smoke test proves plumbing works but must
+not be mistaken for a model behavior finding. Phase 2 evaluator scaffolding can proceed; this
+item tracks the **production-grade case study** separately.
+
+### Scope
+**Counterfactual probe only** (`fixtures/recorded_counterfactual/`). Phase 2 evaluators
+require the same cache-once-replay treatment under separate fixtures — see **BL-008** so
+that work is not rediscovered per evaluator during Phase 2 implementation.
+
+### Target fixture shape
+At minimum **5 prompts per group** for the canonical gender dimension, e.g.:
+
+- Multiple `{name}` defaults (≥5 distinct names) with the same hiring template, **or**
+- Multiple role templates × names such that each group accumulates ≥5 provider calls
+
+Re-record live via `@pytest.mark.live_llm` → `populate_recorded_counterfactual_cache()`,
+commit cache + manifest, regenerate notebook divergence (with CI once n supports it).
+
+### Acceptance criteria
+- Each group in `fixtures/recorded_counterfactual/` has **≥5** cached responses
+- `run_llm_eval(default_recorded_counterfactual_config())` returns a **finite** metric at
+  default `min_group_size=5` **without** `allow_small_samples`
+- Notebook updated to drop illustrative override; reports production-threshold result
+- `tests/llm_evals/test_recorded_cache.py` asserts finite metric at default threshold
+
+---
+
+## BL-008 — Phase 2 LLM evaluators: per-evaluator recorded-cache fixtures (≥5/group)
+
+### Where Discovered
+Phase 1 gate close. BL-007 covers the counterfactual probe fixture only. Phase 2 adds three
+evaluators that share the same `llm_evals` runner, `ResponseCache`, replay-only client, and
+`DEFAULT_LLM_MIN_GROUP_SIZE=5` guard — each will need its **own** committed recorded-cache
+fixture sized to clear the default threshold without `allow_small_samples`.
+
+### Evaluators requiring fixtures (Phase 2)
+| Evaluator | Suggested fixture path (pattern) |
+|-----------|----------------------------------|
+| `refusal_rate_disparity` | `fixtures/recorded_refusal/` |
+| `toxicity_sentiment_disparity` | `fixtures/recorded_toxicity/` |
+| `stereotype_association_score` (BBQ probe) | `fixtures/recorded_bbq/` |
+
+Follow the Phase 1 pattern established by `recorded_counterfactual.py`:
+- `populate_*_cache()` live behind `@pytest.mark.live_llm`
+- Commit `cache/*.txt` + `manifest.json`
+- `default_recorded_*_config()` for zero-API replay in tests/notebook
+- Default-path tests assert **finite** metrics at `min_group_size=5` (no illustrative override)
+
+### Impact
+**Medium–high (Phase 2 velocity).** Without pre-planned fixtures, each evaluator will either
+ship synthetic demos (credibility risk) or block CI on live API keys. Planning fixtures up
+front keeps Phase 2 scaffolding separate from credibility artifacts.
+
+### Acceptance criteria (per evaluator)
+- ≥5 provider responses per demographic group in committed cache
+- `run_llm_eval(default_recorded_*_config())` finite at default `min_group_size=5`
+- `tests/llm_evals/test_recorded_*_cache.py`: replay test + `@pytest.mark.live_llm` populate hook
+- Document fixture regeneration in `docs/llm_evals_intro.md`
+
+---
+
 ## Implementation Order
 
 Given the conference deadline (May 19) and the importance of a working end-to-end
@@ -400,6 +501,9 @@ Create one GitHub issue per backlog item. Suggested labels:
 | BL-003 | `bug`, `execute_workflow`, `mitigation` |
 | BL-004 | `enhancement`, `api-design`, `breaking-change` |
 | BL-005 | `enhancement`, `cli`, `developer-experience` |
+| BL-006 | `bug`, `testing`, `hypothesis`, `good first issue` |
+| BL-007 | `enhancement`, `llm-evals`, `case-study`, `documentation` |
+| BL-008 | `enhancement`, `llm-evals`, `phase-2`, `testing` |
 
 ---
 

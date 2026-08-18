@@ -14,6 +14,7 @@ PyPI package: **[fairpipe](https://pypi.org/project/fairpipe/)** · License: **A
 | GitHub Action | ❌ | ❌ | ✅ |
 | Production monitoring | ❌ | ❌ | ✅ |
 | REST API | ❌ | ❌ | ✅ |
+| LLM / GenAI fairness evals | ❌ | ❌ | ✅ |
 
 `Fairlearn` and `AIF360` provide individual pre/in/post-processing components; `fairpipe` provides a YAML-configured `baseline→transform→validate` workflow with CI/CD exit codes.
 
@@ -30,8 +31,43 @@ PyPI package: **[fairpipe](https://pypi.org/project/fairpipe/)** · License: **A
 pip install fairpipe
 ```
 
-**Optional extras:** `pip install 'fairpipe[api]'` · `'fairpipe[training]'` · `'fairpipe[monitoring]'` · `'fairpipe[adapters]'`  
-(REST API, PyTorch training helpers, dashboards/drift, Fairlearn/Aequitas backends.) Full detail is in the **documentation** below—not duplicated here.
+**Optional extras:** `pip install 'fairpipe[api]'` · `'fairpipe[training]'` · `'fairpipe[monitoring]'` · `'fairpipe[adapters]'` · `'fairpipe[llm]'`  
+(REST API, PyTorch training helpers, dashboards/drift, Fairlearn/Aequitas backends, LLM provider SDKs.) Full detail is in the **documentation** below—not duplicated here.
+
+---
+
+## Setting LLM provider credentials
+
+LLM fairness evaluation (see `fairpipe.llm_evals`) uses provider SDKs installed via the optional extra:
+
+```bash
+pip install 'fairpipe[llm]'
+```
+
+**Credentials are read from environment variables only** — never from YAML config files or CLI flags:
+
+| Provider | Environment variable | Notes |
+|----------|---------------------|--------|
+| OpenAI (and OpenAI-compatible APIs) | `OPENAI_API_KEY` | Required for `provider: openai` |
+| Anthropic | `ANTHROPIC_API_KEY` | Required for `provider: anthropic` |
+| Local / self-hosted | *(none)* | `provider: local` needs no API key |
+
+Example:
+
+```bash
+export OPENAI_API_KEY="sk-..."
+# or
+export ANTHROPIC_API_KEY="..."
+```
+
+When the CLI ships in a later release, use `fairpipe llm-eval --dry-run` to estimate request volume and approximate cost before making live provider calls.
+
+```bash
+fairpipe llm-eval --config llm_eval.yml --dry-run
+fairpipe llm-eval --config llm_eval.yml --report-md artifacts/llm_report.md --with-ci
+```
+
+See **[docs/llm_evals_intro.md](docs/llm_evals_intro.md)** for configuration and API details.
 
 ---
 
@@ -44,6 +80,7 @@ Built from this repo’s Sphinx sources; includes getting started, user guide, A
 
 | Topic | Location |
 |--------|----------|
+| LLM fairness evals | [docs/llm_evals_intro.md](docs/llm_evals_intro.md) |
 | Getting started | [docs/getting_started.md](docs/getting_started.md) |
 | User guide (long-form) | [DOCS.md](DOCS.md) |
 | API reference | [docs/api.md](docs/api.md) |
@@ -139,6 +176,15 @@ See **[CONTRIBUTING.md](CONTRIBUTING.md)** and **[SECURITY.md](SECURITY.md)**.
 
 Real-world bias audits demonstrating fairpipe's full pipeline — from
 measurement and detection through mitigation and CI/CD integration.
+
+### [LLM Counterfactual Fairness](case_studies/llm_counterfactual_fairness.ipynb)
+
+Measures gender-coded divergence in LLM hiring recommendations using the counterfactual
+fairness probe with **committed live-recorded Anthropic responses** replayed from cache
+(no API key required for the default case study).
+
+- **Counterfactual fairness divergence ≈ 0.55** (three-way gender swap, bootstrap CI)
+- End-to-end: YAML config → `run_llm_eval()` → `MetricResult` → effect-size assertion
 
 ---
 

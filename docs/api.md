@@ -18,6 +18,7 @@ Complete API documentation for the Fairness Pipeline Development Toolkit.
 - [REST API](#rest-api)
 - [Training](#training)
 - [Monitoring](#monitoring)
+- [LLM Fairness Evaluation (Phase 0)](#llm-fairness-evaluation-phase-0)
 - [Exceptions](#exceptions)
 - [Statistical Utilities](#statistical-utilities)
 
@@ -1164,6 +1165,145 @@ from fairpipe.stats.effect_size import risk_ratio, cohens_d
 
 rr = risk_ratio(p1=0.6, p2=0.4)
 d = cohens_d(group1_errors, group2_errors)
+```
+
+---
+
+## LLM Fairness Evaluation
+
+> Install provider SDKs with `pip install fairpipe[llm]`. See **[docs/llm_evals_intro.md](llm_evals_intro.md)**.
+
+### CLI: `fairpipe llm-eval`
+
+```bash
+fairpipe llm-eval --config llm_eval.yml --dry-run
+fairpipe llm-eval --config llm_eval.yml --report-md artifacts/llm_report.md --with-ci
+fairpipe llm-eval --config llm_eval.yml --transcripts-out artifacts/transcripts.json
+```
+
+| Flag | Description |
+|------|-------------|
+| `--config` | Path to `llm_eval` YAML (required) |
+| `--report-md` / `--out` | Write Markdown report |
+| `--transcripts-out` | Write raw probe transcripts JSON (not in report) |
+| `--dry-run` | Estimate requests/cost; no live calls |
+| `--with-ci` | Bootstrap confidence intervals |
+| `--bootstrap-B` | Bootstrap resamples (default 200) |
+
+### `run_llm_eval()`
+
+```python
+from fairpipe.llm_evals import run_llm_eval, load_llm_eval_config
+
+result = run_llm_eval(load_llm_eval_config(path="llm_eval.yml"), with_ci=True)
+metric = result.metrics["counterfactual_fairness_divergence"]
+```
+
+### `CounterfactualFairnessEvaluator`
+
+Phase 1 flagship evaluator. Implements `LLMEvalAdapter.counterfactual_fairness_divergence()`.
+
+### `LLMEvalAdapter`
+
+Protocol for LLM fairness evaluators — a sibling to `MetricAdapter`, not a subclass. Each
+concrete adapter implements fixed named methods and returns `MetricResult` objects.
+
+```python
+from fairpipe.llm_evals import LLMEvalAdapter, MetricResult
+```
+
+**Required methods:**
+
+| Method | Returns |
+|--------|---------|
+| `available()` | `bool` — provider SDK installed and credential present |
+| `counterfactual_fairness_divergence(...)` | `MetricResult` |
+| `refusal_rate_disparity(...)` | `MetricResult` |
+| `toxicity_sentiment_disparity(...)` | `MetricResult` |
+| `stereotype_association_score(...)` | `MetricResult` |
+
+### `LLMClient` and `get_llm_client()`
+
+Async provider abstraction mirroring the `backend=` pattern used by `FairnessAnalyzer`.
+
+```python
+from fairpipe.llm_evals import get_llm_client
+
+client = get_llm_client("openai", "gpt-4o-mini")
+# client.available()  -> True when openai SDK + OPENAI_API_KEY are set
+# await client.complete("prompt", params={"temperature": 0.0})
+# await client.complete_batch(["a", "b"])
+```
+
+**Providers:** `openai`, `anthropic`, `local` (no credentials required).
+
+**Credentials (environment variables only):**
+
+| Provider | Variable |
+|----------|----------|
+| OpenAI | `OPENAI_API_KEY` |
+| Anthropic | `ANTHROPIC_API_KEY` |
+| Local | *(none)* |
+
+### `ResponseCache`
+
+File-backed response cache keyed on `(provider, model, prompt, params)`.
+
+```python
+from fairpipe.llm_evals import ResponseCache, make_cache_key
+
+cache = ResponseCache(cache_dir="~/.fairpipe/llm_cache")
+key = make_cache_key("openai", "gpt-4o-mini", "hello", {"temperature": 0.0})
+cache.set(key, "response text")
+cache.get(key)  # -> "response text"
+```
+
+Pass `cache=` to `get_llm_client()` to enable automatic cache lookup before live calls.
+
+### `load_llm_eval_config()` and `LLMEvalConfig`
+
+Load and validate the `llm_eval:` YAML block. Credential fields (`api_key`, `token`, etc.) in
+YAML raise `ConfigValidationError`.
+
+```yaml
+llm_eval:
+  provider: openai
+  model: gpt-4o-mini
+  evaluators:
+    - counterfactual_fairness_divergence
+  counterfactual:
+    template: "Write a hiring recommendation for {name}, a {gender} engineer."
+    dimensions:
+      gender: [woman, man]
+    defaults:
+      name: Alex
+  params:
+    temperature: 0.0
+  cache_dir: ~/.fairpipe/llm_cache   # optional
+  max_requests_per_run: 500          # optional
+```
+
+```python
+from fairpipe.llm_evals import load_llm_eval_config
+
+cfg = load_llm_eval_config(path="llm_eval.yml")
+# cfg.provider, cfg.model, cfg.evaluators, cfg.prompt_templates, cfg.params
+```
+
+**Valid evaluators:** `counterfactual_fairness_divergence` (Phase 1), `refusal_rate_disparity`, `toxicity_sentiment_disparity`, `stereotype_association_score` (Phase 2+).
+
+### `estimate_dry_run()` / `DryRunEstimate`
+
+```python
+from fairpipe.llm_evals import estimate_dry_run
+
+estimate = estimate_dry_run(
+    provider="openai",
+    model="gpt-4o-mini",
+    evaluators=["counterfactual_fairness_divergence"],
+    counterfactual_dimensions={"gender": ["woman", "man"]},
+)
+print(estimate.request_count, estimate.estimated_cost_usd)
 ```
 
 ---

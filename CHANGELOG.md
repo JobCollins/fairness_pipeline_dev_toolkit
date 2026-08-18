@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`fairness_pipeline_dev_toolkit.llm_evals` module (Phase 0 scaffolding):** `LLMEvalAdapter`
+  protocol (sibling to `MetricAdapter`), `LLMClient` provider abstraction (OpenAI-compatible,
+  Anthropic, local), `ResponseCache`, and `load_llm_eval_config()` for the `llm_eval:` YAML block.
+  Shim re-exports at `fairpipe.llm_evals`.
+- **`fairpipe[llm]` optional extra:** `openai`, `anthropic`, and `httpx` for LLM provider calls.
+- **`live_llm` pytest marker:** registered and excluded from default test runs (`-m 'not live_llm'`).
+- **Counterfactual fairness probe (Phase 1):** `CounterfactualFairnessEvaluator`, `run_llm_eval()`,
+  `fairpipe llm-eval` CLI with `--dry-run`, `--report-md`, and `--transcripts-out`.
+- **Case study:** `case_studies/llm_counterfactual_fairness.ipynb` (Anthropic cache replay fixture).
+- **Recorded fixture:** committed live-recorded counterfactual responses under
+  `llm_evals/fixtures/recorded_counterfactual/`; `default_recorded_counterfactual_config()` for replay-only runs.
+- **Shared guards:** `DEFAULT_LLM_MIN_GROUP_SIZE=5` with classifier-parity exclude + `nan` semantics;
+  `allow_small_samples` override for illustrative runs only.
+
+### Documentation
+
+- `README.md`: "Setting LLM provider credentials" section and comparison-table row for LLM fairness evals.
+- `docs/llm_evals_intro.md`: LLM fairness evals explainer and worked CLI example.
+- `DOCS.md`: Phase 8 — LLM Fairness Evaluation.
+- `docs/api.md`: LLM evals API and CLI reference.
+
 ## [v0.9.1] — 2026-05-22
 
 ### Added

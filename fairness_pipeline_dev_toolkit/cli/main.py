@@ -904,6 +904,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     p_serve.set_defaults(func=cmd_serve)
 
+    from fairness_pipeline_dev_toolkit.cli.llm_eval_cmd import register_llm_eval_parser
+
+    register_llm_eval_parser(sub)
+
     args = parser.parse_args(argv)
     if not hasattr(args, "func"):
         parser.print_help()

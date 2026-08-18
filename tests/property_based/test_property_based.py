@@ -197,20 +197,13 @@ class TestEffectSizeProperties:
         if np.isfinite(rr1) and np.isfinite(rr2):
             assert abs(rr1 * rr2 - 1.0) < 1e-10 or (np.isnan(rr1) and np.isnan(rr2))
 
-    @given(
-        rate1=st.floats(min_value=1e-10, max_value=1.0, allow_nan=False),
-        rate2=st.floats(min_value=1e-10, max_value=1.0, allow_nan=False),
-    )
+    @given(rate=st.floats(min_value=1e-10, max_value=1.0, allow_nan=False))
     @settings(max_examples=100)
-    def test_risk_ratio_identity(self, rate1, rate2):
+    def test_risk_ratio_identity(self, rate):
         """Property: Risk ratio should be 1.0 when rates are equal."""
-        # Only test when rates are actually equal (within relative tolerance)
-        # Use relative tolerance to avoid issues with very small numbers
-        if abs(rate1 - rate2) < max(1e-10, 1e-10 * max(abs(rate1), abs(rate2))):
-            rr = risk_ratio(rate1, rate2)
-            # Allow for floating point precision issues, especially with very small numbers
-            if np.isfinite(rr):
-                assert abs(rr - 1.0) < 1e-6 or np.isnan(rr)
+        rr = risk_ratio(rate, rate)
+        assert np.isfinite(rr)
+        assert abs(rr - 1.0) < 1e-6
 
     @given(
         group1=numeric_arrays(min_size=2, max_size=100),

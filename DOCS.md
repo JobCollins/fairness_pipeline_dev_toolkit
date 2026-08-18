@@ -1107,6 +1107,64 @@ At this stage, you should have:
 
 ---
 
+## Phase 8: LLM Fairness Evaluation
+
+### Objectives
+
+- Measure disparate LLM behavior across demographic groups (counterfactual fairness)
+- Run evals from YAML config via CLI with cost estimation (`--dry-run`)
+- Produce `MetricResult` objects compatible with existing reporting
+
+### Step 1: Configure the counterfactual probe
+
+```yaml
+# llm_eval.yml
+llm_eval:
+  provider: local
+  model: bias-simulator
+  evaluators:
+    - counterfactual_fairness_divergence
+  counterfactual:
+    template: "Write a hiring recommendation for {name}, a {gender} engineer."
+    dimensions:
+      gender: [woman, man, nonbinary]
+    defaults:
+      name: Alex
+```
+
+Install provider SDKs when using live models: `pip install 'fairpipe[llm]'`. Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in the environment — never in YAML.
+
+### Step 2: Estimate cost (dry run)
+
+```bash
+fairpipe llm-eval --config llm_eval.yml --dry-run
+```
+
+### Step 3: Run evaluation
+
+```bash
+fairpipe llm-eval \
+  --config llm_eval.yml \
+  --report-md artifacts/llm_report.md \
+  --with-ci \
+  --transcripts-out artifacts/llm_transcripts.json
+```
+
+### Step 4: Interpret results
+
+The report includes `counterfactual_fairness_divergence` with bootstrap CI and effect size. Higher values indicate greater output divergence when demographic attributes are swapped in otherwise identical prompts.
+
+See **[docs/llm_evals_intro.md](docs/llm_evals_intro.md)** and **`case_studies/llm_counterfactual_fairness.ipynb`** for a worked example.
+
+### Output
+
+At this stage, you should have:
+- ✅ Counterfactual fairness metric with CI
+- ✅ Markdown report artifact
+- ✅ Optional transcripts JSON (separate from report)
+
+---
+
 ## Integrated Workflow (Quick Path)
 
 For users who want to run the complete workflow in one command:

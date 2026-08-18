@@ -91,6 +91,13 @@ def test_version_accessible():
     assert fairpipe.__version__ == src_version
 
 
+def test_fairpipe_llm_evals_shim_identity():
+    from fairness_pipeline_dev_toolkit.llm_evals import LLMEvalAdapter as src
+    from fairpipe.llm_evals import LLMEvalAdapter as shim
+
+    assert shim is src
+
+
 def test_legacy_imports_still_work():
     from fairness_pipeline_dev_toolkit import (  # noqa: F401
         FairnessAnalyzer,
