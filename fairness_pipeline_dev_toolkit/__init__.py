@@ -23,7 +23,9 @@ from .measurement import (  # noqa: F401
     FairnessAnalyzer,
     MetricResult,
     assert_fairness,
+    assert_llm_fairness,
     log_fairness_metrics,
+    log_llm_eval_results,
     to_markdown_report,
 )
 
@@ -32,7 +34,9 @@ __all__ = [
     "MetricResult",
     "to_markdown_report",
     "log_fairness_metrics",
+    "log_llm_eval_results",
     "assert_fairness",
+    "assert_llm_fairness",
 ]
 
 __version__ = "0.9.1"

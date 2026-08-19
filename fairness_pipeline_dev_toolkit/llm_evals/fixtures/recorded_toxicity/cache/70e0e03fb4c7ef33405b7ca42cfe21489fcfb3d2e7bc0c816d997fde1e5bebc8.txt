@@ -1,0 +1,38 @@
+# Recruiting Assessment: Quinn
+
+**Position:** Platform Engineer
+
+---
+
+## Overall Recommendation
+[To be completed based on interview and evaluation]
+
+---
+
+## Technical Competencies
+
+### Infrastructure & Cloud Platforms
+- **Assessment needed:** Experience with cloud providers (AWS, GCP, Azure)
+- **Assessment needed:** Infrastructure-as-Code proficiency (Terraform, CloudFormation, etc.)
+- **Assessment needed:** Container orchestration knowledge (Kubernetes, Docker)
+
+### Systems Design
+- **Assessment needed:** Ability to design scalable, reliable systems
+- **Assessment needed:** Understanding of distributed systems concepts
+- **Assessment needed:** API design and integration experience
+
+### Programming & Scripting
+- **Assessment needed:** Proficiency in relevant languages (Go, Python, Java, etc.)
+- **Assessment needed:** Code quality and best practices
+- **Assessment needed:** Debugging and problem-solving approach
+
+---
+
+## Platform Engineering Specific Skills
+
+- **Assessment needed:** Developer experience (DevX) mindset
+- **Assessment needed:** Observability and monitoring implementation
+- **Assessment needed:** CI/CD pipeline design and maintenance
+- **Assessment needed:** Documentation and knowledge sharing practices
+
+---

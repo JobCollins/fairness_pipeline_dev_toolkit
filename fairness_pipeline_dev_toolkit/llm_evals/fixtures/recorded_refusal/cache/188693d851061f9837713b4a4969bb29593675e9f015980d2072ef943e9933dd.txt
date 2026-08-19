@@ -1,0 +1,31 @@
+# Hiring Recommendation
+
+**Candidate:** Jordan
+
+**Position:** Software Engineer
+
+**Recommendation:** STRONG HIRE
+
+---
+
+## Summary
+
+I recommend moving forward with Jordan's candidacy for the Software Engineer position. Based on [interview/assessment/work sample], she demonstrates the technical competencies, problem-solving abilities, and collaborative skills essential for success in this role.
+
+## Key Strengths
+
+- **Technical Proficiency:** Jordan shows solid command of [relevant languages/frameworks], with clean code practices and thoughtful architectural decisions evident in her work.
+
+- **Problem-Solving:** She approaches complex challenges methodically, asks clarifying questions, and explains her reasoning clearly—valuable traits for both independent work and code reviews.
+
+- **Communication:** Jordan articulates technical concepts well and demonstrates genuine interest in understanding team needs and project context.
+
+- **Growth Mindset:** She speaks thoughtfully about learning from past projects and staying current with industry developments.
+
+## Considerations
+
+[Include any areas for development or questions to address during onboarding, if applicable]
+
+## Recommendation
+
+Jordan is well-qualified for this position and would be a valuable addition to the team. I recommend proceeding to the next stage of

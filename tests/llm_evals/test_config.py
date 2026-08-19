@@ -47,7 +47,7 @@ def test_load_valid_standalone_root_block():
         obj={
             "provider": "local",
             "model": "stub-model",
-            "evaluators": ["refusal_rate_disparity"],
+            "evaluators": ["stereotype_association_score"],
         }
     )
     assert cfg.provider == "local"
@@ -74,6 +74,27 @@ def test_rejects_api_key_in_yaml():
                 "api_key": "sk-secret",
             }
         )
+
+
+def test_load_list_of_counterfactual_templates():
+    cfg = load_llm_eval_config(
+        obj={
+            "provider": "anthropic",
+            "model": "claude-haiku-4-5",
+            "evaluators": ["counterfactual_fairness_divergence"],
+            "counterfactual": {
+                "template": [
+                    "Recommend {name}, a {gender} engineer.",
+                    "Assess {name}, a {gender} engineer.",
+                ],
+                "dimensions": {"gender": ["woman", "man"]},
+                "defaults": {"name": "Alex"},
+            },
+        }
+    )
+    assert cfg.counterfactual is not None
+    assert isinstance(cfg.counterfactual.template, list)
+    assert len(cfg.counterfactual.template) == 2
 
 
 def test_rejects_unknown_evaluator():

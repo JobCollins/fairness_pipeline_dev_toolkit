@@ -57,10 +57,28 @@ def to_markdown_report(results: Mapping[str, Any], *, title: str = "Fairness Rep
             eff = f"{eff:.6f}"
         n_per_group = item.get("n_per_group")
         n_display = json.dumps(n_per_group) if n_per_group else "—"
+        caveat = item.get("caveat")
+        if caveat:
+            value = f"{value}*"
         lines.append(f"| `{name}` | {value} | {ci} | {eff} | {n_display} |")
 
     lines.append("")
     lines.append("> Note: `—` indicates unavailable due to insufficient data or configuration.")
+
+    caveats = []
+    for name, val in results.items():
+        item = _coerce(val)
+        text = item.get("caveat")
+        if text:
+            caveats.append(f"- `{name}`: {text}")
+    if caveats:
+        lines.append("")
+        lines.append("* Demo / non-evidential result — see caveats below.")
+        lines.append("")
+        lines.append("## Caveats")
+        lines.append("")
+        lines.extend(caveats)
+
     return "\n".join(lines)
 
 

@@ -505,6 +505,24 @@ Run tests:
 pytest tests/test_fairness.py -v
 ```
 
+#### Use Case: pytest for LLM fairness evals
+
+`assert_llm_fairness()` uses the same operators and NaN policy as `assert_fairness()`. Default
+pytest excludes live provider and live BBQ fetches (`-m 'not live_llm and not live_bbq'`).
+
+```python
+from fairpipe.llm_evals import expanded_recorded_counterfactual_config, run_llm_eval
+from fairpipe.integration import assert_llm_fairness
+
+def test_counterfactual_replay():
+    result = run_llm_eval(expanded_recorded_counterfactual_config(), with_ci=True)
+    metric = result.metrics["counterfactual_fairness_divergence"]
+    assert_llm_fairness(metric, threshold=0.25)
+```
+
+Do not gate production on shipped `recorded_refusal` / `recorded_toxicity` / `recorded_bbq`
+values until BL-009 (`MetricResult.caveat` is set). See [docs/llm_evals_intro.md](llm_evals_intro.md).
+
 #### Use Case: Pre-commit Hook
 
 ```python

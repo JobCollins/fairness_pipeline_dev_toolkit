@@ -1,8 +1,4 @@
-"""
-Public API for LLM fairness evaluation (Phase 0 scaffolding).
-
-Evaluators and CLI integration ship in Phase 1+.
-"""
+"""Public API for LLM fairness evaluation."""
 
 from fairness_pipeline_dev_toolkit.metrics.base import MetricResult
 
@@ -19,9 +15,18 @@ from .client import (
 )
 from .config import CounterfactualConfig, LLMEvalConfig, load_llm_eval_config
 from .dry_run import DryRunEstimate, estimate_dry_run
-from .evaluators import CounterfactualFairnessEvaluator
+from .evaluators import (
+    CounterfactualFairnessEvaluator,
+    RefusalRateEvaluator,
+    StereotypeAssociationEvaluator,
+    ToxicitySentimentEvaluator,
+)
 from .fixtures import (
+    default_recorded_bbq_config,
     default_recorded_counterfactual_config,
+    default_recorded_refusal_config,
+    default_recorded_toxicity_config,
+    expanded_recorded_counterfactual_config,
     load_recorded_manifest,
     populate_recorded_counterfactual_cache,
 )
@@ -50,6 +55,9 @@ __all__ = [
     "LLMEvalConfig",
     "load_llm_eval_config",
     "CounterfactualFairnessEvaluator",
+    "RefusalRateEvaluator",
+    "ToxicitySentimentEvaluator",
+    "StereotypeAssociationEvaluator",
     "DryRunEstimate",
     "estimate_dry_run",
     "LLMEvalRunResult",
@@ -59,6 +67,10 @@ __all__ = [
     "DEFAULT_LLM_MIN_GROUP_SIZE",
     "apply_min_group_size",
     "default_recorded_counterfactual_config",
+    "expanded_recorded_counterfactual_config",
+    "default_recorded_refusal_config",
+    "default_recorded_toxicity_config",
+    "default_recorded_bbq_config",
     "load_recorded_manifest",
     "populate_recorded_counterfactual_cache",
 ]

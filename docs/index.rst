@@ -11,6 +11,7 @@ This toolkit provides a unified, statistically-rigorous framework for **detectin
 
    Getting Started <getting_started>
    User Guide <DOCS>
+   LLM Fairness Evals <llm_evals_intro>
    API Reference <api>
    Integration Guide <integration_guide>
    Performance <PERFORMANCE>

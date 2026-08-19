@@ -40,7 +40,7 @@ def _write_config(tmp_path):
     return cfg
 
 
-def test_llm_eval_cli_writes_markdown_report(tmp_path, capsys):
+def test_llm_eval_cli_writes_markdown_report(tmp_path, capsys, assert_no_live_llm_calls):
     cfg = _write_config(tmp_path)
     report = tmp_path / "llm_report.md"
 

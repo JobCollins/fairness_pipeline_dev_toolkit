@@ -17,7 +17,7 @@
 | BL-004 | `apply_pipeline` returns weights in opaque tuple — easy to discard silently | P1 | v0.8.0 |
 | BL-005 | CLI log output pollutes stdout alongside report content | P1 | v0.7.3 |
 | BL-006 | `test_risk_ratio_identity` Hypothesis flakiness under float edge cases | P2 | backlog |
-| BL-007 | Expand LLM counterfactual recorded-cache fixture to clear `min_group_size=5` | P1 | v0.8.0 |
+| BL-007 | Expand LLM counterfactual recorded-cache fixture to clear `min_group_size=5` | P1 | **closed (Phase 1)** |
 | BL-008 | Phase 2 LLM evaluators: per-evaluator recorded-cache fixtures (≥5/group) | P1 | v0.8.0 |
 
 ---
@@ -407,6 +407,18 @@ The "equal rates" precondition uses a tolerance that can treat distinct tiny rat
 
 ## BL-007 — Expand LLM counterfactual recorded-cache fixture to clear `min_group_size=5`
 
+**Status: closed in Phase 1** (forward-pulled; not deferred to v0.8.0).
+
+The expanded fixture lives at `fixtures/recorded_counterfactual_expanded/` (9 templates × 3
+groups = 27 live-recorded Claude Haiku responses, n=9 per group). Bootstrap resamples the 27
+matched template-level pairwise divergences (9 per group-pair). The notebook Part A keeps the
+n=1 fixture as a **positive guard demonstration** (`nan` at default threshold); Part B reports
+a finite divergence **≈ 0.196** (95% CI ≈ 0.185–0.205) with no `allow_small_samples` override.
+
+**Phase 2 note:** BL-008 evaluators must ship with adequately-sized recorded-cache fixtures
+**(≥5 responses per group) from the start** — do not land n=1 / `allow_small_samples` demos
+and pull this work forward a second time.
+
 ### Where Discovered
 Phase 1 gate review of `case_studies/llm_counterfactual_fairness.ipynb`. The committed
 Anthropic cache replay fixture has **n=1 prompt per demographic group** (`woman`, `man`,
@@ -414,10 +426,8 @@ Anthropic cache replay fixture has **n=1 prompt per demographic group** (`woman`
 `DEFAULT_LLM_MIN_GROUP_SIZE=5` are excluded and the metric returns **`nan`**.
 
 ### Impact
-**High (credibility).** The notebook is the primary artifact readers use to judge LLM fairness
-evals. The illustrative `allow_small_samples=True` smoke test proves plumbing works but must
-not be mistaken for a model behavior finding. Phase 2 evaluator scaffolding can proceed; this
-item tracks the **production-grade case study** separately.
+**Closed.** The production-grade case study is Part B of the notebook (expanded fixture).
+n=1 remains as Part A, a positive demonstration of the min_group_size guard.
 
 ### Scope
 **Counterfactual probe only** (`fixtures/recorded_counterfactual/`). Phase 2 evaluators
@@ -450,6 +460,11 @@ evaluators that share the same `llm_evals` runner, `ResponseCache`, replay-only 
 `DEFAULT_LLM_MIN_GROUP_SIZE=5` guard — each will need its **own** committed recorded-cache
 fixture sized to clear the default threshold without `allow_small_samples`.
 
+**Decision:** Phase 2 evaluators are **built with adequately-sized fixtures from day one**
+(≥5 responses per group, cache-once-replay, finite metric at default `min_group_size=5`).
+BL-007 was forward-pulled in Phase 1 because an n=1 credibility artifact is not acceptable;
+that pattern must not repeat per evaluator.
+
 ### Evaluators requiring fixtures (Phase 2)
 | Evaluator | Suggested fixture path (pattern) |
 |-----------|----------------------------------|
@@ -468,11 +483,74 @@ Follow the Phase 1 pattern established by `recorded_counterfactual.py`:
 ship synthetic demos (credibility risk) or block CI on live API keys. Planning fixtures up
 front keeps Phase 2 scaffolding separate from credibility artifacts.
 
+### Status
+
+**Closed in Phase 2 for size-only.** Each evaluator shipped with a committed cache
+sized to clear `min_group_size=5`. Replay tests confirm the pipeline runs; they do **not**
+assert group-level disparity. Vacuous zeros on refusal/toxicity (hiring-cache copies) and
+all-unknown BBQ answers are tracked as **BL-009**. Do not cite these fixtures as evidence
+until BL-009 closes.
+
 ### Acceptance criteria (per evaluator)
 - ≥5 provider responses per demographic group in committed cache
 - `run_llm_eval(default_recorded_*_config())` finite at default `min_group_size=5`
 - `tests/llm_evals/test_recorded_*_cache.py`: replay test + `@pytest.mark.live_llm` populate hook
 - Document fixture regeneration in `docs/llm_evals_intro.md`
+
+---
+
+## BL-009 — Re-record Phase 2 fixtures so they can produce group-level disparity
+
+**Status: open** (fixture re-record remaining). Does **not** block Phase 3. **Must close
+before** README, `docs/llm_evals_intro.md`, case studies, or reports cite
+`refusal_rate_disparity`, `toxicity_sentiment_disparity`, or `stereotype_association_score`
+replay results as unlabeled evidence of model behavior.
+
+**Done in this increment (provenance, not fixture re-record):**
+- `MetricResult.caveat` auto-populated iff the cache's ``manifest.json`` has
+  ``"illustrative": true`` (optional ``caveat`` string in the same file). Shipped
+  `recorded_refusal`, `recorded_toxicity`, and `recorded_bbq` manifests set this today.
+  Re-recording those paths with ``illustrative`` false/absent **clears** the caveat — no
+  separate path-list edit.
+- `to_markdown_report()` marks the value with `*` and renders a Caveats section
+- `log_llm_eval_results()` writes `llm_eval.<metric>.caveat` MLflow tags
+- REST `/validate` and `/workflow` serialize the **same** `MetricResult.caveat` field
+  (`null` for classifier metrics)
+
+### Where Discovered
+Phase 2 close review. BL-008 required ≥5/group committed caches from day one. Those caches
+exist and replay, but:
+
+- **Refusal / toxicity** copy the expanded **hiring-recommendation** cache. Lexical scorers
+  find **zero** refusals and **zero** `NEGATIVE_WORDS` hits in every group. Metric value is
+  vacuously **0.0**. Default-path tests only asserted `math.isfinite`.
+- **BBQ** local subset is **12/12 ambiguous-context** items (gold `label=2` / unknown). Live
+  Haiku answers are all choice `2`. That is consistent with the gold, not a silent
+  default-to-unknown on unparseable output (`_parse_choice` returns `None`; unparseable scores
+  as a **miss** / 0, not as unknown). Uniform unknown on an all-ambiguous set is legitimate
+  and **not** evidence of (or against) stereotype association. Real BBQ also has
+  **disambiguated** items that should resolve to a determinate person.
+
+### Target fixture shape (same discipline as BL-007)
+
+| Evaluator | Path | Target |
+|-----------|------|--------|
+| Refusal | `fixtures/recorded_refusal/` | Prompts that can elicit refusals **and** non-refusals, with **≥5/group** and **at least one group rate strictly different** from another under the lexical `refusal_score` (or document why a live model is uniformly non-refusing). Do **not** copy the hiring cache. |
+| Toxicity | `fixtures/recorded_toxicity/` | Prompts that can elicit lexical-negative vs clean outputs, **≥5/group**, **non-zero max−min** under `toxicity_score` (or a committed custom `scorer=` recording with the same bar). Do **not** copy the hiring cache. |
+| BBQ | `fixtures/recorded_bbq/` + local JSON subset | Mix **ambiguous** (gold unknown) and **disambiguated** items (≥5/group still). Replay must show the probe can distinguish stereotyped answers from gold-unknown; do not cite all-`2` on ambig-only as a fairness result. |
+
+Re-record live via `@pytest.mark.live_llm` populate hooks. Write manifests with
+``illustrative`` omitted or ``false``. Update replay tests to assert **non-vacuous
+group-rate variation** (not merely finite). Keep `assert_no_live_llm_calls`.
+
+### Acceptance criteria
+- Refusal and toxicity fixtures are **not** copies of `recorded_counterfactual_expanded/`
+- Each default-path replay test asserts a **non-zero** disparity **or** a documented
+  per-group rate table that is not `{group: 0.0}` for every group
+- BBQ subset includes disambiguated items; scorer regression
+  `test_unparseable_stereotype_response_is_miss_not_unknown` still passes
+- Docs/README/case studies that quote these metrics as unlabeled evidence land only after
+  this item; until then `MetricResult.caveat` must stay attached to the three demo caches
 
 ---
 
@@ -504,6 +582,7 @@ Create one GitHub issue per backlog item. Suggested labels:
 | BL-006 | `bug`, `testing`, `hypothesis`, `good first issue` |
 | BL-007 | `enhancement`, `llm-evals`, `case-study`, `documentation` |
 | BL-008 | `enhancement`, `llm-evals`, `phase-2`, `testing` |
+| BL-009 | `enhancement`, `llm-evals`, `phase-2`, `testing`, `fixtures` |
 
 ---
 

@@ -52,6 +52,9 @@ pip install 'fairpipe[llm]'
 | Anthropic | `ANTHROPIC_API_KEY` | Required for `provider: anthropic` |
 | Local / self-hosted | *(none)* | `provider: local` needs no API key |
 
+Toxicity/sentiment disparity uses a **lexical scorer by default** (no moderation API key). Plug in
+an external scorer via `ToxicitySentimentEvaluator.run_async(scorer=...)`.
+
 Example:
 
 ```bash
@@ -60,7 +63,7 @@ export OPENAI_API_KEY="sk-..."
 export ANTHROPIC_API_KEY="..."
 ```
 
-When the CLI ships in a later release, use `fairpipe llm-eval --dry-run` to estimate request volume and approximate cost before making live provider calls.
+When using the CLI, run `fairpipe llm-eval --dry-run` to estimate request volume and approximate cost before making live provider calls.
 
 ```bash
 fairpipe llm-eval --config llm_eval.yml --dry-run
@@ -181,10 +184,14 @@ measurement and detection through mitigation and CI/CD integration.
 
 Measures gender-coded divergence in LLM hiring recommendations using the counterfactual
 fairness probe with **committed live-recorded Anthropic responses** replayed from cache
-(no API key required for the default case study).
+(no API key required). Select kernel **Python (fairpipe .venv)** if imports fail.
 
-- **Counterfactual fairness divergence ≈ 0.55** (three-way gender swap, bootstrap CI)
-- End-to-end: YAML config → `run_llm_eval()` → `MetricResult` → effect-size assertion
+- **Part A** — n=1 per group → **`nan`** at default `min_group_size=5` (guard demonstration)
+- **Part B** — n=9 per group → divergence **≈ 0.196** (95% CI ≈ 0.185–0.205) on lexical
+  features; this is **not** “19.6% of candidates treated unfairly”
+- YAML config → `run_llm_eval()` → `MetricResult` (see `docs/llm_evals_intro.md`). Phase 2
+  refusal/toxicity/BBQ demo caches are labeled via `MetricResult.caveat` until BL-009;
+  they are **not** part of this notebook.
 
 ---
 

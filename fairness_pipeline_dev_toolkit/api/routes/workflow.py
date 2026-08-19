@@ -42,6 +42,8 @@ def _serialize_metrics(metrics: Dict[str, Any]) -> Dict[str, Any]:
                 "ci": ci,
                 "effect_size": _safe_float(val.effect_size),
                 "n_per_group": n_per_group,
+                # Same MetricResult.caveat field as LLM eval provenance (null for classifier metrics).
+                "caveat": getattr(val, "caveat", None),
             }
         else:
             try:

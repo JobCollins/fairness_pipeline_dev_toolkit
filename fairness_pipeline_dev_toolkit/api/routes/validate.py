@@ -46,6 +46,8 @@ def _result_to_dict(r) -> Dict[str, Any]:
         "ci": ci,
         "effect_size": _safe_float(r.effect_size),
         "n_per_group": n_per_group,
+        # Same MetricResult.caveat field as LLM eval provenance (null for classifier metrics).
+        "caveat": getattr(r, "caveat", None),
     }
 
 

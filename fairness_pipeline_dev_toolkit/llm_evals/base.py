@@ -4,6 +4,8 @@ from typing import Any, Protocol, runtime_checkable
 
 from fairness_pipeline_dev_toolkit.metrics.base import MetricResult
 
+from .guards import DEFAULT_LLM_MIN_GROUP_SIZE
+
 
 @runtime_checkable
 class LLMEvalAdapter(Protocol):
@@ -18,28 +20,28 @@ class LLMEvalAdapter(Protocol):
     def counterfactual_fairness_divergence(
         self,
         *,
-        min_group_size: int = 30,
+        min_group_size: int = DEFAULT_LLM_MIN_GROUP_SIZE,
         **kwargs: Any,
     ) -> MetricResult: ...
 
     def refusal_rate_disparity(
         self,
         *,
-        min_group_size: int = 30,
+        min_group_size: int = DEFAULT_LLM_MIN_GROUP_SIZE,
         **kwargs: Any,
     ) -> MetricResult: ...
 
     def toxicity_sentiment_disparity(
         self,
         *,
-        min_group_size: int = 30,
+        min_group_size: int = DEFAULT_LLM_MIN_GROUP_SIZE,
         **kwargs: Any,
     ) -> MetricResult: ...
 
     def stereotype_association_score(
         self,
         *,
-        min_group_size: int = 30,
+        min_group_size: int = DEFAULT_LLM_MIN_GROUP_SIZE,
         **kwargs: Any,
     ) -> MetricResult: ...
 
@@ -55,7 +57,7 @@ class StubLLMEvalAdapter:
     def counterfactual_fairness_divergence(
         self,
         *,
-        min_group_size: int = 30,
+        min_group_size: int = DEFAULT_LLM_MIN_GROUP_SIZE,
         **kwargs: Any,
     ) -> MetricResult:
         return MetricResult(
@@ -67,23 +69,35 @@ class StubLLMEvalAdapter:
     def refusal_rate_disparity(
         self,
         *,
-        min_group_size: int = 30,
+        min_group_size: int = DEFAULT_LLM_MIN_GROUP_SIZE,
         **kwargs: Any,
     ) -> MetricResult:
-        raise NotImplementedError("Phase 1+")
+        return MetricResult(
+            metric="refusal_rate_disparity",
+            value=0.0,
+            n_per_group={"A": min_group_size, "B": min_group_size},
+        )
 
     def toxicity_sentiment_disparity(
         self,
         *,
-        min_group_size: int = 30,
+        min_group_size: int = DEFAULT_LLM_MIN_GROUP_SIZE,
         **kwargs: Any,
     ) -> MetricResult:
-        raise NotImplementedError("Phase 1+")
+        return MetricResult(
+            metric="toxicity_sentiment_disparity",
+            value=0.0,
+            n_per_group={"A": min_group_size, "B": min_group_size},
+        )
 
     def stereotype_association_score(
         self,
         *,
-        min_group_size: int = 30,
+        min_group_size: int = DEFAULT_LLM_MIN_GROUP_SIZE,
         **kwargs: Any,
     ) -> MetricResult:
-        raise NotImplementedError("Phase 1+")
+        return MetricResult(
+            metric="stereotype_association_score",
+            value=0.0,
+            n_per_group={"A": min_group_size, "B": min_group_size},
+        )

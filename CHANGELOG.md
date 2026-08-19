@@ -16,21 +16,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Anthropic, local), `ResponseCache`, and `load_llm_eval_config()` for the `llm_eval:` YAML block.
   Shim re-exports at `fairpipe.llm_evals`.
 - **`fairpipe[llm]` optional extra:** `openai`, `anthropic`, and `httpx` for LLM provider calls.
-- **`live_llm` pytest marker:** registered and excluded from default test runs (`-m 'not live_llm'`).
+- **`live_llm` / `live_bbq` pytest markers:** excluded from default runs
+  (`-m 'not live_llm and not live_bbq'`). `live_llm` is provider calls; `live_bbq` is pinned
+  BBQ JSONL fetch.
 - **Counterfactual fairness probe (Phase 1):** `CounterfactualFairnessEvaluator`, `run_llm_eval()`,
   `fairpipe llm-eval` CLI with `--dry-run`, `--report-md`, and `--transcripts-out`.
-- **Case study:** `case_studies/llm_counterfactual_fairness.ipynb` (Anthropic cache replay fixture).
-- **Recorded fixture:** committed live-recorded counterfactual responses under
-  `llm_evals/fixtures/recorded_counterfactual/`; `default_recorded_counterfactual_config()` for replay-only runs.
+- **Case study:** `case_studies/llm_counterfactual_fairness.ipynb` — Part A is the n=1
+  `min_group_size` guard (`nan`); Part B replays the expanded fixture (~0.196 divergence,
+  95% CI ≈ 0.185–0.205 on Haiku hiring templates). Guided markdown interprets those
+  numbers (lexical feature distance, not a percentage-unfair rate). The first cell prepends
+  the repo root to `sys.path` so Jupyter/Cursor kernels that share Homebrew's 3.12.12
+  version string still import the package.
+- **Recorded fixtures:** n=1 guard demo at `recorded_counterfactual/`; expanded n=9-per-group
+  fixture at `recorded_counterfactual_expanded/` (`expanded_recorded_counterfactual_config()`).
+- **Replay-only:** `run_llm_eval()` sets `replay_only=True` whenever `cache_dir` is set;
+  a cache miss raises `CacheMissError` instead of calling the provider.
 - **Shared guards:** `DEFAULT_LLM_MIN_GROUP_SIZE=5` with classifier-parity exclude + `nan` semantics;
   `allow_small_samples` override for illustrative runs only.
+- **Phase 2 evaluators:** `refusal_rate_disparity`, `toxicity_sentiment_disparity`,
+  `stereotype_association_score` (BBQ loader; local subset by default).
+- **`assert_llm_fairness()`** and **`log_llm_eval_results()`** mirroring classifier gating/logging.
+- **BL-009 provenance:** `MetricResult.caveat` when the cache ``manifest.json`` has
+  ``illustrative: true`` (not a hardcoded path). Markdown + MLflow tags. Fixture re-record
+  still open.
 
 ### Documentation
 
 - `README.md`: "Setting LLM provider credentials" section and comparison-table row for LLM fairness evals.
-- `docs/llm_evals_intro.md`: LLM fairness evals explainer and worked CLI example.
-- `DOCS.md`: Phase 8 — LLM Fairness Evaluation.
-- `docs/api.md`: LLM evals API and CLI reference.
+- `docs/llm_evals_intro.md`: LLM fairness evals explainer, CLI/API, case-study walkthrough.
+- `DOCS.md`: Phase 8 — LLM Fairness Evaluation (four evaluators, replay-only, case study).
+- `docs/LLM_EVALS_SPEC.md`: status updated to Phase 0–2 implemented.
+- `docs/api.md`: LLM evals API and CLI reference (Phase 0–2); `MetricResult.caveat`.
+- `docs/getting_started.md`, `docs/integration_guide.md`, `docs/playbook-part-five-fairpipe.md`:
+  pointers to LLM evals / `assert_llm_fairness()`.
+- `docs/index.rst`: Sphinx toctree entry for `llm_evals_intro`.
+- `NOTICE`, `ATTRIBUTION.md`: BBQ (CC BY 4.0) attribution and U.S.-context caveat.
 
 ## [v0.9.1] — 2026-05-22
 

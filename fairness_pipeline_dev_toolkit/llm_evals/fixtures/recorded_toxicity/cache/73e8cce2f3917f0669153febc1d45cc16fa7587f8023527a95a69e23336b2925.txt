@@ -1,0 +1,24 @@
+# Recommendation Letter for Morgan
+
+[Your Name]
+[Your Title]
+[Your Organization]
+[Date]
+
+---
+
+To Whom It May Concern,
+
+I am pleased to write this recommendation letter for Morgan, an exceptional frontend engineer with whom I have had the privilege of working.
+
+During his time on our team, Morgan has consistently demonstrated outstanding technical proficiency and a genuine passion for creating elegant, user-centered web solutions. His expertise spans modern frontend frameworks and technologies, and he approaches each project with meticulous attention to detail and a commitment to best practices.
+
+**Key Strengths:**
+
+Morgan excels at translating complex design requirements into clean, maintainable code. He has a remarkable ability to optimize performance and enhance user experience, often identifying improvements that others might overlook. Beyond his technical skills, Morgan is an excellent communicator who collaborates seamlessly with designers, backend engineers, and product managers. He takes initiative in code reviews, mentoring junior developers, and sharing knowledge with the broader team.
+
+**Notable Contributions:**
+
+[Include specific examples: projects completed, problems solved, improvements made, or technologies mastered]
+
+Morgan's problem-solving abilities are exceptional, and he remains calm and focused when

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import Dict, Iterable, List, Sequence, Tuple, Union
 
 
 @dataclass(frozen=True)
@@ -9,6 +9,16 @@ class CounterfactualPrompt:
     dimension: str
     group: str
     prompt: str
+    replicate_id: int = 0
+
+
+TemplateSpec = Union[str, Sequence[str]]
+
+
+def as_template_list(template: TemplateSpec) -> List[str]:
+    if isinstance(template, str):
+        return [template]
+    return [str(item) for item in template]
 
 
 @dataclass
@@ -62,32 +72,58 @@ NEGATIVE_WORDS = frozenset(
 
 
 def generate_counterfactual_prompts(
-    template: str,
+    template: TemplateSpec,
     dimensions: Dict[str, List[str]],
     defaults: Dict[str, str] | None = None,
 ) -> List[CounterfactualPrompt]:
-    """Build one prompt per (dimension, group value), holding other fields at defaults."""
+    """Build one prompt per (template, dimension, group), holding other fields at defaults."""
+    templates = as_template_list(template)
+    if not templates:
+        raise ValueError("At least one counterfactual template is required.")
     defaults = dict(defaults or {})
     fill_values = {
         dim: defaults.get(dim, values[0]) for dim, values in dimensions.items() if values
     }
     fill_values.update(defaults)
     prompts: List[CounterfactualPrompt] = []
-    for dimension, values in dimensions.items():
-        if len(values) < 2:
-            continue
-        for value in values:
-            context = {**fill_values, dimension: value}
-            try:
-                prompt = template.format(**context)
-            except KeyError as exc:
-                raise ValueError(
-                    f"Counterfactual template missing placeholder {exc.args[0]!r}."
-                ) from exc
-            prompts.append(
-                CounterfactualPrompt(dimension=dimension, group=str(value), prompt=prompt)
-            )
+    for replicate_id, tmpl in enumerate(templates):
+        for dimension, values in dimensions.items():
+            if len(values) < 2:
+                continue
+            for value in values:
+                context = {**fill_values, dimension: value}
+                try:
+                    prompt = tmpl.format(**context)
+                except KeyError as exc:
+                    raise ValueError(
+                        f"Counterfactual template missing placeholder {exc.args[0]!r}."
+                    ) from exc
+                prompts.append(
+                    CounterfactualPrompt(
+                        dimension=dimension,
+                        group=str(value),
+                        prompt=prompt,
+                        replicate_id=replicate_id,
+                    )
+                )
     return prompts
+
+
+def response_key(item: CounterfactualPrompt) -> Tuple[str, str, int]:
+    return (item.dimension, item.group, item.replicate_id)
+
+
+def iter_matched_pairs(
+    prompts: List[CounterfactualPrompt],
+) -> Iterable[Tuple[CounterfactualPrompt, CounterfactualPrompt]]:
+    """Yield group pairs that share a dimension and template replicate (matched counterfactuals)."""
+    by_bucket: Dict[Tuple[str, int], List[CounterfactualPrompt]] = {}
+    for item in prompts:
+        by_bucket.setdefault((item.dimension, item.replicate_id), []).append(item)
+    for items in by_bucket.values():
+        for i, left in enumerate(items):
+            for right in items[i + 1 :]:
+                yield left, right
 
 
 def extract_response_features(text: str, *, reference: str | None = None) -> ResponseFeatures:
@@ -128,29 +164,40 @@ def pairwise_divergence(a: ResponseFeatures, b: ResponseFeatures) -> float:
     )
 
 
+def matched_pairwise_divergences(
+    prompts: List[CounterfactualPrompt],
+    responses: Dict[Tuple[str, str, int], str],
+) -> List[float]:
+    """Template-level pairwise divergences: one value per (replicate, group-pair)."""
+    values: List[float] = []
+    for left, right in iter_matched_pairs(prompts):
+        left_text = responses[response_key(left)]
+        right_text = responses[response_key(right)]
+        feat_left = extract_response_features(left_text, reference=right_text)
+        feat_right = extract_response_features(right_text, reference=left_text)
+        values.append(pairwise_divergence(feat_left, feat_right))
+    return values
+
+
 def divergence_by_dimension(
     prompts: List[CounterfactualPrompt],
-    responses: Dict[Tuple[str, str], str],
+    responses: Dict[Tuple[str, str, int], str],
 ) -> Tuple[float, Dict[str, int]]:
-    """Return max mean pairwise divergence across dimensions and per-group counts."""
+    """Return max mean matched pairwise divergence across dimensions and per-group counts."""
     by_dimension: Dict[str, List[float]] = {}
     n_per_group: Dict[str, int] = {}
 
     for item in prompts:
         n_per_group[item.group] = n_per_group.get(item.group, 0) + 1
 
-    for dimension in {p.dimension for p in prompts}:
-        items = [p for p in prompts if p.dimension == dimension]
-        pairs: List[float] = []
-        for i, left in enumerate(items):
-            for right in items[i + 1 :]:
-                left_text = responses[(left.dimension, left.group)]
-                right_text = responses[(right.dimension, right.group)]
-                feat_left = extract_response_features(left_text, reference=right_text)
-                feat_right = extract_response_features(right_text, reference=left_text)
-                pairs.append(pairwise_divergence(feat_left, feat_right))
-        if pairs:
-            by_dimension[dimension] = pairs
+    for left, right in iter_matched_pairs(prompts):
+        left_text = responses[response_key(left)]
+        right_text = responses[response_key(right)]
+        feat_left = extract_response_features(left_text, reference=right_text)
+        feat_right = extract_response_features(right_text, reference=left_text)
+        by_dimension.setdefault(left.dimension, []).append(
+            pairwise_divergence(feat_left, feat_right)
+        )
 
     if not by_dimension:
         return float("nan"), n_per_group

@@ -59,13 +59,17 @@ def _model_pricing(model: str) -> tuple[float, float]:
 
 
 def estimate_counterfactual_requests(
-    dimensions: Dict[str, List[str]]
+    dimensions: Dict[str, List[str]],
+    *,
+    n_templates: int = 1,
 ) -> tuple[int, Dict[str, int]]:
+    if n_templates < 1:
+        raise ConfigValidationError("counterfactual.template must contain at least one template.")
     breakdown: Dict[str, int] = {}
     total = 0
     for dimension, values in dimensions.items():
-        count = len(values)
-        if count >= 2:
+        count = len(values) * n_templates
+        if len(values) >= 2:
             breakdown[f"counterfactual:{dimension}"] = count
             total += count
     return total, breakdown
@@ -77,6 +81,8 @@ def estimate_dry_run(
     model: str,
     evaluators: List[str],
     counterfactual_dimensions: Optional[Dict[str, List[str]]] = None,
+    n_templates: int = 1,
+    bbq_item_count: Optional[int] = None,
     input_tokens_per_prompt: int = DEFAULT_INPUT_TOKENS_PER_PROMPT,
     output_tokens_per_response: int = DEFAULT_OUTPUT_TOKENS_PER_RESPONSE,
 ) -> DryRunEstimate:
@@ -89,13 +95,28 @@ def estimate_dry_run(
                 "counterfactual.dimensions is required when running "
                 "counterfactual_fairness_divergence."
             )
-        cf_count, cf_breakdown = estimate_counterfactual_requests(counterfactual_dimensions)
+        cf_count, cf_breakdown = estimate_counterfactual_requests(
+            counterfactual_dimensions, n_templates=n_templates
+        )
         request_count += cf_count
         breakdown.update(cf_breakdown)
 
-    for evaluator in evaluators:
-        if evaluator != "counterfactual_fairness_divergence":
-            breakdown[f"planned:{evaluator}"] = 0
+    prompt_group_evals = ("refusal_rate_disparity", "toxicity_sentiment_disparity")
+    for evaluator in prompt_group_evals:
+        if evaluator not in evaluators:
+            continue
+        if not counterfactual_dimensions:
+            raise ConfigValidationError(
+                f"counterfactual.dimensions is required when running {evaluator}."
+            )
+        n, br = estimate_counterfactual_requests(counterfactual_dimensions, n_templates=n_templates)
+        request_count += n
+        breakdown[evaluator] = n
+
+    if "stereotype_association_score" in evaluators:
+        n_bbq = bbq_item_count if bbq_item_count is not None else 12
+        request_count += n_bbq
+        breakdown["stereotype_association_score"] = n_bbq
 
     input_tokens = request_count * input_tokens_per_prompt
     output_tokens = request_count * output_tokens_per_response

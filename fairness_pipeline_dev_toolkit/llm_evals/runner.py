@@ -9,12 +9,17 @@ from fairness_pipeline_dev_toolkit.integration.reporting import to_markdown_repo
 from fairness_pipeline_dev_toolkit.metrics.base import MetricResult
 
 from ._async_utils import run_coroutine
+from .bbq import load_bbq_items
 from .cache import ResponseCache
 from .client import LLMClient, get_llm_client
 from .config import LLMEvalConfig, load_llm_eval_config
 from .dry_run import DryRunEstimate, estimate_dry_run
 from .evaluators.counterfactual_fairness import CounterfactualFairnessEvaluator
+from .evaluators.refusal import RefusalRateEvaluator
+from .evaluators.stereotype import StereotypeAssociationEvaluator
+from .evaluators.toxicity import ToxicitySentimentEvaluator
 from .guards import DEFAULT_LLM_MIN_GROUP_SIZE
+from .probes.counterfactual import as_template_list
 
 
 @dataclass
@@ -60,11 +65,20 @@ async def run_llm_eval_async(
     allow_small = config.allow_small_samples if allow_small_samples is None else allow_small_samples
 
     cf_dims = config.counterfactual.dimensions if config.counterfactual else None
+    n_templates = (
+        len(as_template_list(config.counterfactual.template)) if config.counterfactual else 1
+    )
     estimate = estimate_dry_run(
         provider=config.provider,
         model=config.model,
         evaluators=config.evaluators,
         counterfactual_dimensions=cf_dims,
+        n_templates=n_templates,
+        bbq_item_count=(
+            len(load_bbq_items(config.bbq_path))
+            if "stereotype_association_score" in config.evaluators
+            else None
+        ),
     )
     if dry_run:
         return LLMEvalRunResult(metrics={}, dry_run=estimate)
@@ -84,6 +98,45 @@ async def run_llm_eval_async(
         )
         metrics["counterfactual_fairness_divergence"] = metric
         transcripts["counterfactual"] = rows
+
+    if "refusal_rate_disparity" in config.evaluators:
+        evaluator = RefusalRateEvaluator(config, llm_client)
+        metric, rows = await evaluator.run_async(
+            min_group_size=min_group_size,
+            allow_small_samples=allow_small,
+            with_ci=with_ci,
+            ci_level=ci_level,
+            bootstrap_B=bootstrap_B,
+            random_state=random_state,
+        )
+        metrics["refusal_rate_disparity"] = metric
+        transcripts["refusal"] = rows
+
+    if "toxicity_sentiment_disparity" in config.evaluators:
+        evaluator = ToxicitySentimentEvaluator(config, llm_client)
+        metric, rows = await evaluator.run_async(
+            min_group_size=min_group_size,
+            allow_small_samples=allow_small,
+            with_ci=with_ci,
+            ci_level=ci_level,
+            bootstrap_B=bootstrap_B,
+            random_state=random_state,
+        )
+        metrics["toxicity_sentiment_disparity"] = metric
+        transcripts["toxicity"] = rows
+
+    if "stereotype_association_score" in config.evaluators:
+        evaluator = StereotypeAssociationEvaluator(config, llm_client)
+        metric, rows = await evaluator.run_async(
+            min_group_size=min_group_size,
+            allow_small_samples=allow_small,
+            with_ci=with_ci,
+            ci_level=ci_level,
+            bootstrap_B=bootstrap_B,
+            random_state=random_state,
+        )
+        metrics["stereotype_association_score"] = metric
+        transcripts["stereotype"] = rows
 
     return LLMEvalRunResult(metrics=metrics, dry_run=estimate, transcripts=transcripts)
 

@@ -67,3 +67,5 @@ case_studies/data/
 
 .env
 .env.example
+
+docs/PHASE_3_HANDOFF.md

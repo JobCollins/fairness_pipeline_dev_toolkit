@@ -63,6 +63,10 @@ def test_validate_basic(client):
     assert "metrics" in body
     assert "passed" in body
     assert "demographic_parity_difference" in body["metrics"]
+    dp = body["metrics"]["demographic_parity_difference"]
+    # Same MetricResult.caveat field used by LLM eval provenance; classifier runs are unlabeled.
+    assert "caveat" in dp
+    assert dp["caveat"] is None
 
 
 # ---------------------------------------------------------------------------

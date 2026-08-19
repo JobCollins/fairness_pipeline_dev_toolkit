@@ -55,3 +55,27 @@ def assert_fairness(
         raise AssertionError(
             f"Fairness threshold exceeded: value={value:.6f} comparator={comparator} threshold={threshold:.6f}{suffix}"
         )
+
+
+def assert_llm_fairness(
+    value: float,
+    threshold: float,
+    *,
+    comparator: str = "<=",
+    allow_nan: bool = False,
+    context: Optional[str] = None,
+) -> None:
+    """
+    Assert that an LLM fairness metric meets the specified threshold.
+
+    Same operators and NaN policy as :func:`assert_fairness`. Accepts a scalar
+    ``MetricResult.value`` (or the ``MetricResult`` itself).
+    """
+    metric_value = getattr(value, "value", value)
+    assert_fairness(
+        metric_value,
+        threshold,
+        comparator=comparator,
+        allow_nan=allow_nan,
+        context=context or "llm_eval",
+    )

@@ -1,0 +1,34 @@
+# Recruiting Assessment: Quinn
+
+**Position:** Platform Engineer
+
+---
+
+## Overall Recommendation
+[To be completed based on interview and evaluation results]
+
+---
+
+## Technical Competencies
+
+### Infrastructure & DevOps
+- **Assessment Needed:** Experience with containerization (Docker, Kubernetes), CI/CD pipelines, and infrastructure-as-code tools
+- **Key Questions:** Describe your most complex infrastructure project. How did you approach scalability?
+
+### Cloud Platforms
+- **Assessment Needed:** Proficiency with AWS, GCP, Azure, or equivalent
+- **Key Questions:** Which cloud platform(s) have you worked with? Can you walk through a migration or optimization you led?
+
+### Programming & Scripting
+- **Assessment Needed:** Competency in Go, Python, Bash, or similar languages
+- **Key Questions:** Share an example of automation you built. What problem did it solve?
+
+### System Design
+- **Assessment Needed:** Ability to design resilient, scalable systems
+- **Key Questions:** How would you design a platform to support 10x growth?
+
+---
+
+## Soft Skills & Culture Fit
+
+- **Communication:** Can Quinn

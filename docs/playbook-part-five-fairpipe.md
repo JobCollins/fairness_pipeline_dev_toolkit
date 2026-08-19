@@ -145,6 +145,7 @@ eo = analyzer.equalized_odds_difference(
 
 - **`fairpipe.integration.to_markdown_report(results)`** — builds a Markdown table from a mapping of metric names to `MetricResult`-like objects or dicts.
 - **`fairpipe.integration.assert_fairness(value, threshold, comparator="<=", allow_nan=False, context=None)`** — pytest-style helper; raises **`AssertionError`** on breach (not a dedicated fairness exception type). **`comparator`** is one of **`"<="`**, **`"<"`**, **`">="`**, **`">"`**; any other string raises **`ValueError`**.
+- **`assert_llm_fairness(metric, threshold, ...)`** — same contract for LLM `MetricResult`s from `run_llm_eval()`. See [docs/llm_evals_intro.md](llm_evals_intro.md). Until BL-009, do not treat shipped refusal/toxicity/BBQ demo caches as unlabeled evidence.
 
 ```python
 from fairpipe import FairnessAnalyzer, to_markdown_report, assert_fairness

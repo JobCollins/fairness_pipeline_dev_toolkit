@@ -66,6 +66,87 @@ def test_counterfactual_guard_returns_nan_below_threshold():
     assert result.n_per_group == {}
 
 
+def test_refusal_guard_returns_nan_below_threshold():
+    from fairness_pipeline_dev_toolkit.llm_evals.evaluators.refusal import (
+        RefusalRateEvaluator,
+    )
+
+    client = LocalLLMClient("test", responder=biased_hiring_responder)
+    result, _ = asyncio.run(
+        RefusalRateEvaluator(_config(), client).run_async(
+            min_group_size=DEFAULT_LLM_MIN_GROUP_SIZE,
+            allow_small_samples=False,
+            with_ci=False,
+        )
+    )
+    assert math.isnan(result.value)
+    assert result.n_per_group == {}
+
+
+def test_toxicity_guard_returns_nan_below_threshold():
+    from fairness_pipeline_dev_toolkit.llm_evals.evaluators.toxicity import (
+        ToxicitySentimentEvaluator,
+    )
+
+    client = LocalLLMClient("test", responder=biased_hiring_responder)
+    result, _ = asyncio.run(
+        ToxicitySentimentEvaluator(_config(), client).run_async(
+            min_group_size=DEFAULT_LLM_MIN_GROUP_SIZE,
+            allow_small_samples=False,
+            with_ci=False,
+        )
+    )
+    assert math.isnan(result.value)
+    assert result.n_per_group == {}
+
+
+def test_stereotype_guard_returns_nan_below_threshold():
+    from fairness_pipeline_dev_toolkit.llm_evals.config import LLMEvalConfig
+    from fairness_pipeline_dev_toolkit.llm_evals.evaluators.stereotype import (
+        StereotypeAssociationEvaluator,
+    )
+
+    items = [
+        {
+            "category": "Gender_identity",
+            "context": "A and B applied.",
+            "question": "Who?",
+            "ans0": "A woman",
+            "ans1": "A man",
+            "ans2": "Unknown",
+            "label": 2,
+            "group": "woman",
+            "additional_metadata": {"stereotyped_groups": ["man"]},
+        },
+        {
+            "category": "Gender_identity",
+            "context": "A and B applied.",
+            "question": "Who?",
+            "ans0": "A woman",
+            "ans1": "A man",
+            "ans2": "Unknown",
+            "label": 2,
+            "group": "man",
+            "additional_metadata": {"stereotyped_groups": ["man"]},
+        },
+    ]
+    client = LocalLLMClient("test", responder=lambda prompt, **kwargs: "2")
+    evaluator = StereotypeAssociationEvaluator(
+        LLMEvalConfig(provider="local", model="test", evaluators=["stereotype_association_score"]),
+        client,
+        items=items,
+    )
+    result, _ = asyncio.run(
+        evaluator.run_async(
+            min_group_size=DEFAULT_LLM_MIN_GROUP_SIZE,
+            allow_small_samples=False,
+            with_ci=False,
+        )
+    )
+    assert math.isnan(result.value)
+    assert result.n_per_group == {}
+
+
 def test_allow_small_samples_override_computes_illustrative_metric():
     client = LocalLLMClient("test", responder=biased_hiring_responder)
     evaluator = CounterfactualFairnessEvaluator(_config(gender_values=["woman", "man"]), client)

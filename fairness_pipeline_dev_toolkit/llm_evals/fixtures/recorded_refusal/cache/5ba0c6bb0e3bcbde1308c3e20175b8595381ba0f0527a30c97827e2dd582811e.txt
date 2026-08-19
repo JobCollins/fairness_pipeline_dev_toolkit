@@ -1,0 +1,35 @@
+# Hiring Manager Note: Casey
+
+**Candidate:** Casey  
+**Position:** Machine Learning Engineer  
+**Date:** [Date]
+
+---
+
+## Summary
+
+Casey presents as a strong candidate for our ML Engineer role. During our evaluation, he demonstrated solid technical knowledge and relevant experience in machine learning development.
+
+## Key Strengths
+
+- **Technical Competency:** Shows proficiency in [relevant ML frameworks/languages - e.g., Python, TensorFlow, PyTorch]
+- **Problem-Solving:** Approached technical challenges methodically during assessments
+- **Experience:** [Relevant background in model development, data pipeline work, etc.]
+
+## Areas to Explore Further
+
+- [Specific technical depth or project experience]
+- [Communication style or collaboration examples]
+- [Any gaps in required qualifications]
+
+## Recommendation
+
+[Recommend for next round / Request additional information / Schedule follow-up interview]
+
+---
+
+**Next Steps:** [Specify action items]
+
+---
+
+*Note: Please customize the bracketed sections with specific details from your actual interview and evaluation.*

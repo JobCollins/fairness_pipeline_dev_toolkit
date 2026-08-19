@@ -8,7 +8,7 @@ import nbformat
 from nbclient import NotebookClient
 
 
-def test_llm_counterfactual_notebook_executes():
+def test_llm_counterfactual_notebook_executes(assert_no_live_llm_calls):
     notebook_path = (
         Path(__file__).resolve().parents[2] / "case_studies" / "llm_counterfactual_fairness.ipynb"
     )
@@ -24,6 +24,6 @@ def test_llm_counterfactual_notebook_executes():
         if out.get("output_type") == "stream"
     )
     assert "Guard correctly blocked below-threshold fixture" in rendered
-    assert "ILLUSTRATIVE RUN (allow_small_samples=True" in rendered
+    assert "Part B — expanded fixture at default min_group_size" in rendered
     assert "Counterfactual fairness divergence:" in rendered
-    assert "Notebook smoke-test check passed" in rendered
+    assert "Notebook threshold-clearing check passed." in rendered

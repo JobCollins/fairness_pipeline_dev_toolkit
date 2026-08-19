@@ -9,6 +9,37 @@ from fairness_pipeline_dev_toolkit.llm_evals.dry_run import estimate_dry_run
 from fairness_pipeline_dev_toolkit.llm_evals.runner import run_llm_eval
 
 
+def test_estimate_dry_run_multiplies_by_template_count():
+    estimate = estimate_dry_run(
+        provider="anthropic",
+        model="claude-haiku-4-5",
+        evaluators=["counterfactual_fairness_divergence"],
+        counterfactual_dimensions={"gender": ["woman", "man", "nonbinary"]},
+        n_templates=9,
+    )
+    assert estimate.request_count == 27
+    assert estimate.breakdown["counterfactual:gender"] == 27
+
+
+def test_estimate_dry_run_counts_phase2_evaluators():
+    estimate = estimate_dry_run(
+        provider="anthropic",
+        model="claude-haiku-4-5",
+        evaluators=[
+            "refusal_rate_disparity",
+            "toxicity_sentiment_disparity",
+            "stereotype_association_score",
+        ],
+        counterfactual_dimensions={"gender": ["woman", "man", "nonbinary"]},
+        n_templates=9,
+        bbq_item_count=12,
+    )
+    assert estimate.request_count == 27 + 27 + 12
+    assert estimate.breakdown["refusal_rate_disparity"] == 27
+    assert estimate.breakdown["toxicity_sentiment_disparity"] == 27
+    assert estimate.breakdown["stereotype_association_score"] == 12
+
+
 def test_estimate_dry_run_counts_requests():
     estimate = estimate_dry_run(
         provider="openai",

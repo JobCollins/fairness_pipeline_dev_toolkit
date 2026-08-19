@@ -22,6 +22,7 @@ class MetricResult:
     ci: Optional[tuple[float, float]] = None  # confidence interval (Phase 3 fills this)
     effect_size: Optional[float] = None  # risk ratio, Cohen's d, etc. (Phase 3 fills this)
     n_per_group: Optional[Dict[str, int]] = None  # sample sizes by group
+    caveat: Optional[str] = None  # provenance warning; None for ordinary user data
 
 
 # ---------------------------------------

@@ -32,7 +32,7 @@ CREDENTIAL_FIELD_NAMES = frozenset(
 
 @dataclass
 class CounterfactualConfig:
-    template: str
+    template: str | List[str]
     dimensions: Dict[str, List[str]]
     defaults: Dict[str, str] = field(default_factory=dict)
 
@@ -47,6 +47,7 @@ class LLMEvalConfig:
     cache_dir: Optional[str] = None
     max_requests_per_run: Optional[int] = None
     params: Dict[str, Any] = field(default_factory=dict)
+    bbq_path: Optional[str] = None
     allow_small_samples: bool = False
 
 
@@ -118,9 +119,16 @@ def _validate_counterfactual_block(value: Any) -> Optional[CounterfactualConfig]
     if not isinstance(value, dict):
         raise ConfigValidationError("Config field 'counterfactual' must be a mapping.")
     template = value.get("template")
-    if not isinstance(template, str) or not template.strip():
+    if isinstance(template, list):
+        cleaned_template: str | List[str] = _ensure_list_of_strings(
+            template, "counterfactual.template"
+        )
+    elif isinstance(template, str) and template.strip():
+        cleaned_template = template.strip()
+    else:
         raise ConfigValidationError(
-            "Config field 'counterfactual.template' must be a non-empty string."
+            "Config field 'counterfactual.template' must be a non-empty string "
+            "or a list of non-empty strings."
         )
     dimensions = _validate_dimensions(value.get("dimensions"), "counterfactual.dimensions")
     if not dimensions:
@@ -132,7 +140,7 @@ def _validate_counterfactual_block(value: Any) -> Optional[CounterfactualConfig]
         )
     cleaned_defaults = {str(k): str(v) for k, v in defaults.items()}
     return CounterfactualConfig(
-        template=template.strip(),
+        template=cleaned_template,
         dimensions=dimensions,
         defaults=cleaned_defaults,
     )
@@ -182,11 +190,20 @@ def _validate_llm_eval_block(raw: Dict[str, Any]) -> LLMEvalConfig:
             ) from None
 
     counterfactual = _validate_counterfactual_block(raw.get("counterfactual"))
-    if "counterfactual_fairness_divergence" in evaluators and counterfactual is None:
+    needs_counterfactual = {
+        "counterfactual_fairness_divergence",
+        "refusal_rate_disparity",
+        "toxicity_sentiment_disparity",
+    }
+    if needs_counterfactual.intersection(evaluators) and counterfactual is None:
         raise ConfigValidationError(
             "Config field 'counterfactual' is required when "
-            "'counterfactual_fairness_divergence' is listed in evaluators."
+            f"{sorted(needs_counterfactual)} is listed in evaluators."
         )
+
+    bbq_path = raw.get("bbq_path")
+    if bbq_path is not None and not isinstance(bbq_path, str):
+        raise ConfigValidationError("Config field 'bbq_path' must be a string when provided.")
 
     allow_small_samples = raw.get("allow_small_samples", False)
     if not isinstance(allow_small_samples, bool):
@@ -203,6 +220,7 @@ def _validate_llm_eval_block(raw: Dict[str, Any]) -> LLMEvalConfig:
         cache_dir=cache_dir,
         max_requests_per_run=max_requests,
         params=dict(params or {}),
+        bbq_path=bbq_path,
         allow_small_samples=allow_small_samples,
     )
 

@@ -55,10 +55,11 @@ line-length = 100
 profile = "black"
 
 [tool.pytest.ini_options]
-addopts = "-vv -ra --maxfail=1 --disable-warnings -m 'not live_llm'"
+addopts = "-vv -ra --maxfail=1 --disable-warnings -m 'not live_llm and not live_bbq'"
 pythonpath = ["."]
 markers = [
     "live_llm: tests that make real calls to an LLM provider (opt-in, excluded by default)",
+    "live_bbq: tests that fetch BBQ JSONL from the pinned upstream commit (opt-in, no LLM call)",
 ]
 
 [project.optional-dependencies]
@@ -106,6 +107,9 @@ llm = [
 where = ["."]
 include = ["fairness_pipeline_dev_toolkit*", "fairpipe*"]   # <-- IMPORTANT
 exclude = ["tests*", "benchmarks*"]
+
+[tool.setuptools.package-data]
+"fairness_pipeline_dev_toolkit.llm_evals" = ["fixtures/**/*"]
 
 [project.scripts]
 fairpipe = "fairness_pipeline_dev_toolkit.cli.main:main"

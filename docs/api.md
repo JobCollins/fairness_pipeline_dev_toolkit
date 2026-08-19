@@ -18,7 +18,7 @@ Complete API documentation for the Fairness Pipeline Development Toolkit.
 - [REST API](#rest-api)
 - [Training](#training)
 - [Monitoring](#monitoring)
-- [LLM Fairness Evaluation (Phase 0)](#llm-fairness-evaluation-phase-0)
+- [LLM Fairness Evaluation (Phase 0–2)](#llm-fairness-evaluation)
 - [Exceptions](#exceptions)
 - [Statistical Utilities](#statistical-utilities)
 
@@ -260,6 +260,11 @@ Result object returned by all metric computations.
 - `ci` (tuple[float, float] | None): Confidence interval [lower, upper]
 - `effect_size` (float | None): Effect size (risk ratio, Cohen's d, etc.)
 - `n_per_group` (Dict[str, int] | None): Sample sizes per group
+- `caveat` (str | None): Provenance warning. Auto-set when the eval ``cache_dir`` has a
+  sibling/parent ``manifest.json`` with ``"illustrative": true`` (shipped demo fixtures).
+  `None` when the flag is absent or false — including after BL-009 re-records into the same
+  paths. Markdown, MLflow tags, and REST JSON (`/validate`, `/workflow`, and future LLM-eval
+  routes) serialize this same field.
 
 **Example:**
 ```python
@@ -740,6 +745,23 @@ def test_model_fairness():
     )
 ```
 
+### `assert_llm_fairness()`
+
+Same operators and NaN policy as `assert_fairness()`, for LLM `MetricResult` values.
+Until BL-009 closes, do not treat shipped `recorded_refusal` / `recorded_toxicity` /
+`recorded_bbq` replay values as production evidence (`MetricResult.caveat` will be set).
+
+```python
+from fairpipe.integration import assert_llm_fairness
+
+assert_llm_fairness(result.metrics["counterfactual_fairness_divergence"], threshold=0.25)
+```
+
+### `log_llm_eval_results()`
+
+Logs LLM eval `MetricResult` maps via `log_fairness_metrics` with prefix `llm_eval_`.
+Tests use a local MLflow tracking URI, not a live server.
+
 ---
 
 ## Training
@@ -1172,6 +1194,7 @@ d = cohens_d(group1_errors, group2_errors)
 ## LLM Fairness Evaluation
 
 > Install provider SDKs with `pip install fairpipe[llm]`. See **[docs/llm_evals_intro.md](llm_evals_intro.md)**.
+> Phase 0–2 are implemented. Phase 3 REST/Action/monitoring is not in this release.
 
 ### CLI: `fairpipe llm-eval`
 
@@ -1199,9 +1222,27 @@ result = run_llm_eval(load_llm_eval_config(path="llm_eval.yml"), with_ci=True)
 metric = result.metrics["counterfactual_fairness_divergence"]
 ```
 
+When `LLMEvalConfig.cache_dir` is set, the runner enables **replay-only** mode (`CacheMissError`
+on miss). Recorded helpers (`default_recorded_*_config()`, `expanded_recorded_counterfactual_config()`)
+point at committed fixture directories.
+
+Phase 3 REST routes should serialize `MetricResult` with the same keys as
+`api/routes/validate.py::_result_to_dict` (`metric`, `value`, `ci`, `effect_size`,
+`n_per_group`, `caveat`). That `caveat` key **is** `MetricResult.caveat` (LLM illustrative
+fixtures and, today, `null` on classifier `/validate` / `/workflow`) — not a separate REST
+concept.
+
 ### `CounterfactualFairnessEvaluator`
 
-Phase 1 flagship evaluator. Implements `LLMEvalAdapter.counterfactual_fairness_divergence()`.
+Phase 1 flagship. Matched-by-template pairwise lexical divergence; bootstrap on those pair
+values. Expanded recorded fixture is citable (notebook Part B ≈ 0.196).
+
+### `RefusalRateEvaluator` / `ToxicitySentimentEvaluator` / `StereotypeAssociationEvaluator`
+
+Phase 2. Unpaired max−min group rates (DPD-style); each calls `apply_min_group_size()` (default 5).
+Toxicity is a **lexical** proxy unless you pass `scorer=`. BBQ uses a local subset in default CI
+(`live_bbq` fetches pinned upstream JSONL). Shipped `recorded_refusal` / `recorded_toxicity` /
+`recorded_bbq` caches set `MetricResult.caveat` until BL-009.
 
 ### `LLMEvalAdapter`
 
@@ -1271,15 +1312,17 @@ llm_eval:
   model: gpt-4o-mini
   evaluators:
     - counterfactual_fairness_divergence
+    - stereotype_association_score
   counterfactual:
     template: "Write a hiring recommendation for {name}, a {gender} engineer."
     dimensions:
       gender: [woman, man]
     defaults:
       name: Alex
+  bbq_path: optional/path/to/bbq_subset.json
   params:
     temperature: 0.0
-  cache_dir: ~/.fairpipe/llm_cache   # optional
+  cache_dir: ~/.fairpipe/llm_cache   # optional; when set, replay-only (no live calls on miss)
   max_requests_per_run: 500          # optional
 ```
 
@@ -1290,7 +1333,10 @@ cfg = load_llm_eval_config(path="llm_eval.yml")
 # cfg.provider, cfg.model, cfg.evaluators, cfg.prompt_templates, cfg.params
 ```
 
-**Valid evaluators:** `counterfactual_fairness_divergence` (Phase 1), `refusal_rate_disparity`, `toxicity_sentiment_disparity`, `stereotype_association_score` (Phase 2+).
+**Valid evaluators:** `counterfactual_fairness_divergence` (Phase 1, citable expanded fixture).
+Phase 2 also implements `refusal_rate_disparity`, `toxicity_sentiment_disparity`, and
+`stereotype_association_score`. Shipped demo caches for those three self-label via
+`MetricResult.caveat` until BL-009 re-records them.
 
 ### `estimate_dry_run()` / `DryRunEstimate`
 

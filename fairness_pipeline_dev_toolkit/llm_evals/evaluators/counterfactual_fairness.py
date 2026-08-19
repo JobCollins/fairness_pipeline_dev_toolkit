@@ -10,10 +10,16 @@ from fairness_pipeline_dev_toolkit.stats.bootstrap import bootstrap_ci
 from .._async_utils import run_coroutine
 from ..client import LLMClient
 from ..config import CounterfactualConfig, LLMEvalConfig
-from ..guards import apply_min_group_size, filter_items_by_eligible_groups
+from ..guards import (
+    DEFAULT_LLM_MIN_GROUP_SIZE,
+    apply_min_group_size,
+    filter_items_by_eligible_groups,
+)
 from ..probes.counterfactual import (
     divergence_by_dimension,
     generate_counterfactual_prompts,
+    matched_pairwise_divergences,
+    response_key,
 )
 
 
@@ -39,42 +45,27 @@ class CounterfactualFairnessEvaluator:
     async def _collect_responses(
         self,
         prompts: List,
-    ) -> Dict[Tuple[str, str], str]:
-        responses: Dict[Tuple[str, str], str] = {}
+    ) -> Dict[Tuple[str, str, int], str]:
+        responses: Dict[Tuple[str, str, int], str] = {}
         texts = await self.client.complete_batch(
             [item.prompt for item in prompts],
             params=self.config.params,
         )
         for item, text in zip(prompts, texts):
-            responses[(item.dimension, item.group)] = text
+            responses[response_key(item)] = text
         return responses
 
     def _pairwise_divergences(
         self,
         prompts: List,
-        responses: Dict[Tuple[str, str], str],
+        responses: Dict[Tuple[str, str, int], str],
     ) -> List[float]:
-        from ..probes.counterfactual import (
-            extract_response_features,
-            pairwise_divergence,
-        )
-
-        values: List[float] = []
-        for dimension in {p.dimension for p in prompts}:
-            items = [p for p in prompts if p.dimension == dimension]
-            for i, left in enumerate(items):
-                for right in items[i + 1 :]:
-                    left_text = responses[(left.dimension, left.group)]
-                    right_text = responses[(right.dimension, right.group)]
-                    feat_left = extract_response_features(left_text, reference=right_text)
-                    feat_right = extract_response_features(right_text, reference=left_text)
-                    values.append(pairwise_divergence(feat_left, feat_right))
-        return values
+        return matched_pairwise_divergences(prompts, responses)
 
     async def run_async(
         self,
         *,
-        min_group_size: int = 30,
+        min_group_size: int = DEFAULT_LLM_MIN_GROUP_SIZE,
         allow_small_samples: bool = False,
         with_ci: bool = True,
         ci_level: float = 0.95,
@@ -112,7 +103,7 @@ class CounterfactualFairnessEvaluator:
                 "dimension": p.dimension,
                 "group": p.group,
                 "prompt": p.prompt,
-                "response": responses[(p.dimension, p.group)],
+                "response": responses[response_key(p)],
             }
             for p in prompts
         ]
@@ -163,7 +154,7 @@ class CounterfactualFairnessEvaluator:
     def counterfactual_fairness_divergence(
         self,
         *,
-        min_group_size: int = 30,
+        min_group_size: int = DEFAULT_LLM_MIN_GROUP_SIZE,
         allow_small_samples: bool = False,
         with_ci: bool = True,
         ci_level: float = 0.95,
@@ -183,10 +174,20 @@ class CounterfactualFairnessEvaluator:
         )[0]
 
     def refusal_rate_disparity(self, **kwargs: Any) -> MetricResult:
-        raise NotImplementedError("Phase 2")
+        from .refusal import RefusalRateEvaluator
+
+        return RefusalRateEvaluator(self.config, self.client).refusal_rate_disparity(**kwargs)
 
     def toxicity_sentiment_disparity(self, **kwargs: Any) -> MetricResult:
-        raise NotImplementedError("Phase 2")
+        from .toxicity import ToxicitySentimentEvaluator
+
+        return ToxicitySentimentEvaluator(self.config, self.client).toxicity_sentiment_disparity(
+            **kwargs
+        )
 
     def stereotype_association_score(self, **kwargs: Any) -> MetricResult:
-        raise NotImplementedError("Phase 2")
+        from .stereotype import StereotypeAssociationEvaluator
+
+        return StereotypeAssociationEvaluator(
+            self.config, self.client
+        ).stereotype_association_score(**kwargs)

@@ -6,8 +6,14 @@ This facade re-exports the user-facing surface so callers can
 without depending on internal layout.
 """
 
-from ..integration.mlflow_logger import log_fairness_metrics  # noqa: F401
-from ..integration.pytest_plugin import assert_fairness  # noqa: F401
+from ..integration.mlflow_logger import (  # noqa: F401
+    log_fairness_metrics,
+    log_llm_eval_results,
+)
+from ..integration.pytest_plugin import (  # noqa: F401
+    assert_fairness,
+    assert_llm_fairness,
+)
 from ..integration.reporting import to_markdown_report  # noqa: F401
 from ..metrics import FairnessAnalyzer, MetricResult
 
@@ -24,7 +30,9 @@ __all__ = [
     "MetricResult",
     "to_markdown_report",
     "log_fairness_metrics",
+    "log_llm_eval_results",
     "assert_fairness",
+    "assert_llm_fairness",
     "bootstrap_ci",
     "beta_binomial_interval",
     "risk_ratio",

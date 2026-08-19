@@ -1,7 +1,7 @@
 # fairpipe: LLM Evals — Feature Specification
 
-**Status:** Draft for Cursor-assisted implementation
-**Target version:** 0.10.0 (minor bump per `docs/VERSIONING.md` — additive capability, no breaking changes)
+**Status:** Phase 0–2 implemented (Option A). Phase 3 (REST, CI/CD Action, monitoring) not started.
+**Target version:** 0.10.0 (minor bump per `docs/VERSIONING.md` — additive capability, no breaking changes; bump is finalized in Phase 3)
 **Author:** Job Collins Dulo
 
 ---
@@ -346,7 +346,8 @@ per `docs/VERSIONING.md`.
 
 ## 9. Definition of done (applies to every phase)
 
-- All of that phase's tests pass, with no live network calls in the default (non-`live_llm`) run.
+- All of that phase's tests pass, with no live network calls in the default
+  (non-`live_llm` / non-`live_bbq`) run.
 - `MetricResult`-compatible objects from new evaluators are consumable by existing
   reporting/MLflow/CI-gating code without special-casing.
 - Every doc listed under that phase's "Docs" step above is updated in the same commit as the code
