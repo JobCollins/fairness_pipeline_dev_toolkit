@@ -12,7 +12,10 @@ from fairness_pipeline_dev_toolkit.llm_evals.bbq import (
     load_bbq_items,
 )
 from fairness_pipeline_dev_toolkit.llm_evals.cache import ResponseCache, make_cache_key
-from fairness_pipeline_dev_toolkit.llm_evals.client import get_llm_client
+from fairness_pipeline_dev_toolkit.llm_evals.client import (
+    allow_live_llm_calls,
+    get_llm_client,
+)
 from fairness_pipeline_dev_toolkit.llm_evals.config import LLMEvalConfig
 from fairness_pipeline_dev_toolkit.llm_evals.fixtures.recorded_counterfactual import (
     RECORDED_MODEL,
@@ -42,6 +45,16 @@ async def populate_recorded_bbq_cache(
     provider: str = RECORDED_PROVIDER,
     model: str = RECORDED_MODEL,
     params: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    with allow_live_llm_calls():
+        return await _populate_recorded_bbq_cache(provider=provider, model=model, params=params)
+
+
+async def _populate_recorded_bbq_cache(
+    *,
+    provider: str,
+    model: str,
+    params: Dict[str, Any] | None,
 ) -> Dict[str, Any]:
     params = dict(params or RECORDED_PARAMS)
     items = load_bbq_items(DEFAULT_LOCAL_FIXTURE)

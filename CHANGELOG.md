@@ -39,6 +39,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BL-009 provenance:** `MetricResult.caveat` when the cache ``manifest.json`` has
   ``illustrative: true`` (not a hardcoded path). Markdown + MLflow tags. Fixture re-record
   still open.
+- **REST `POST /llm-eval`:** run LLM fairness evals over HTTP (`fairpipe[api]`). Three-state
+  `gate_status` (`pass` / `fail` / `illustrative`) with `passed` true / false / null.
+  Provider keys stay env-only (`OPENAI_API_KEY` / `ANTHROPIC_API_KEY`); credential fields in
+  the JSON/YAML body are 422. Default response is aggregated metrics only (no transcripts).
+  Cache miss with `cache_dir` set is 4xx (`CacheMissError`), not a live provider call.
+- **Live-call kill-switch:** live OpenAI/Anthropic HTTP is **forbidden by default** at the
+  SDK call site (`LiveLLMCallForbidden`). A missing or misconfigured `cache_dir` fails
+  immediately in Jupyter, CLI, REST, and pytest — not only when `tests/conftest.py` runs.
+  Opt in with `FAIRPIPE_LLM_ALLOW_LIVE=1` (`allow_live_llm_calls()`, populate helpers, and
+  `@pytest.mark.live_llm`).
 
 ### Documentation
 
@@ -46,9 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/llm_evals_intro.md`: LLM fairness evals explainer, CLI/API, case-study walkthrough.
 - `DOCS.md`: Phase 8 — LLM Fairness Evaluation (four evaluators, replay-only, case study).
 - `docs/LLM_EVALS_SPEC.md`: status updated to Phase 0–2 implemented.
-- `docs/api.md`: LLM evals API and CLI reference (Phase 0–2); `MetricResult.caveat`.
+- `docs/api.md`: LLM evals API and CLI reference; `POST /llm-eval` (`gate_status`, `passed` nullability).
 - `docs/getting_started.md`, `docs/integration_guide.md`, `docs/playbook-part-five-fairpipe.md`:
-  pointers to LLM evals / `assert_llm_fairness()`.
+  pointers to LLM evals / `assert_llm_fairness()`; integration_guide REST `POST /llm-eval`
+  plus deploy warning for the server's shared provider key.
 - `docs/index.rst`: Sphinx toctree entry for `llm_evals_intro`.
 - `NOTICE`, `ATTRIBUTION.md`: BBQ (CC BY 4.0) attribution and U.S.-context caveat.
 

@@ -182,8 +182,8 @@ walks through the counterfactual probe only (no API key):
 
 If a Jupyter kernel is labeled `.venv` but `sys.executable` is Homebrew Python 3.12.12, the
 notebook prepends the repo root to `sys.path`. Prefer kernel **Python (fairpipe .venv)**.
-A cell that runs for tens of minutes is a live provider call (Anthropic read timeout 600s),
-not bootstrap — `cache_dir` replay should finish in about a second.
+A missing or wrong `cache_dir` raises `LiveLLMCallForbidden` immediately (live HTTP is
+forbidden by default). Replay of a valid recorded cache should finish in about a second.
 
 ## Roadmap
 

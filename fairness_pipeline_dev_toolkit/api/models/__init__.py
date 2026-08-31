@@ -1,7 +1,8 @@
-from .requests import ValidateRequest
+from .requests import LLMEvalRequest, ValidateRequest
 from .responses import (
     ErrorResponse,
     HealthResponse,
+    LLMEvalResponse,
     PipelineResponse,
     ResultResponse,
     ValidateResponse,
@@ -10,8 +11,10 @@ from .responses import (
 
 __all__ = [
     "ValidateRequest",
+    "LLMEvalRequest",
     "HealthResponse",
     "ValidateResponse",
+    "LLMEvalResponse",
     "PipelineResponse",
     "WorkflowResponse",
     "ErrorResponse",

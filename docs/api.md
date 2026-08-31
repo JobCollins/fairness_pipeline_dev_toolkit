@@ -263,8 +263,8 @@ Result object returned by all metric computations.
 - `caveat` (str | None): Provenance warning. Auto-set when the eval ``cache_dir`` has a
   sibling/parent ``manifest.json`` with ``"illustrative": true`` (shipped demo fixtures).
   `None` when the flag is absent or false — including after BL-009 re-records into the same
-  paths. Markdown, MLflow tags, and REST JSON (`/validate`, `/workflow`, and future LLM-eval
-  routes) serialize this same field.
+  paths. Markdown, MLflow tags, and REST JSON (`/validate`, `/workflow`, `POST /llm-eval`)
+  serialize this same field.
 
 **Example:**
 ```python
@@ -1226,11 +1226,13 @@ When `LLMEvalConfig.cache_dir` is set, the runner enables **replay-only** mode (
 on miss). Recorded helpers (`default_recorded_*_config()`, `expanded_recorded_counterfactual_config()`)
 point at committed fixture directories.
 
-Phase 3 REST routes should serialize `MetricResult` with the same keys as
+`POST /llm-eval` serializes each metric with the same keys as
 `api/routes/validate.py::_result_to_dict` (`metric`, `value`, `ci`, `effect_size`,
-`n_per_group`, `caveat`). That `caveat` key **is** `MetricResult.caveat` (LLM illustrative
-fixtures and, today, `null` on classifier `/validate` / `/workflow`) — not a separate REST
-concept.
+`n_per_group`, `caveat`). That `caveat` key **is** `MetricResult.caveat` (non-null on
+shipped BL-009 demo fixtures; `null` on expanded counterfactual / user configs, and on
+classifier `/validate` / `/workflow`) — not a separate REST envelope. Gating is
+three-state: `gate_status` is `pass` | `fail` | `illustrative`, and `passed` is
+`true` | `false` | `null` aligned 1:1. See [REST API](#rest-api) below.
 
 ### `CounterfactualFairnessEvaluator`
 
@@ -1285,6 +1287,12 @@ client = get_llm_client("openai", "gpt-4o-mini")
 | OpenAI | `OPENAI_API_KEY` |
 | Anthropic | `ANTHROPIC_API_KEY` |
 | Local | *(none)* |
+
+**`FAIRPIPE_LLM_ALLOW_LIVE`:** live OpenAI/Anthropic HTTP is **forbidden by default**.
+Set to `1`/`true`/`yes`/`on` to opt in (populate helpers and `@pytest.mark.live_llm`
+do this). A missing or misconfigured `cache_dir` then raises `LiveLLMCallForbidden`
+immediately — including a Jupyter kernel that never ran pytest — instead of hanging
+on a provider timeout. `FAIRPIPE_LLM_FORBID_LIVE=0` also allows.
 
 ### `ResponseCache`
 
@@ -1484,6 +1492,90 @@ Compute fairness metrics from JSON arrays. Results are stored in `ResultStore` a
 
 ---
 
+#### `POST /llm-eval`
+
+Run LLM fairness evaluators from a JSON body. Config may be YAML text in `config` or
+equivalent JSON fields (`provider`, `model`, `evaluators`, `counterfactual`, `cache_dir`,
+…). Results are stored in `ResultStore` and retrievable via `GET /results/{run_id}`.
+
+Requires `fairpipe[api]` on the server. Live provider calls also need `fairpipe[llm]`,
+the matching env var (`OPENAI_API_KEY` / `ANTHROPIC_API_KEY`), and
+`FAIRPIPE_LLM_ALLOW_LIVE=1` on the **server process**. Credentials are never accepted
+in the JSON/YAML body (same `load_llm_eval_config()` rejection as the CLI). There is
+no per-request caller key and no extra endpoint auth.
+
+**Deploy warning:** exposing `/llm-eval` on an open network spends the server's shared
+provider key. Restrict who can reach the process; do not put keys in the request body.
+Live HTTP is forbidden until `FAIRPIPE_LLM_ALLOW_LIVE=1` is set on the process.
+
+**Request body (JSON fields):**
+```json
+{
+  "provider": "anthropic",
+  "model": "claude-haiku-4-5",
+  "evaluators": ["counterfactual_fairness_divergence"],
+  "counterfactual": {
+    "template": "Write a hiring recommendation for {name}, a {gender} engineer.",
+    "dimensions": {"gender": ["woman", "man", "nonbinary"]},
+    "defaults": {"name": "Alex"}
+  },
+  "cache_dir": "/path/to/recorded/cache",
+  "params": {"temperature": 0.0, "max_tokens": 256},
+  "min_group_size": 5,
+  "with_ci": true,
+  "threshold": 0.25,
+  "metric": "counterfactual_fairness_divergence"
+}
+```
+
+Or pass YAML as `{"config": "provider: anthropic\\nmodel: ...\\n..."}`.
+
+**Gating** is three-state, not boolean-plus-caveat:
+
+| `gate_status` | `passed` | Meaning |
+|---------------|----------|---------|
+| `pass` | `true` | No caveat on the gated metric; within threshold (or no threshold) |
+| `fail` | `false` | Threshold miss on a **non-caveated** gated metric |
+| `illustrative` | `null` | Gated metric has a non-null `caveat` (even if the number would pass) |
+
+`gate_status` is canonical. `passed: null` exists so a bool-only client does not treat
+illustrative (fix-the-config) as a threshold fail (fix-the-model). If `threshold` is
+omitted, the route still returns `illustrative` when any returned metric (or the
+selected `metric` if present) has a caveat; otherwise `pass`.
+
+HTTP **200** for `pass` / `fail` / `illustrative` (same as `/validate`: `passed=false`
+is 200, not 500). **422** for bad config or credential fields in the body. Cache miss
+with `cache_dir` set raises `CacheMissError` → **4xx** (replay-only; no live call).
+
+The default response is aggregated metrics and CIs only — **no raw transcripts**.
+
+**Response 200:**
+```json
+{
+  "run_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "status": "success",
+  "gate_status": "pass",
+  "passed": true,
+  "metrics": {
+    "counterfactual_fairness_divergence": {
+      "metric": "counterfactual_fairness_divergence",
+      "value": 0.196,
+      "ci": [0.185, 0.205],
+      "effect_size": null,
+      "n_per_group": {"woman": 9, "man": 9, "nonbinary": 9},
+      "caveat": null
+    }
+  },
+  "timestamp": "2026-08-31T17:00:00.000000+00:00"
+}
+```
+
+Shipped `recorded_refusal` / `recorded_toxicity` / `recorded_bbq` fixtures set
+`caveat` (text includes `BL-009`) and therefore `gate_status: "illustrative"`,
+`passed: null`. The expanded counterfactual fixture is citable (`caveat: null`).
+
+---
+
 #### `POST /pipeline`
 
 Run bias detection and mitigation on an uploaded CSV or Parquet file.
@@ -1541,7 +1633,7 @@ Execute the full 3-step workflow (baseline → transform+train → validate) on 
 
 #### `GET /results/{run_id}`
 
-Retrieve a stored result from any previous `/validate`, `/pipeline`, or `/workflow` call.
+Retrieve a stored result from any previous `/validate`, `/pipeline`, `/workflow`, or `/llm-eval` call.
 
 **Response 200:**
 ```json

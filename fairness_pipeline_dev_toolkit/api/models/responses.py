@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel
 
@@ -15,6 +15,15 @@ class ValidateResponse(BaseModel):
     run_id: str
     status: str = "success"
     passed: bool
+    metrics: Dict[str, Any]
+    timestamp: str
+
+
+class LLMEvalResponse(BaseModel):
+    run_id: str
+    status: str = "success"
+    gate_status: Literal["pass", "fail", "illustrative"]
+    passed: Optional[bool]
     metrics: Dict[str, Any]
     timestamp: str
 

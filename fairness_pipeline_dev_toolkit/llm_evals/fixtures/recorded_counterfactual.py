@@ -7,7 +7,10 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from fairness_pipeline_dev_toolkit.llm_evals.cache import ResponseCache, make_cache_key
-from fairness_pipeline_dev_toolkit.llm_evals.client import get_llm_client
+from fairness_pipeline_dev_toolkit.llm_evals.client import (
+    allow_live_llm_calls,
+    get_llm_client,
+)
 from fairness_pipeline_dev_toolkit.llm_evals.config import (
     CounterfactualConfig,
     LLMEvalConfig,
@@ -128,6 +131,18 @@ async def populate_recorded_counterfactual_cache(
     One-time live recording: call the real provider for each counterfactual prompt and
     persist responses under ``fixtures/recorded_counterfactual/cache/``.
     """
+    with allow_live_llm_calls():
+        return await _populate_recorded_counterfactual_cache(
+            provider=provider, model=model, params=params
+        )
+
+
+async def _populate_recorded_counterfactual_cache(
+    *,
+    provider: str,
+    model: str,
+    params: Dict[str, Any] | None,
+) -> Dict[str, Any]:
     params = dict(params or RECORDED_PARAMS)
     config = LLMEvalConfig(
         provider=provider,
@@ -186,6 +201,18 @@ async def populate_expanded_recorded_counterfactual_cache(
     params: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
     """Live-record the expanded 9-template × 3-group fixture."""
+    with allow_live_llm_calls():
+        return await _populate_expanded_recorded_counterfactual_cache(
+            provider=provider, model=model, params=params
+        )
+
+
+async def _populate_expanded_recorded_counterfactual_cache(
+    *,
+    provider: str,
+    model: str,
+    params: Dict[str, Any] | None,
+) -> Dict[str, Any]:
     params = dict(params or RECORDED_PARAMS)
     config = LLMEvalConfig(
         provider=provider,

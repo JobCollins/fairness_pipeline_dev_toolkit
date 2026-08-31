@@ -3,7 +3,8 @@ from __future__ import annotations
 import asyncio
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
+from contextlib import contextmanager
+from typing import Any, Dict, Iterator, List, Optional, Protocol, runtime_checkable
 
 from fairness_pipeline_dev_toolkit.exceptions import (
     DependencyError,
@@ -14,6 +15,14 @@ from .cache import ResponseCache, make_cache_key
 
 OPENAI_API_KEY_ENV = "OPENAI_API_KEY"
 ANTHROPIC_API_KEY_ENV = "ANTHROPIC_API_KEY"
+# Live provider HTTP is forbidden unless FAIRPIPE_LLM_ALLOW_LIVE is set.
+# Default-on so Jupyter / CLI / REST with a missing cache_dir fail immediately
+# instead of hanging on a 600s provider timeout. Live-recording paths opt in.
+FAIRPIPE_LLM_FORBID_LIVE = "FAIRPIPE_LLM_FORBID_LIVE"
+FAIRPIPE_LLM_ALLOW_LIVE = "FAIRPIPE_LLM_ALLOW_LIVE"
+
+_TRUTHY_ENV = ("1", "true", "yes", "on")
+_FALSEY_ENV = ("0", "false", "no", "off")
 
 DEFAULT_MAX_RETRIES = 3
 DEFAULT_RETRY_BASE_SECONDS = 0.05
@@ -128,8 +137,60 @@ class CacheMissError(FairnessToolkitError):
     """Raised when replay-only mode encounters a cache miss."""
 
 
+class LiveLLMCallForbidden(FairnessToolkitError):
+    """Raised when a live SDK call is attempted without an explicit opt-in."""
+
+
 class RateLimitError(Exception):
     """Raised when the provider returns HTTP 429 / rate-limit response."""
+
+
+def live_llm_calls_forbidden() -> bool:
+    """Live provider HTTP is forbidden unless explicitly opted in.
+
+    Opt in with ``FAIRPIPE_LLM_ALLOW_LIVE=1`` (populate helpers and
+    ``@pytest.mark.live_llm`` do this). ``FAIRPIPE_LLM_FORBID_LIVE=0`` also
+    allows. Unset env — including a Jupyter kernel that never saw pytest —
+    forbids, so a missing ``cache_dir`` fails immediately instead of hanging.
+    """
+    allow = os.getenv(FAIRPIPE_LLM_ALLOW_LIVE, "")
+    if allow.lower() in _TRUTHY_ENV:
+        return False
+    forbid = os.getenv(FAIRPIPE_LLM_FORBID_LIVE)
+    if forbid is not None and forbid.lower() in _FALSEY_ENV:
+        return False
+    return True
+
+
+@contextmanager
+def allow_live_llm_calls() -> Iterator[None]:
+    """Opt this process into live provider HTTP for the duration of the block."""
+    previous = os.environ.get(FAIRPIPE_LLM_ALLOW_LIVE)
+    os.environ[FAIRPIPE_LLM_ALLOW_LIVE] = "1"
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop(FAIRPIPE_LLM_ALLOW_LIVE, None)
+        else:
+            os.environ[FAIRPIPE_LLM_ALLOW_LIVE] = previous
+
+
+def raise_if_live_llm_forbidden() -> None:
+    """Raise immediately at the SDK call site unless live calls were opted in."""
+    if not live_llm_calls_forbidden():
+        return
+    raise LiveLLMCallForbidden(
+        "Live LLM provider call blocked. Live HTTP is forbidden by default so a "
+        "missing or misconfigured cache_dir fails immediately instead of hanging "
+        f"(Jupyter, CLI, REST, pytest). Set {FAIRPIPE_LLM_ALLOW_LIVE}=1 to opt in "
+        "(live recording, @pytest.mark.live_llm, or a server that should bill the "
+        "shared provider key).",
+        suggestion=(
+            "Point cache_dir at a recorded cache, or set "
+            f"{FAIRPIPE_LLM_ALLOW_LIVE}=1 for an intentional live call."
+        ),
+    )
 
 
 class OpenAICompatibleClient(_BaseLLMClient):
@@ -194,6 +255,9 @@ class OpenAICompatibleClient(_BaseLLMClient):
     async def _complete_uncached(
         self, prompt: str, *, params: Optional[Dict[str, Any]] = None
     ) -> str:
+        # Injected test doubles are not live SDK calls; skip the kill-switch.
+        if self._client is None:
+            raise_if_live_llm_forbidden()
         if not self.available():
             raise DependencyError(
                 "OpenAI client is not available (missing SDK or OPENAI_API_KEY).",
@@ -272,6 +336,8 @@ class AnthropicClient(_BaseLLMClient):
     async def _complete_uncached(
         self, prompt: str, *, params: Optional[Dict[str, Any]] = None
     ) -> str:
+        if self._client is None:
+            raise_if_live_llm_forbidden()
         if not self.available():
             raise DependencyError(
                 "Anthropic client is not available (missing SDK or ANTHROPIC_API_KEY).",
