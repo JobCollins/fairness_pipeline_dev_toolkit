@@ -158,6 +158,40 @@ jobs:
 
 Point `csv` at your predictions file. If equalized odds difference exceeds `0.05`, the PR is blocked. A full fairness report is written to the Actions job summary — metric values, confidence intervals, group breakdowns — permanently attached to the commit.
 
+Gate LLM fairness evals the same way. Live provider HTTP is **forbidden by default** (`LiveLLMCallForbidden`); a job that should call a provider must set `FAIRPIPE_LLM_ALLOW_LIVE=1` — that is the correct safe default, not a workaround. Replay-from-`cache_dir` jobs do not need the flag.
+
+```yaml
+# .github/workflows/llm-fairness-check.yml
+name: LLM Fairness Check
+on: [pull_request]
+
+jobs:
+  llm-fairness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: SvrusIO/fairpipe-action@v1
+        env:
+          FAIRPIPE_LLM_ALLOW_LIVE: "1"
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        with:
+          config: llm_eval.yml
+          metric: "counterfactual_fairness_divergence"
+          threshold: "0.25"
+          fail-on-violation: "true"
+```
+
+A red check can be decoded without opening the report:
+
+| Exit | `gate_status` | Meaning |
+|------|----------------|---------|
+| 0 | `pass` | Threshold met (or no threshold) on a non-caveated metric |
+| 1 | `fail` | Threshold miss on a **non-caveated** gated metric |
+| 2 | *(usage)* | `--threshold` without `--metric`, unknown metric, cache miss / live-forbidden |
+| 3 | `illustrative` | Gated metric has a non-null `caveat` — **even if the number would pass** |
+
+`llm-fairness-check` mode in the Action is a companion-repo follow-up ([BL-010](docs/fairpipe-technical-backlog.md)). This package already exposes the same `with:` keys via `fairpipe llm-eval --threshold` / `--metric` and `run_llm_fairness_check()`.
+
 → **[SvrusIO/fairpipe-action](https://github.com/SvrusIO/fairpipe-action)**
 
 ---

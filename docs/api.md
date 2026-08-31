@@ -1202,6 +1202,7 @@ d = cohens_d(group1_errors, group2_errors)
 fairpipe llm-eval --config llm_eval.yml --dry-run
 fairpipe llm-eval --config llm_eval.yml --report-md artifacts/llm_report.md --with-ci
 fairpipe llm-eval --config llm_eval.yml --transcripts-out artifacts/transcripts.json
+fairpipe llm-eval --config llm_eval.yml --metric counterfactual_fairness_divergence --threshold 0.25
 ```
 
 | Flag | Description |
@@ -1209,9 +1210,15 @@ fairpipe llm-eval --config llm_eval.yml --transcripts-out artifacts/transcripts.
 | `--config` | Path to `llm_eval` YAML (required) |
 | `--report-md` / `--out` | Write Markdown report |
 | `--transcripts-out` | Write raw probe transcripts JSON (not in report) |
-| `--dry-run` | Estimate requests/cost; no live calls |
+| `--dry-run` | Estimate requests/cost; no live calls; always exit 0 |
 | `--with-ci` | Bootstrap confidence intervals |
 | `--bootstrap-B` | Bootstrap resamples (default 200) |
+| `--threshold` | Gate the selected `--metric` (requires `--metric`) |
+| `--metric` | Metric key to gate |
+
+Exit codes (same function as REST, `evaluate_llm_eval_gate()`): `0` pass, `1` fail, `2` usage, `3` illustrative. A caveated metric exits `3` even when the number would pass `--threshold`. Cache miss / `LiveLLMCallForbidden` exit `2` (instant, no hang).
+
+Local Action harness: `fairpipe.llm_evals.run_llm_fairness_check({"config", "metric", "threshold", "fail-on-violation"})`.
 
 ### `run_llm_eval()`
 

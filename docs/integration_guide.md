@@ -335,6 +335,61 @@ jobs:
           path: artifacts/fairness_report.md
 ```
 
+#### Use Case: GitHub Actions (`llm-fairness-check`)
+
+The classifier Action example above gates tabular metrics. LLM evals use the same companion Action (`SvrusIO/fairpipe-action`) with LLM-eval `with:` keys. This Python package implements the CLI and local harness those keys map onto (`fairpipe llm-eval --threshold` / `--metric`, `run_llm_fairness_check()`). Wiring a real `llm-fairness-check` *mode* into the Action repo is **BL-010** — a follow-up PR over there, not in this tree.
+
+A live CI job must set `FAIRPIPE_LLM_ALLOW_LIVE=1` on the runner (plus the provider key). That flag is the same kill-switch as REST, Jupyter, and the CLI — documented once under [Environment Variables](#environment-variables). Replay-from-`cache_dir` jobs do not need it.
+
+```yaml
+# .github/workflows/llm-fairness-check.yml
+name: LLM Fairness Check
+on: [pull_request]
+
+jobs:
+  llm-fairness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: SvrusIO/fairpipe-action@v1
+        env:
+          FAIRPIPE_LLM_ALLOW_LIVE: "1"
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        with:
+          config: llm_eval.yml
+          metric: "counterfactual_fairness_divergence"
+          threshold: "0.25"
+          fail-on-violation: "true"
+```
+
+Exit codes (same mapping as `fairpipe llm-eval`, reserved so they do not collide with `fairpipe validate`'s 0/1/2):
+
+| Exit | `gate_status` | Meaning |
+|------|----------------|---------|
+| 0 | `pass` | Threshold met (or no threshold) on a non-caveated metric |
+| 1 | `fail` | Threshold miss on a **non-caveated** gated metric |
+| 2 | *(usage)* | `--threshold` without `--metric`, unknown metric, cache miss / live-forbidden |
+| 3 | `illustrative` | Gated metric has a non-null `caveat` — **even if the number would pass** |
+
+`fail-on-violation: "false"` remaps exit 1 to 0 (report-only). Usage (2) and illustrative (3) stay as-is.
+
+Until BL-010 lands in `fairpipe-action`, the equivalent CLI job is:
+
+```yaml
+      - name: Install fairpipe
+        run: pip install "fairpipe[llm]"
+      - name: LLM fairness check
+        env:
+          FAIRPIPE_LLM_ALLOW_LIVE: "1"
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          fairpipe llm-eval \
+            --config llm_eval.yml \
+            --metric counterfactual_fairness_divergence \
+            --threshold 0.25 \
+            --report-md artifacts/llm_report.md
+```
+
 #### Use Case: Performance Benchmarking in CI/CD
 
 Add performance regression testing to your CI/CD pipeline:
@@ -856,11 +911,19 @@ export FAIRPIPE_MLFLOW_EXPERIMENT="fairness_workflow"
 export OPENAI_API_KEY="..."
 export ANTHROPIC_API_KEY="..."
 
-# Live provider HTTP is forbidden by default (Jupyter/CLI/REST/pytest).
-# Opt in only for intentional live recording or a server that should bill
-# the shared key. Populate helpers and @pytest.mark.live_llm set this.
+# See "Live LLM calls" below.
 export FAIRPIPE_LLM_ALLOW_LIVE=1
 ```
+
+**Live LLM calls (`FAIRPIPE_LLM_ALLOW_LIVE`).** Live OpenAI/Anthropic HTTP is **forbidden by default**. That is the correct safe default so a missing `cache_dir`, a misconfigured replay, or an accidental run cannot hang on provider HTTP or bill a key by surprise. Without the flag, every genuine eval fails closed with `LiveLLMCallForbidden` — instantly, not after a timeout.
+
+Set `FAIRPIPE_LLM_ALLOW_LIVE=1` on the **process that would make the SDK call**:
+
+- **CI job** (`llm-fairness-check` / `fairpipe llm-eval`): the GitHub Actions step `env` (see [CI/CD Integration](#cicd-integration)).
+- **REST server** (`POST /llm-eval`): the server process, not the request body (see [REST API](#rest-api--docker)).
+- Jupyter, CLI, and `@pytest.mark.live_llm` populate helpers: the same variable (`allow_live_llm_calls()` sets it for tests).
+
+Replay-from-`cache_dir` does not need the flag. Provider keys stay env-only (`OPENAI_API_KEY` / `ANTHROPIC_API_KEY`) in every case.
 
 Access in Python:
 
@@ -1175,8 +1238,10 @@ body, no per-request caller key, and no extra endpoint auth. Credential fields
 
 **Deploy warning:** exposing `/llm-eval` on an open network spends the server's shared
 provider key. Restrict who can reach the process; putting a key in the request is
-not a supported workaround. Live HTTP is forbidden until `FAIRPIPE_LLM_ALLOW_LIVE=1`
-is set on the server process.
+not a supported workaround. Live HTTP uses the same
+[`FAIRPIPE_LLM_ALLOW_LIVE`](#environment-variables) kill-switch as CI: set it on the
+**server process** for a genuine eval; omit it (the default) so a misconfigured
+server fails closed with `LiveLLMCallForbidden`.
 
 `gate_status` is three-state (`pass` / `fail` / `illustrative`). `passed` is `true` /
 `false` / `null` aligned 1:1 so a bool-only client does not treat an illustrative

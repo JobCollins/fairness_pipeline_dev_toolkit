@@ -49,6 +49,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   immediately in Jupyter, CLI, REST, and pytest — not only when `tests/conftest.py` runs.
   Opt in with `FAIRPIPE_LLM_ALLOW_LIVE=1` (`allow_live_llm_calls()`, populate helpers, and
   `@pytest.mark.live_llm`).
+- **`fairpipe llm-eval --threshold` / `--metric`:** same three-state gate as
+  `POST /llm-eval` (`evaluate_llm_eval_gate()`). Exit 0 pass / 1 fail / 2 usage /
+  3 illustrative. A caveated metric exits 3 even when the number would pass the
+  threshold. Dry-run still exits 0 and does not call a provider.
+- **Local `llm-fairness-check` harness:** `run_llm_fairness_check()` accepts
+  Action-shaped `with:` inputs (`config`, `metric`, `threshold`, `fail-on-violation`)
+  and returns the reserved exit codes. Wiring a real mode into
+  `SvrusIO/fairpipe-action` is BL-010 (companion repo).
 
 ### Documentation
 
@@ -59,7 +67,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/api.md`: LLM evals API and CLI reference; `POST /llm-eval` (`gate_status`, `passed` nullability).
 - `docs/getting_started.md`, `docs/integration_guide.md`, `docs/playbook-part-five-fairpipe.md`:
   pointers to LLM evals / `assert_llm_fairness()`; integration_guide REST `POST /llm-eval`
-  plus deploy warning for the server's shared provider key.
+  plus deploy warning for the server's shared provider key; CI/CD
+  `llm-fairness-check` Action example and `FAIRPIPE_LLM_ALLOW_LIVE` as a live-job
+  deployment requirement (safe default-forbid).
+- `README.md` CI/CD section: `llm-fairness-check` YAML example mirroring `fairness-check`.
+- `docs/fairpipe-technical-backlog.md`: BL-010 — wire `llm-fairness-check` into
+  `SvrusIO/fairpipe-action`.
 - `docs/index.rst`: Sphinx toctree entry for `llm_evals_intro`.
 - `NOTICE`, `ATTRIBUTION.md`: BBQ (CC BY 4.0) attribution and U.S.-context caveat.
 

@@ -69,3 +69,4 @@ case_studies/data/
 .env.example
 
 docs/PHASE_3_HANDOFF.md
+docs/PHASE_3_CICD_HANDOFF.md

@@ -19,6 +19,8 @@
 | BL-006 | `test_risk_ratio_identity` Hypothesis flakiness under float edge cases | P2 | backlog |
 | BL-007 | Expand LLM counterfactual recorded-cache fixture to clear `min_group_size=5` | P1 | **closed (Phase 1)** |
 | BL-008 | Phase 2 LLM evaluators: per-evaluator recorded-cache fixtures (≥5/group) | P1 | v0.8.0 |
+| BL-009 | Re-record Phase 2 fixtures so they can produce group-level disparity | P1 | open (does not block Phase 3) |
+| BL-010 | Wire `llm-fairness-check` mode into `SvrusIO/fairpipe-action` | P1 | companion repo |
 
 ---
 
@@ -554,6 +556,40 @@ group-rate variation** (not merely finite). Keep `assert_no_live_llm_calls`.
 
 ---
 
+## BL-010 — Wire `llm-fairness-check` mode into `SvrusIO/fairpipe-action`
+
+**Status: open.** This fAIr / fairpipe Python package already exposes the CLI
+(`fairpipe llm-eval --threshold` / `--metric`) and a local harness
+(`run_llm_fairness_check()`) that accept Action-shaped inputs and honor exit
+0 / 1 / 2 / 3. That is **not** this item. BL-010 is a follow-up PR on the
+**companion repo** [`SvrusIO/fairpipe-action`](https://github.com/SvrusIO/fairpipe-action)
+— a separate GitHub repository, external to this Python package.
+
+### Where Discovered
+Phase 3 CI/CD `llm-fairness-check` session. Spec §8 and `docs/playbook-part-five-fairpipe.md`
+already treat `fairpipe-action` as external. README and `docs/integration_guide.md`
+document an `llm-fairness-check` YAML example (`uses: SvrusIO/fairpipe-action@v1`)
+mirroring the existing `fairness-check` example. Until the Action grows an
+LLM-eval mode, that YAML is the intended contract, not a working composite step.
+
+### Acceptance criteria
+- Action `with:` inputs map onto this package's CLI/harness: `config` (llm_eval YAML
+  path), `metric`, `threshold`, `fail-on-violation`
+- Reserved exit codes are honored: pass=0, fail=1, usage=2, illustrative=3.
+  A caveated (illustrative) metric exits 3 even when the number would pass the
+  threshold — same as REST `gate_status=illustrative` / `passed=null` and this
+  repo's local harness tests
+- `fail-on-violation: false` remaps exit 1 to 0; usage (2) and illustrative (3)
+  are not remapped
+- Live jobs document `FAIRPIPE_LLM_ALLOW_LIVE=1` (plus provider key in the runner
+  env) as a **deployment requirement**. Default-forbid is the correct safe
+  default; without the flag a genuine eval fails closed with `LiveLLMCallForbidden`
+- Replay-from-`cache_dir` jobs still work without the flag
+- This fAIr repo's local harness + README YAML are **not** that PR and must not
+  be treated as closing BL-010
+
+---
+
 ## Implementation Order
 
 Given the conference deadline (May 19) and the importance of a working end-to-end
@@ -583,6 +619,7 @@ Create one GitHub issue per backlog item. Suggested labels:
 | BL-007 | `enhancement`, `llm-evals`, `case-study`, `documentation` |
 | BL-008 | `enhancement`, `llm-evals`, `phase-2`, `testing` |
 | BL-009 | `enhancement`, `llm-evals`, `phase-2`, `testing`, `fixtures` |
+| BL-010 | `enhancement`, `ci-cd`, `llm-evals`, `companion-repo` |
 
 ---
 

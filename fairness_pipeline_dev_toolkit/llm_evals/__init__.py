@@ -2,6 +2,7 @@
 
 from fairness_pipeline_dev_toolkit.metrics.base import MetricResult
 
+from .action_harness import run_llm_fairness_check
 from .base import LLMEvalAdapter, StubLLMEvalAdapter
 from .cache import ResponseCache, make_cache_key
 from .client import (
@@ -86,6 +87,7 @@ __all__ = [
     "DEFAULT_LLM_MIN_GROUP_SIZE",
     "apply_min_group_size",
     "evaluate_llm_eval_gate",
+    "run_llm_fairness_check",
     "GATE_PASS",
     "GATE_FAIL",
     "GATE_ILLUSTRATIVE",

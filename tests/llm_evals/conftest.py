@@ -2,14 +2,44 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+from typing import Any, Dict
 from unittest.mock import AsyncMock
 
 import pytest
+import yaml
 
 from fairness_pipeline_dev_toolkit.llm_evals.client import (
     AnthropicClient,
     OpenAICompatibleClient,
 )
+from fairness_pipeline_dev_toolkit.llm_evals.config import LLMEvalConfig
+
+
+def write_llm_eval_yaml(path: Path, config: LLMEvalConfig) -> Path:
+    """Write an ``llm_eval:`` YAML file from an ``LLMEvalConfig`` (CLI / harness tests)."""
+    block: Dict[str, Any] = {
+        "provider": config.provider,
+        "model": config.model,
+        "evaluators": list(config.evaluators),
+        "params": dict(config.params),
+    }
+    if config.cache_dir:
+        block["cache_dir"] = config.cache_dir
+    if config.counterfactual is not None:
+        block["counterfactual"] = {
+            "template": config.counterfactual.template,
+            "dimensions": config.counterfactual.dimensions,
+            "defaults": config.counterfactual.defaults,
+        }
+    if config.bbq_path:
+        block["bbq_path"] = config.bbq_path
+    if config.allow_small_samples:
+        block["allow_small_samples"] = True
+    if config.max_requests_per_run is not None:
+        block["max_requests_per_run"] = config.max_requests_per_run
+    path.write_text(yaml.safe_dump({"llm_eval": block}), encoding="utf-8")
+    return path
 
 
 @pytest.fixture
