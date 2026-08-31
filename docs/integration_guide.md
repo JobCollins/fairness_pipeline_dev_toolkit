@@ -729,6 +729,59 @@ dashboard.generate_report(output_path="artifacts/fairness_dashboard.html")
 # See apps/monitoring_streamlit_app.py for example
 ```
 
+#### Use Case: Sampled production LLM outputs
+
+The classifier tracker above is unchanged. For production LLM traffic, sample
+**already-produced** logs (1/N), reduce each kept row to a group label plus a
+0/1 score, and feed the **same** `RealTimeFairnessTracker.process_batch` /
+`FairnessDriftAndAlertEngine.analyze` path. The statistic is unpaired group-rate
+disparity (max−min of group means — the same shape as demographic parity), not
+counterfactual matched-pairing. The sampler never calls a provider.
+
+`ColumnMap` takes `protected=` (a sequence of column names), not `sensitive=`.
+Score-only is the default (`metrics=("demographic_parity",)`); equalized odds
+needs a gold `y_true` the typical (text, group) log does not have.
+`min_group_size` defaults to 5 for this adapter (`DEFAULT_LLM_MIN_GROUP_SIZE`),
+not the classifier tracker’s 30. Transcript columns are dropped before ingest.
+Kept rows stay in original relative order so sliding-window drift still sees
+time as the log arrived. Pass a per-batch `random_state` (or omit it for a
+timestamp ⊕ counter draw) — do not reuse one hardcoded seed across windows.
+
+```python
+from fairpipe.llm_evals import (
+    ingest_sampled_production_llm,
+    make_production_llm_tracker,
+    sample_production_llm_records,
+)
+from fairpipe.llm_evals.scoring import refusal_score
+from fairpipe.monitoring import DriftConfig, FairnessDriftAndAlertEngine
+
+tracker = make_production_llm_tracker(
+    window_size=10_000,
+    artifacts_dir="artifacts/monitoring",
+)
+engine = FairnessDriftAndAlertEngine(DriftConfig(critical_dpd=0.10))
+
+# Each batch is already-produced completions. Sampler never calls a provider.
+# random_state is per-call (batch id here); omit it to use timestamp ⊕ counter.
+for batch_id, logs in enumerate(iter_log_batches()):
+    sampled = sample_production_llm_records(
+        logs,
+        sample_every=10,       # keep 1/10 (N=1 keeps all)
+        group_col="group",
+        text_col="response",   # dropped; never written to metrics_ts
+        scorer=refusal_score,  # or pass score_col= if the log is already 0/1
+        random_state=batch_id,
+    )
+    ingest_sampled_production_llm(tracker, sampled, group_col="group")
+
+alerts = engine.analyze(tracker.metrics_ts)
+```
+
+If the log already has a binarized score column, pass `score_col=` instead of
+`text_col=` / `scorer=`. Optional gold labels go in `y_true_col=` and
+`make_production_llm_tracker(y_true=True)`.
+
 ---
 
 ### Integrated workflow: imbalanced data and decision thresholds

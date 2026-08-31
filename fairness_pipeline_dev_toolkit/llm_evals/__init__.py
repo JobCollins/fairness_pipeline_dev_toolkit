@@ -47,6 +47,12 @@ from .gating import (
     evaluate_llm_eval_gate,
 )
 from .guards import DEFAULT_LLM_MIN_GROUP_SIZE, apply_min_group_size
+from .production import (
+    ingest_sampled_production_llm,
+    make_production_llm_tracker,
+    production_llm_column_map,
+    sample_production_llm_records,
+)
 from .runner import (
     LLMEvalRunResult,
     results_to_markdown,
@@ -86,6 +92,10 @@ __all__ = [
     "write_transcripts",
     "DEFAULT_LLM_MIN_GROUP_SIZE",
     "apply_min_group_size",
+    "sample_production_llm_records",
+    "production_llm_column_map",
+    "make_production_llm_tracker",
+    "ingest_sampled_production_llm",
     "evaluate_llm_eval_gate",
     "run_llm_fairness_check",
     "GATE_PASS",

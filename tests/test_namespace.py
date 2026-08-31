@@ -93,9 +93,14 @@ def test_version_accessible():
 
 def test_fairpipe_llm_evals_shim_identity():
     from fairness_pipeline_dev_toolkit.llm_evals import LLMEvalAdapter as src
+    from fairness_pipeline_dev_toolkit.llm_evals import (
+        sample_production_llm_records as src_sample,
+    )
     from fairpipe.llm_evals import LLMEvalAdapter as shim
+    from fairpipe.llm_evals import sample_production_llm_records as shim_sample
 
     assert shim is src
+    assert shim_sample is src_sample
 
 
 def test_legacy_imports_still_work():

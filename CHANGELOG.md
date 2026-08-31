@@ -57,6 +57,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Action-shaped `with:` inputs (`config`, `metric`, `threshold`, `fail-on-violation`)
   and returns the reserved exit codes. Wiring a real mode into
   `SvrusIO/fairpipe-action` is BL-010 (companion repo).
+- **Production LLM monitoring sampler:** `sample_production_llm_records()` keeps
+  1/N production log rows (`N=1` keeps all) as a group label plus a 0/1 score
+  and feeds the existing `RealTimeFairnessTracker` /
+  `FairnessDriftAndAlertEngine` (unpaired group-rate disparity, not
+  counterfactual matched-pairing). `random_state` is caller-supplied (tests pin
+  a value; omit to vary per call via timestamp ⊕ counter). Kept rows stay in
+  original relative order. No provider HTTP. Adapter default
+  `min_group_size=5`. Transcripts are dropped before ingest.
 
 ### Documentation
 
@@ -70,6 +78,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   plus deploy warning for the server's shared provider key; CI/CD
   `llm-fairness-check` Action example and `FAIRPIPE_LLM_ALLOW_LIVE` as a live-job
   deployment requirement (safe default-forbid).
+- `docs/integration_guide.md` Production Monitoring: sampled production LLM
+  example (1/N → adapter → `process_batch` → drift engine), alongside the
+  existing classifier tracker example.
 - `README.md` CI/CD section: `llm-fairness-check` YAML example mirroring `fairness-check`.
 - `docs/fairpipe-technical-backlog.md`: BL-010 — wire `llm-fairness-check` into
   `SvrusIO/fairpipe-action`.
