@@ -1,6 +1,6 @@
 # Fairness Pipeline Development Toolkit - Comprehensive User Guide
 
-**Version:** 0.9.1
+**Version:** 0.10.0
 
 This guide walks you through using the Fairness Pipeline Development Toolkit across the complete model development cycle—from initial data exploration to production monitoring. Whether you're building a new model or improving an existing one, this toolkit provides the tools and workflows to ensure fairness at every stage.
 
@@ -83,7 +83,7 @@ pip install -r requirements.txt
 fairpipe version
 ```
 
-You should see the version number (e.g., `0.9.1`).
+You should see the version number (e.g., `0.10.0`).
 
 ---
 
@@ -1171,7 +1171,10 @@ Reports include:
   shipped subset is all-ambiguous and similarly labeled until BL-009)
 
 Gate in tests with `assert_llm_fairness(metric, threshold=...)`. Log with `log_llm_eval_results`
-(caveats become MLflow tags).
+(caveats become MLflow tags). CLI: `fairpipe llm-eval --metric ... --threshold ...` (exit 0/1/2/3).
+REST: `POST /llm-eval`. Production logs: `sample_production_llm_records()` into the existing
+tracker / drift engine (see [docs/integration_guide.md](docs/integration_guide.md#production-monitoring)).
+Live provider HTTP is forbidden by default (`FAIRPIPE_LLM_ALLOW_LIVE=1` to opt in).
 
 See **[docs/llm_evals_intro.md](docs/llm_evals_intro.md)** and
 **`case_studies/llm_counterfactual_fairness.ipynb`** (Part A: `nan` guard; Part B: ≈0.196
@@ -1184,6 +1187,8 @@ At this stage, you should have:
 - ✅ Markdown report artifact
 - ✅ Optional transcripts JSON (separate from report)
 - ✅ Pytest + MLflow integration (`assert_llm_fairness`, `log_llm_eval_results`)
+- ✅ REST `POST /llm-eval`, CLI/Action-shaped gate (exit 0/1/2/3; BL-010 companion Action)
+- ✅ Sampled production LLM monitoring on the existing tracker / drift stack
 
 ---
 
@@ -1437,8 +1442,8 @@ This guide has walked you through using the Fairness Pipeline Development Toolki
 
 ---
 
-**Version**: 0.9.1
-**Last Updated**: 2026-05-22 (integrated workflow: `class_weight`, `decision_threshold`, `StandardScaler`)
+**Version**: 0.10.0
+**Last Updated**: 2026-08-31 (LLM fairness evals: probes, REST, CI/CD gate, production sampling)
 
 For questions, issues, or contributions, please see [CONTRIBUTING.md](CONTRIBUTING.md).
 

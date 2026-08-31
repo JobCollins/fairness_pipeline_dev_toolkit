@@ -63,14 +63,15 @@ export OPENAI_API_KEY="sk-..."
 export ANTHROPIC_API_KEY="..."
 ```
 
-When using the CLI, run `fairpipe llm-eval --dry-run` to estimate request volume and approximate cost before making live provider calls.
+When using the CLI, run `fairpipe llm-eval --dry-run` to estimate request volume and approximate cost before making live provider calls. Live HTTP is **forbidden by default**; set `FAIRPIPE_LLM_ALLOW_LIVE=1` on CLI, REST, Jupyter, or CI jobs that should call a provider (same flag — see [Environment Variables](docs/integration_guide.md#environment-variables)). Replay-from-`cache_dir` does not need it.
 
 ```bash
 fairpipe llm-eval --config llm_eval.yml --dry-run
 fairpipe llm-eval --config llm_eval.yml --report-md artifacts/llm_report.md --with-ci
+fairpipe llm-eval --config llm_eval.yml --metric counterfactual_fairness_divergence --threshold 0.25
 ```
 
-See **[docs/llm_evals_intro.md](docs/llm_evals_intro.md)** for configuration and API details.
+See **[docs/llm_evals_intro.md](docs/llm_evals_intro.md)** for configuration, REST `POST /llm-eval`, and sampling production logs into the existing tracker.
 
 ---
 

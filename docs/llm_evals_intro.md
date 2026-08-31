@@ -185,6 +185,24 @@ notebook prepends the repo root to `sys.path`. Prefer kernel **Python (fairpipe 
 A missing or wrong `cache_dir` raises `LiveLLMCallForbidden` immediately (live HTTP is
 forbidden by default). Replay of a valid recorded cache should finish in about a second.
 
-## Roadmap
+## CI/CD, REST, and production monitoring (Phase 3)
 
-- **Phase 3:** CI/CD Action mode, REST API endpoint, production monitoring
+- **CLI gate:** `fairpipe llm-eval --metric ... --threshold ...` — exit 0 pass / 1 fail /
+  2 usage / 3 illustrative (`evaluate_llm_eval_gate()`). A caveated metric exits 3 even
+  when the number would pass. Dry-run stays 0 and does not call a provider.
+- **REST:** `POST /llm-eval` — same three-state `gate_status` / `passed` (null when
+  illustrative). Credentials env-only; default body is aggregated metrics (no transcripts).
+- **Local Action harness:** `run_llm_fairness_check()` with Action-shaped `with:` keys.
+  Wiring `llm-fairness-check` into `SvrusIO/fairpipe-action` is [BL-010](fairpipe-technical-backlog.md).
+- **Production logs:** `sample_production_llm_records()` keeps 1/N already-produced rows
+  (group + 0/1 score, no provider HTTP) and feeds the existing tracker / drift engine.
+  See [Production Monitoring](integration_guide.md#production-monitoring).
+
+Live HTTP is forbidden by default. Opt in with `FAIRPIPE_LLM_ALLOW_LIVE=1` on the process
+that should call a provider ([Environment Variables](integration_guide.md#environment-variables)).
+
+## Still open
+
+- **BL-009** — re-record refusal/toxicity (and add disambiguated BBQ items) before citing
+  those fixtures as evidence.
+- **BL-010** — companion-repo `llm-fairness-check` mode in `SvrusIO/fairpipe-action`.

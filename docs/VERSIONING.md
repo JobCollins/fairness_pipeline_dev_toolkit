@@ -1,7 +1,7 @@
 # Versioning Strategy and Backward Compatibility Policy
 
-**Last Updated:** 2026-05-14  
-**Current Version:** 0.9.1
+**Last Updated:** 2026-08-31  
+**Current Version:** 0.10.0
 
 ---
 
@@ -23,7 +23,7 @@ Version numbers follow the format: **MAJOR.MINOR.PATCH** (e.g., `0.5.0`)
 
 ### Current Status
 
-- **Current Version:** `0.9.1` (Beta)
+- **Current Version:** `0.10.0` (Beta)
 - **Development Status:** Beta (pre-1.0.0)
 - **Pre-1.0.0 Policy:** During the 0.x phase, MINOR version increments may include breaking changes. Once we reach 1.0.0, strict SemVer will be enforced.
 
@@ -51,6 +51,8 @@ The following are considered public APIs and maintain backward compatibility wit
    - `fairpipe pipeline` (with existing arguments)
    - `fairpipe run-pipeline` (with existing arguments)
    - `fairpipe train-regularized`, `fairpipe train-lagrangian`, `fairpipe calibrate`
+   - `fairpipe llm-eval` (including `--threshold` / `--metric`; additive in v0.10.0)
+   - `fairpipe serve` (optional `api` extra)
 
 3. **Configuration File Schema:**
    - YAML configuration structure for `PipelineConfig`
@@ -140,6 +142,12 @@ These modules and their public exports are stable:
 - `log_workflow_results()` function
 - `to_markdown_report()` function
 - `assert_fairness()` pytest plugin
+- `assert_llm_fairness()` / `log_llm_eval_results()` (v0.10.0)
+
+#### LLM evals (`fairpipe.llm_evals`) — since v0.10.0
+- `LLMEvalAdapter` protocol and the four evaluators
+- `run_llm_eval()`, `load_llm_eval_config()`, `evaluate_llm_eval_gate()`, `run_llm_fairness_check()`
+- `sample_production_llm_records()`, `make_production_llm_tracker()`, `ingest_sampled_production_llm()`
 
 #### Training (`fairpipe.training`)
 - Training wrapper classes and their public methods
@@ -289,13 +297,13 @@ If CLI changes are necessary:
 **Programmatically:**
 ```python
 from fairpipe import __version__
-print(__version__)  # "0.6.2"
+print(__version__)  # "0.10.0"
 ```
 
 **CLI:**
 ```bash
 fairpipe version
-# Output: 0.6.2
+# Output: 0.10.0
 ```
 
 **Package Metadata:**
@@ -322,7 +330,7 @@ See **[RELEASE.md](RELEASE.md)** for the mirror ([SvrusIO/fAIr](https://github.c
 - [ ] Update `docs/conf.py` `version` and `release`
 - [ ] Update `CHANGELOG.md` with release notes
 - [ ] Update API and integration docs if the public surface changed
-- [ ] Tag release in git: `git tag v0.9.1` and push to mirror remotes
+- [ ] Tag release in git: `git tag v0.10.0` and push to mirror remotes
 - [ ] Build and publish to PyPI (`.github/workflows/release.yml` or manual)
 - [ ] Refresh hosted documentation
 
@@ -330,7 +338,7 @@ See **[RELEASE.md](RELEASE.md)** for the mirror ([SvrusIO/fAIr](https://github.c
 
 ## Pre-1.0.0 Considerations
 
-### Current Status: Beta (0.6.2)
+### Current Status: Beta (0.10.0)
 
 During the 0.x phase:
 
@@ -361,12 +369,12 @@ Once version 1.0.0 is released:
 
 **For Production:**
 ```txt
-fairpipe==0.6.2
+fairpipe==0.10.0
 ```
 
 **For Development:**
 ```txt
-fairpipe>=0.6.2,<1.0.0
+fairpipe>=0.10.0,<1.0.0
 ```
 
 ### Staying Updated
@@ -407,7 +415,7 @@ If you encounter backward compatibility issues:
 ## Summary
 
 - **Versioning:** Semantic Versioning (SemVer)
-- **Current Version:** 0.6.2 (Beta)
+- **Current Version:** 0.10.0 (Beta)
 - **Backward Compatibility:** Guaranteed within major versions (post-1.0.0)
 - **Public APIs:** Stable within major versions
 - **Deprecation:** Minimum notice period before removal

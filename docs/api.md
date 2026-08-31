@@ -877,7 +877,7 @@ tracker = RealTimeFairnessTracker(
 column_map = ColumnMap(
     y_true="y_true",
     y_pred="y_pred",
-    sensitive="gender"
+    protected=["gender"]
 )
 
 tracker.process_batch(df, column_map)
@@ -1194,7 +1194,7 @@ d = cohens_d(group1_errors, group2_errors)
 ## LLM Fairness Evaluation
 
 > Install provider SDKs with `pip install fairpipe[llm]`. See **[docs/llm_evals_intro.md](llm_evals_intro.md)**.
-> Phase 0–2 are implemented. Phase 3 REST/Action/monitoring is not in this release.
+> Phases 0–3 ship in v0.10.0 (evaluators, `POST /llm-eval`, CLI/Action gate, production sampling).
 
 ### CLI: `fairpipe llm-eval`
 
@@ -1240,6 +1240,15 @@ shipped BL-009 demo fixtures; `null` on expanded counterfactual / user configs, 
 classifier `/validate` / `/workflow`) — not a separate REST envelope. Gating is
 three-state: `gate_status` is `pass` | `fail` | `illustrative`, and `passed` is
 `true` | `false` | `null` aligned 1:1. See [REST API](#rest-api) below.
+
+### Production sampling
+
+`sample_production_llm_records()` keeps 1/N already-produced log rows as a group
+label plus a 0/1 `y_pred`. `random_state` is caller-supplied (omit to vary per call).
+Kept rows stay in original relative order. `make_production_llm_tracker()` /
+`ingest_sampled_production_llm()` map onto `ColumnMap(protected=...)` and
+`process_batch` (unpaired group-rate disparity). No provider HTTP; transcripts
+are dropped. See [Production Monitoring](integration_guide.md#production-monitoring).
 
 ### `CounterfactualFairnessEvaluator`
 
@@ -1375,7 +1384,7 @@ Get the toolkit version:
 
 ```python
 from fairpipe import __version__
-print(__version__)  # "0.9.1"
+print(__version__)  # "0.10.0"
 ```
 
 ---
@@ -1445,7 +1454,7 @@ Returns server version and current UTC timestamp.
 ```json
 {
   "status": "ok",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "timestamp": "2026-05-07T10:00:00.000000+00:00"
 }
 ```

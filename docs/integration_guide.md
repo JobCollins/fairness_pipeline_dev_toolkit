@@ -57,7 +57,7 @@ pip install fairpipe[llm]
 
 ```python
 import fairpipe
-print(fairpipe.__version__)  # Should match installed fairpipe (e.g. "0.9.1")
+print(fairpipe.__version__)  # Should match installed fairpipe (e.g. "0.10.0")
 
 # Test CLI
 import subprocess
@@ -648,7 +648,7 @@ tracker = RealTimeFairnessTracker(
 column_map = ColumnMap(
     y_true="y_true",
     y_pred="y_pred",
-    sensitive="gender"
+    protected=["gender"]
 )
 
 # Process batches of predictions
@@ -1205,7 +1205,7 @@ fairpipe serve --host 0.0.0.0 --port 8000 --workers 4
 
 On startup:
 ```
-fairpipe API v0.9.1 running on http://127.0.0.1:8000
+fairpipe API v0.10.0 running on http://127.0.0.1:8000
   → Swagger UI: http://127.0.0.1:8000/docs
   → ReDoc:      http://127.0.0.1:8000/redoc
 ```

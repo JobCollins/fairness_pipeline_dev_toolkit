@@ -1,7 +1,7 @@
 # fairpipe: LLM Evals — Feature Specification
 
-**Status:** Phase 0–2 implemented (Option A). Phase 3 (REST, CI/CD Action, monitoring) not started.
-**Target version:** 0.10.0 (minor bump per `docs/VERSIONING.md` — additive capability, no breaking changes; bump is finalized in Phase 3)
+**Status:** Phase 0–3 implemented (Option A). v0.10.0.
+**Target version:** 0.10.0 (minor bump per `docs/VERSIONING.md` — additive capability, no breaking changes; bump finalized in Phase 3 close-out)
 **Author:** Job Collins Dulo
 
 ---

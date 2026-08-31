@@ -391,6 +391,12 @@ calibrated = cal.transform(scores, groups)
 - **`FairnessReportingDashboard`**, **`ReportConfig`**
 - **`FairnessABTestAnalyzer`**
 
+**`ColumnMap`** maps batch columns onto the tracker (`y_pred`, optional `y_true`,
+`protected=` — a sequence of column names, **not** `sensitive=`). Production LLM
+logs use `fairpipe.llm_evals.sample_production_llm_records()` (1/N already-produced
+rows → group + 0/1 score) and the same `process_batch` / drift engine; see the
+Integration Guide Production Monitoring section.
+
 **`FairnessDriftAndAlertEngine`** compares recent vs reference windows (e.g. KS-based scoring on metric time series), optionally with wavelet decomposition when PyWavelets is available and configured. This module does **not** implement external incident integrations (PagerDuty, Slack, etc.) in code; it emits in-memory **`AlertEvent`** records for downstream use.
 
 ### Code · Drift engine

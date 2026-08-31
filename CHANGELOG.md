@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.10.0] — 2026-08-31
+
+LLM fairness evals (Option A): counterfactual, refusal, toxicity, and BBQ stereotype
+metrics, plus REST, CI/CD gating, and production-log sampling into the existing
+monitor. Additive minor bump — no breaking changes.
+
 ### Added
 
 - **`fairness_pipeline_dev_toolkit.llm_evals` module (Phase 0 scaffolding):** `LLMEvalAdapter`
@@ -71,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `README.md`: "Setting LLM provider credentials" section and comparison-table row for LLM fairness evals.
 - `docs/llm_evals_intro.md`: LLM fairness evals explainer, CLI/API, case-study walkthrough.
 - `DOCS.md`: Phase 8 — LLM Fairness Evaluation (four evaluators, replay-only, case study).
-- `docs/LLM_EVALS_SPEC.md`: status updated to Phase 0–2 implemented.
+- `docs/LLM_EVALS_SPEC.md`: status updated to Phase 0–3 implemented (0.10.0).
 - `docs/api.md`: LLM evals API and CLI reference; `POST /llm-eval` (`gate_status`, `passed` nullability).
 - `docs/getting_started.md`, `docs/integration_guide.md`, `docs/playbook-part-five-fairpipe.md`:
   pointers to LLM evals / `assert_llm_fairness()`; integration_guide REST `POST /llm-eval`
@@ -86,6 +92,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `SvrusIO/fairpipe-action`.
 - `docs/index.rst`: Sphinx toctree entry for `llm_evals_intro`.
 - `NOTICE`, `ATTRIBUTION.md`: BBQ (CC BY 4.0) attribution and U.S.-context caveat.
+- `docs/VERSIONING.md`, `docs/RELEASE.md`, `docs/conf.py`, `DOCS.md`, `docs/api.md`,
+  `docs/integration_guide.md`: version **0.10.0**. Classifier `ColumnMap` examples
+  use `protected=` (the actual field), not `sensitive=`.
+
+### Changed
+
+- Version bumped to **0.10.0** in `pyproject.toml`,
+  `fairness_pipeline_dev_toolkit.__version__`, and `docs/conf.py`.
 
 ## [v0.9.1] — 2026-05-22
 
