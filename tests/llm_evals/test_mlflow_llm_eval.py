@@ -8,11 +8,9 @@ from fairness_pipeline_dev_toolkit.integration.mlflow_logger import log_llm_eval
 from fairness_pipeline_dev_toolkit.metrics.base import MetricResult
 
 
-def test_log_llm_eval_results_local_tracking_uri(tmp_path):
+def test_log_llm_eval_results_local_tracking_uri(mlflow_sqlite_tracking):
     import mlflow
 
-    tracking = tmp_path / "mlruns"
-    mlflow.set_tracking_uri(tracking.as_uri())
     mlflow.set_experiment("llm_eval_local")
     metrics = {
         "refusal_rate_disparity": MetricResult(

@@ -13,6 +13,28 @@ from fairness_pipeline_dev_toolkit.llm_evals.client import (
 
 
 @pytest.fixture
+def mlflow_sqlite_tracking(tmp_path):
+    """Local MLflow tracking URI that works after FileStore was put in maintenance mode.
+
+    Newer MLflow raises unless ``MLFLOW_ALLOW_FILE_STORE=true``. Tests use sqlite instead
+    so they stay compatible without opting into a deprecated backend.
+    """
+    import mlflow
+
+    uri = "sqlite:///" + (tmp_path / "mlflow.db").resolve().as_posix()
+    previous = mlflow.get_tracking_uri()
+    mlflow.set_tracking_uri(uri)
+    try:
+        yield uri
+    finally:
+        try:
+            mlflow.end_run()
+        except Exception:
+            pass
+        mlflow.set_tracking_uri(previous)
+
+
+@pytest.fixture
 def assert_no_live_llm_calls(monkeypatch):
     """Patch provider live-call sites and assert they were never invoked.
 

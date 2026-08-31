@@ -83,11 +83,10 @@ def test_markdown_omits_caveat_section_without_flag():
     assert "## Caveats" not in report
 
 
-def test_mlflow_surface_renders_caveat_tag(tmp_path, assert_no_live_llm_calls):
+def test_mlflow_surface_renders_caveat_tag(mlflow_sqlite_tracking, assert_no_live_llm_calls):
     import mlflow
 
     result = run_llm_eval(default_recorded_toxicity_config(), with_ci=False)
-    mlflow.set_tracking_uri((tmp_path / "mlruns").as_uri())
     mlflow.set_experiment("llm_eval_caveat")
     with mlflow.start_run() as run:
         ok = log_llm_eval_results(result.metrics)
@@ -97,12 +96,11 @@ def test_mlflow_surface_renders_caveat_tag(tmp_path, assert_no_live_llm_calls):
     assert tags["llm_eval.toxicity_sentiment_disparity.caveat"] == CAVEAT_RECORDED_TOXICITY
 
 
-def test_mlflow_omits_caveat_tag_when_field_empty(tmp_path):
+def test_mlflow_omits_caveat_tag_when_field_empty(mlflow_sqlite_tracking):
     import mlflow
 
     from fairness_pipeline_dev_toolkit.metrics.base import MetricResult
 
-    mlflow.set_tracking_uri((tmp_path / "mlruns").as_uri())
     mlflow.set_experiment("llm_eval_no_caveat")
     with mlflow.start_run() as run:
         log_llm_eval_results(
