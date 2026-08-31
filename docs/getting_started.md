@@ -114,4 +114,5 @@ docker run -p 8000:8000 fairpipe-api
 - Read the [User Guide](DOCS.md) for comprehensive documentation
 - Check out the [API Reference](api.md) for detailed API documentation — including the full REST API endpoint reference
 - See the [Integration Guide](integration_guide.md) for CI/CD integration
+- LLM fairness evals (counterfactual / refusal / toxicity / BBQ): [LLM Fairness Evaluation](llm_evals_intro.md) — `pip install 'fairpipe[llm]'`; case study notebook needs no API key
 - Review [Performance](PERFORMANCE.md) for optimization tips

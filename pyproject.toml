@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fairpipe"
-version = "0.9.1"
+version = "0.10.0"
 description = "Production-ready toolkit for fairness measurement, mitigation, and monitoring."
 readme = "README.md"
 license = { text = "Apache-2.0" }
@@ -55,8 +55,12 @@ line-length = 100
 profile = "black"
 
 [tool.pytest.ini_options]
-addopts = "-vv -ra --maxfail=1 --disable-warnings"
+addopts = "-vv -ra --maxfail=1 --disable-warnings -m 'not live_llm and not live_bbq'"
 pythonpath = ["."]
+markers = [
+    "live_llm: tests that make real calls to an LLM provider (opt-in, excluded by default)",
+    "live_bbq: tests that fetch BBQ JSONL from the pinned upstream commit (opt-in, no LLM call)",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -70,6 +74,8 @@ dev = [
   "ruff>=0.6",
   "mypy>=1.10",
   "types-python-dateutil",
+  "nbclient>=0.10",
+  "nbformat>=5.10",
 ]
 training = [
   "torch>=2.2",
@@ -91,11 +97,19 @@ api = [
   "fastapi[standard]>=0.111.0",
   "python-multipart>=0.0.9",
 ]
+llm = [
+  "openai>=1.0",
+  "anthropic>=0.25",
+  "httpx>=0.27",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["fairness_pipeline_dev_toolkit*", "fairpipe*"]   # <-- IMPORTANT
 exclude = ["tests*", "benchmarks*"]
+
+[tool.setuptools.package-data]
+"fairness_pipeline_dev_toolkit.llm_evals" = ["fixtures/**/*"]
 
 [project.scripts]
 fairpipe = "fairness_pipeline_dev_toolkit.cli.main:main"

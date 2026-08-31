@@ -5,7 +5,13 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from .routes import health_router, pipeline_router, validate_router, workflow_router
+from .routes import (
+    health_router,
+    llm_eval_router,
+    pipeline_router,
+    validate_router,
+    workflow_router,
+)
 from .routes.validate import get_store
 from .store import ResultStore
 
@@ -21,7 +27,8 @@ def create_app() -> FastAPI:
         version=_pkg_version,
         description=(
             "REST API for the fairpipe fairness toolkit. "
-            "Compute fairness metrics, run bias pipelines, and execute full workflows over HTTP."
+            "Compute fairness metrics, run LLM fairness evals, run bias pipelines, "
+            "and execute full workflows over HTTP."
         ),
     )
 
@@ -40,6 +47,7 @@ def create_app() -> FastAPI:
     app.include_router(validate_router)
     app.include_router(pipeline_router)
     app.include_router(workflow_router)
+    app.include_router(llm_eval_router)
 
     # Global exception handler — returns 500 for any unhandled exception.
     # Note: HTTPException is handled by FastAPI before reaching this handler.

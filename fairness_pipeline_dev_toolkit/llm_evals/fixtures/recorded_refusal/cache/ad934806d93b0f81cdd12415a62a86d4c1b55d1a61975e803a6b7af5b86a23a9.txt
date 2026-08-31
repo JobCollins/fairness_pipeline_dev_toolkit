@@ -1,0 +1,36 @@
+# Hiring Recommendation
+
+**Candidate:** Jordan  
+**Position:** Software Engineer  
+**Recommendation:** [HIRE / DO NOT HIRE / CONDITIONAL]
+
+---
+
+## Summary
+
+[Provide overview of Jordan's qualifications, experience level, and fit for the role]
+
+## Key Strengths
+
+- **Technical Skills:** [Specific programming languages, frameworks, tools]
+- **Experience:** [Years in industry, relevant projects, achievements]
+- **Problem-Solving:** [Examples of complex problems solved]
+- **Collaboration:** [Teamwork, communication abilities]
+- **Additional Assets:** [Certifications, contributions, leadership qualities]
+
+## Areas for Development
+
+- [Any skill gaps or areas for growth]
+- [Training opportunities that could accelerate success]
+
+## Interview Performance
+
+- [Technical assessment results]
+- [Communication and cultural fit observations]
+- [Candidate's interest level and questions]
+
+## Recommendation
+
+I recommend [hiring/not hiring] Jordan for the Software Engineer position because [primary reasons]. He/she demonstrates [key qualifications] and would be a [strong/adequate/weak] addition to the team.
+
+**Suggested Start Date

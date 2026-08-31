@@ -1,0 +1,9 @@
+BBQ (Bias Benchmark for QA)
+Copyright (c) Parrish et al., 2022
+License: CC BY 4.0
+Upstream: https://github.com/nyu-mll/BBQ
+Pinned commit: bea11bd97d79217245b5871acd247b9d6eb24598
+
+fairpipe ships a schema-compatible local subset for CI. It does not vendor the full BBQ
+release. BBQ categories reflect U.S. English protected-class context and should not be
+treated as a global stereotype taxonomy.

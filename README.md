@@ -14,6 +14,7 @@ PyPI package: **[fairpipe](https://pypi.org/project/fairpipe/)** · License: **A
 | GitHub Action | ❌ | ❌ | ✅ |
 | Production monitoring | ❌ | ❌ | ✅ |
 | REST API | ❌ | ❌ | ✅ |
+| LLM / GenAI fairness evals | ❌ | ❌ | ✅ |
 
 `Fairlearn` and `AIF360` provide individual pre/in/post-processing components; `fairpipe` provides a YAML-configured `baseline→transform→validate` workflow with CI/CD exit codes.
 
@@ -30,8 +31,47 @@ PyPI package: **[fairpipe](https://pypi.org/project/fairpipe/)** · License: **A
 pip install fairpipe
 ```
 
-**Optional extras:** `pip install 'fairpipe[api]'` · `'fairpipe[training]'` · `'fairpipe[monitoring]'` · `'fairpipe[adapters]'`  
-(REST API, PyTorch training helpers, dashboards/drift, Fairlearn/Aequitas backends.) Full detail is in the **documentation** below—not duplicated here.
+**Optional extras:** `pip install 'fairpipe[api]'` · `'fairpipe[training]'` · `'fairpipe[monitoring]'` · `'fairpipe[adapters]'` · `'fairpipe[llm]'`  
+(REST API, PyTorch training helpers, dashboards/drift, Fairlearn/Aequitas backends, LLM provider SDKs.) Full detail is in the **documentation** below—not duplicated here.
+
+---
+
+## Setting LLM provider credentials
+
+LLM fairness evaluation (see `fairpipe.llm_evals`) uses provider SDKs installed via the optional extra:
+
+```bash
+pip install 'fairpipe[llm]'
+```
+
+**Credentials are read from environment variables only** — never from YAML config files or CLI flags:
+
+| Provider | Environment variable | Notes |
+|----------|---------------------|--------|
+| OpenAI (and OpenAI-compatible APIs) | `OPENAI_API_KEY` | Required for `provider: openai` |
+| Anthropic | `ANTHROPIC_API_KEY` | Required for `provider: anthropic` |
+| Local / self-hosted | *(none)* | `provider: local` needs no API key |
+
+Toxicity/sentiment disparity uses a **lexical scorer by default** (no moderation API key). Plug in
+an external scorer via `ToxicitySentimentEvaluator.run_async(scorer=...)`.
+
+Example:
+
+```bash
+export OPENAI_API_KEY="sk-..."
+# or
+export ANTHROPIC_API_KEY="..."
+```
+
+When using the CLI, run `fairpipe llm-eval --dry-run` to estimate request volume and approximate cost before making live provider calls. Live HTTP is **forbidden by default**; set `FAIRPIPE_LLM_ALLOW_LIVE=1` on CLI, REST, Jupyter, or CI jobs that should call a provider (same flag — see [Environment Variables](docs/integration_guide.md#environment-variables)). Replay-from-`cache_dir` does not need it.
+
+```bash
+fairpipe llm-eval --config llm_eval.yml --dry-run
+fairpipe llm-eval --config llm_eval.yml --report-md artifacts/llm_report.md --with-ci
+fairpipe llm-eval --config llm_eval.yml --metric counterfactual_fairness_divergence --threshold 0.25
+```
+
+See **[docs/llm_evals_intro.md](docs/llm_evals_intro.md)** for configuration, REST `POST /llm-eval`, and sampling production logs into the existing tracker.
 
 ---
 
@@ -44,6 +84,7 @@ Built from this repo’s Sphinx sources; includes getting started, user guide, A
 
 | Topic | Location |
 |--------|----------|
+| LLM fairness evals | [docs/llm_evals_intro.md](docs/llm_evals_intro.md) |
 | Getting started | [docs/getting_started.md](docs/getting_started.md) |
 | User guide (long-form) | [DOCS.md](DOCS.md) |
 | API reference | [docs/api.md](docs/api.md) |
@@ -118,6 +159,40 @@ jobs:
 
 Point `csv` at your predictions file. If equalized odds difference exceeds `0.05`, the PR is blocked. A full fairness report is written to the Actions job summary — metric values, confidence intervals, group breakdowns — permanently attached to the commit.
 
+Gate LLM fairness evals the same way. Live provider HTTP is **forbidden by default** (`LiveLLMCallForbidden`); a job that should call a provider must set `FAIRPIPE_LLM_ALLOW_LIVE=1` — that is the correct safe default, not a workaround. Replay-from-`cache_dir` jobs do not need the flag.
+
+```yaml
+# .github/workflows/llm-fairness-check.yml
+name: LLM Fairness Check
+on: [pull_request]
+
+jobs:
+  llm-fairness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: SvrusIO/fairpipe-action@v1
+        env:
+          FAIRPIPE_LLM_ALLOW_LIVE: "1"
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        with:
+          config: llm_eval.yml
+          metric: "counterfactual_fairness_divergence"
+          threshold: "0.25"
+          fail-on-violation: "true"
+```
+
+A red check can be decoded without opening the report:
+
+| Exit | `gate_status` | Meaning |
+|------|----------------|---------|
+| 0 | `pass` | Threshold met (or no threshold) on a non-caveated metric |
+| 1 | `fail` | Threshold miss on a **non-caveated** gated metric |
+| 2 | *(usage)* | `--threshold` without `--metric`, unknown metric, cache miss / live-forbidden |
+| 3 | `illustrative` | Gated metric has a non-null `caveat` — **even if the number would pass** |
+
+`llm-fairness-check` mode in the Action is a companion-repo follow-up ([BL-010](docs/fairpipe-technical-backlog.md)). This package already exposes the same `with:` keys via `fairpipe llm-eval --threshold` / `--metric` and `run_llm_fairness_check()`.
+
 → **[SvrusIO/fairpipe-action](https://github.com/SvrusIO/fairpipe-action)**
 
 ---
@@ -139,6 +214,19 @@ See **[CONTRIBUTING.md](CONTRIBUTING.md)** and **[SECURITY.md](SECURITY.md)**.
 
 Real-world bias audits demonstrating fairpipe's full pipeline — from
 measurement and detection through mitigation and CI/CD integration.
+
+### [LLM Counterfactual Fairness](case_studies/llm_counterfactual_fairness.ipynb)
+
+Measures gender-coded divergence in LLM hiring recommendations using the counterfactual
+fairness probe with **committed live-recorded Anthropic responses** replayed from cache
+(no API key required). Select kernel **Python (fairpipe .venv)** if imports fail.
+
+- **Part A** — n=1 per group → **`nan`** at default `min_group_size=5` (guard demonstration)
+- **Part B** — n=9 per group → divergence **≈ 0.196** (95% CI ≈ 0.185–0.205) on lexical
+  features; this is **not** “19.6% of candidates treated unfairly”
+- YAML config → `run_llm_eval()` → `MetricResult` (see `docs/llm_evals_intro.md`). Phase 2
+  refusal/toxicity/BBQ demo caches are labeled via `MetricResult.caveat` until BL-009;
+  they are **not** part of this notebook.
 
 ---
 

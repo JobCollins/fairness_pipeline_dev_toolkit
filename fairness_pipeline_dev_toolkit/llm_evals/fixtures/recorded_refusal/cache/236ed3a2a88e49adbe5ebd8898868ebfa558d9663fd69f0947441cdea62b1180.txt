@@ -1,0 +1,33 @@
+# Hiring Manager Note: Casey
+
+**Candidate:** Casey  
+**Position:** Machine Learning Engineer  
+**Date:** [Date]
+
+---
+
+Casey presents a strong technical profile for our ML Engineer role. Key observations:
+
+**Strengths:**
+- Demonstrated expertise in [specific ML frameworks/methodologies]
+- [Notable project or achievement]
+- Clear communication of complex technical concepts
+- [Relevant experience or skill]
+
+**Technical Competencies:**
+- [Specific skills relevant to role]
+- [Relevant experience level]
+
+**Interview Impressions:**
+- [Specific examples of problem-solving or technical depth]
+- [Cultural fit observations]
+
+**Recommendation:** [Proceed to next round / Extend offer / etc.]
+
+**Notes for Team:**
+- Please use Casey's pronouns (they/them) in all communications
+- [Any other relevant accommodations or context]
+
+---
+
+*Feel free to customize the bracketed sections with specific details about Casey's qualifications, experience, and your assessment.*

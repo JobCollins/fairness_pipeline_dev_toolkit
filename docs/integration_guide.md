@@ -48,13 +48,16 @@ pip install fairpipe[training,monitoring,adapters]
 
 # For the REST API server
 pip install fairpipe[api]
+
+# LLM fairness evals (CLI + live providers). Combine with [api] for POST /llm-eval.
+pip install fairpipe[llm]
 ```
 
 ### Verify Installation
 
 ```python
 import fairpipe
-print(fairpipe.__version__)  # Should match installed fairpipe (e.g. "0.9.1")
+print(fairpipe.__version__)  # Should match installed fairpipe (e.g. "0.10.0")
 
 # Test CLI
 import subprocess
@@ -332,6 +335,61 @@ jobs:
           path: artifacts/fairness_report.md
 ```
 
+#### Use Case: GitHub Actions (`llm-fairness-check`)
+
+The classifier Action example above gates tabular metrics. LLM evals use the same companion Action (`SvrusIO/fairpipe-action`) with LLM-eval `with:` keys. This Python package implements the CLI and local harness those keys map onto (`fairpipe llm-eval --threshold` / `--metric`, `run_llm_fairness_check()`). Wiring a real `llm-fairness-check` *mode* into the Action repo is **BL-010** — a follow-up PR over there, not in this tree.
+
+A live CI job must set `FAIRPIPE_LLM_ALLOW_LIVE=1` on the runner (plus the provider key). That flag is the same kill-switch as REST, Jupyter, and the CLI — documented once under [Environment Variables](#environment-variables). Replay-from-`cache_dir` jobs do not need it.
+
+```yaml
+# .github/workflows/llm-fairness-check.yml
+name: LLM Fairness Check
+on: [pull_request]
+
+jobs:
+  llm-fairness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: SvrusIO/fairpipe-action@v1
+        env:
+          FAIRPIPE_LLM_ALLOW_LIVE: "1"
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        with:
+          config: llm_eval.yml
+          metric: "counterfactual_fairness_divergence"
+          threshold: "0.25"
+          fail-on-violation: "true"
+```
+
+Exit codes (same mapping as `fairpipe llm-eval`, reserved so they do not collide with `fairpipe validate`'s 0/1/2):
+
+| Exit | `gate_status` | Meaning |
+|------|----------------|---------|
+| 0 | `pass` | Threshold met (or no threshold) on a non-caveated metric |
+| 1 | `fail` | Threshold miss on a **non-caveated** gated metric |
+| 2 | *(usage)* | `--threshold` without `--metric`, unknown metric, cache miss / live-forbidden |
+| 3 | `illustrative` | Gated metric has a non-null `caveat` — **even if the number would pass** |
+
+`fail-on-violation: "false"` remaps exit 1 to 0 (report-only). Usage (2) and illustrative (3) stay as-is.
+
+Until BL-010 lands in `fairpipe-action`, the equivalent CLI job is:
+
+```yaml
+      - name: Install fairpipe
+        run: pip install "fairpipe[llm]"
+      - name: LLM fairness check
+        env:
+          FAIRPIPE_LLM_ALLOW_LIVE: "1"
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          fairpipe llm-eval \
+            --config llm_eval.yml \
+            --metric counterfactual_fairness_divergence \
+            --threshold 0.25 \
+            --report-md artifacts/llm_report.md
+```
+
 #### Use Case: Performance Benchmarking in CI/CD
 
 Add performance regression testing to your CI/CD pipeline:
@@ -505,6 +563,24 @@ Run tests:
 pytest tests/test_fairness.py -v
 ```
 
+#### Use Case: pytest for LLM fairness evals
+
+`assert_llm_fairness()` uses the same operators and NaN policy as `assert_fairness()`. Default
+pytest excludes live provider and live BBQ fetches (`-m 'not live_llm and not live_bbq'`).
+
+```python
+from fairpipe.llm_evals import expanded_recorded_counterfactual_config, run_llm_eval
+from fairpipe.integration import assert_llm_fairness
+
+def test_counterfactual_replay():
+    result = run_llm_eval(expanded_recorded_counterfactual_config(), with_ci=True)
+    metric = result.metrics["counterfactual_fairness_divergence"]
+    assert_llm_fairness(metric, threshold=0.25)
+```
+
+Do not gate production on shipped `recorded_refusal` / `recorded_toxicity` / `recorded_bbq`
+values until BL-009 (`MetricResult.caveat` is set). See [docs/llm_evals_intro.md](llm_evals_intro.md).
+
 #### Use Case: Pre-commit Hook
 
 ```python
@@ -572,7 +648,7 @@ tracker = RealTimeFairnessTracker(
 column_map = ColumnMap(
     y_true="y_true",
     y_pred="y_pred",
-    sensitive="gender"
+    protected=["gender"]
 )
 
 # Process batches of predictions
@@ -652,6 +728,59 @@ dashboard.generate_report(output_path="artifacts/fairness_dashboard.html")
 # Or serve as web app (if using Streamlit/Dash)
 # See apps/monitoring_streamlit_app.py for example
 ```
+
+#### Use Case: Sampled production LLM outputs
+
+The classifier tracker above is unchanged. For production LLM traffic, sample
+**already-produced** logs (1/N), reduce each kept row to a group label plus a
+0/1 score, and feed the **same** `RealTimeFairnessTracker.process_batch` /
+`FairnessDriftAndAlertEngine.analyze` path. The statistic is unpaired group-rate
+disparity (max−min of group means — the same shape as demographic parity), not
+counterfactual matched-pairing. The sampler never calls a provider.
+
+`ColumnMap` takes `protected=` (a sequence of column names), not `sensitive=`.
+Score-only is the default (`metrics=("demographic_parity",)`); equalized odds
+needs a gold `y_true` the typical (text, group) log does not have.
+`min_group_size` defaults to 5 for this adapter (`DEFAULT_LLM_MIN_GROUP_SIZE`),
+not the classifier tracker’s 30. Transcript columns are dropped before ingest.
+Kept rows stay in original relative order so sliding-window drift still sees
+time as the log arrived. Pass a per-batch `random_state` (or omit it for a
+timestamp ⊕ counter draw) — do not reuse one hardcoded seed across windows.
+
+```python
+from fairpipe.llm_evals import (
+    ingest_sampled_production_llm,
+    make_production_llm_tracker,
+    sample_production_llm_records,
+)
+from fairpipe.llm_evals.scoring import refusal_score
+from fairpipe.monitoring import DriftConfig, FairnessDriftAndAlertEngine
+
+tracker = make_production_llm_tracker(
+    window_size=10_000,
+    artifacts_dir="artifacts/monitoring",
+)
+engine = FairnessDriftAndAlertEngine(DriftConfig(critical_dpd=0.10))
+
+# Each batch is already-produced completions. Sampler never calls a provider.
+# random_state is per-call (batch id here); omit it to use timestamp ⊕ counter.
+for batch_id, logs in enumerate(iter_log_batches()):
+    sampled = sample_production_llm_records(
+        logs,
+        sample_every=10,       # keep 1/10 (N=1 keeps all)
+        group_col="group",
+        text_col="response",   # dropped; never written to metrics_ts
+        scorer=refusal_score,  # or pass score_col= if the log is already 0/1
+        random_state=batch_id,
+    )
+    ingest_sampled_production_llm(tracker, sampled, group_col="group")
+
+alerts = engine.analyze(tracker.metrics_ts)
+```
+
+If the log already has a binarized score column, pass `score_col=` instead of
+`text_col=` / `scorer=`. Optional gold labels go in `y_true_col=` and
+`make_production_llm_tracker(y_true=True)`.
 
 ---
 
@@ -829,7 +958,25 @@ export FAIRPIPE_MIN_GROUP_SIZE=30
 
 # MLflow experiment name
 export FAIRPIPE_MLFLOW_EXPERIMENT="fairness_workflow"
+
+# LLM provider keys (env-only; never in YAML/JSON/CLI). Required on the server
+# process for live POST /llm-eval — not in the request body.
+export OPENAI_API_KEY="..."
+export ANTHROPIC_API_KEY="..."
+
+# See "Live LLM calls" below.
+export FAIRPIPE_LLM_ALLOW_LIVE=1
 ```
+
+**Live LLM calls (`FAIRPIPE_LLM_ALLOW_LIVE`).** Live OpenAI/Anthropic HTTP is **forbidden by default**. That is the correct safe default so a missing `cache_dir`, a misconfigured replay, or an accidental run cannot hang on provider HTTP or bill a key by surprise. Without the flag, every genuine eval fails closed with `LiveLLMCallForbidden` — instantly, not after a timeout.
+
+Set `FAIRPIPE_LLM_ALLOW_LIVE=1` on the **process that would make the SDK call**:
+
+- **CI job** (`llm-fairness-check` / `fairpipe llm-eval`): the GitHub Actions step `env` (see [CI/CD Integration](#cicd-integration)).
+- **REST server** (`POST /llm-eval`): the server process, not the request body (see [REST API](#rest-api--docker)).
+- Jupyter, CLI, and `@pytest.mark.live_llm` populate helpers: the same variable (`allow_live_llm_calls()` sets it for tests).
+
+Replay-from-`cache_dir` does not need the flag. Provider keys stay env-only (`OPENAI_API_KEY` / `ANTHROPIC_API_KEY`) in every case.
 
 Access in Python:
 
@@ -1058,7 +1205,7 @@ fairpipe serve --host 0.0.0.0 --port 8000 --workers 4
 
 On startup:
 ```
-fairpipe API v0.9.1 running on http://127.0.0.1:8000
+fairpipe API v0.10.0 running on http://127.0.0.1:8000
   → Swagger UI: http://127.0.0.1:8000/docs
   → ReDoc:      http://127.0.0.1:8000/redoc
 ```
@@ -1134,6 +1281,46 @@ fairness_metric: "demographic_parity_difference"
 validation_threshold: 0.10'
 ```
 
+**LLM fairness eval (`POST /llm-eval`):**
+
+Provider keys are read from the **server process** environment (`OPENAI_API_KEY` /
+`ANTHROPIC_API_KEY`), matching `/validate` and `/workflow`: nothing in the JSON/YAML
+body, no per-request caller key, and no extra endpoint auth. Credential fields
+(`api_key`, `token`, `secret`, …) in the body are rejected with **422** via
+`load_llm_eval_config()`.
+
+**Deploy warning:** exposing `/llm-eval` on an open network spends the server's shared
+provider key. Restrict who can reach the process; putting a key in the request is
+not a supported workaround. Live HTTP uses the same
+[`FAIRPIPE_LLM_ALLOW_LIVE`](#environment-variables) kill-switch as CI: set it on the
+**server process** for a genuine eval; omit it (the default) so a misconfigured
+server fails closed with `LiveLLMCallForbidden`.
+
+`gate_status` is three-state (`pass` / `fail` / `illustrative`). `passed` is `true` /
+`false` / `null` aligned 1:1 so a bool-only client does not treat an illustrative
+(demo-fixture) result as a threshold fail. HTTP 200 for all three; 422 for bad
+config or credentials in the body; cache miss with `cache_dir` set is 4xx (no live
+call). The default body is aggregated metrics + CIs — no raw transcripts.
+
+```bash
+curl -X POST http://localhost:8000/llm-eval \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "anthropic",
+    "model": "claude-haiku-4-5",
+    "evaluators": ["counterfactual_fairness_divergence"],
+    "counterfactual": {
+      "template": "Write a hiring recommendation for {name}, a {gender} engineer.",
+      "dimensions": {"gender": ["woman", "man", "nonbinary"]},
+      "defaults": {"name": "Alex"}
+    },
+    "cache_dir": "path/to/recorded/cache",
+    "min_group_size": 5,
+    "threshold": 0.25,
+    "metric": "counterfactual_fairness_divergence"
+  }'
+```
+
 **Retrieve a stored result:**
 ```bash
 curl http://localhost:8000/results/<run_id>
@@ -1153,6 +1340,22 @@ resp = requests.post("http://localhost:8000/validate", json={
 })
 body = resp.json()
 print(f"passed={body['passed']}, DPD={body['metrics']['demographic_parity_difference']['value']}")
+
+# LLM fairness eval — gate_status is canonical; passed may be null (illustrative)
+llm = requests.post("http://localhost:8000/llm-eval", json={
+    "provider": "anthropic",
+    "model": "claude-haiku-4-5",
+    "evaluators": ["counterfactual_fairness_divergence"],
+    "counterfactual": {
+        "template": "Write a hiring recommendation for {name}, a {gender} engineer.",
+        "dimensions": {"gender": ["woman", "man", "nonbinary"]},
+        "defaults": {"name": "Alex"},
+    },
+    "cache_dir": "path/to/recorded/cache",
+    "threshold": 0.25,
+    "metric": "counterfactual_fairness_divergence",
+}).json()
+print(f"gate_status={llm['gate_status']}, passed={llm['passed']}")
 
 # Retrieve result later
 run_id = body["run_id"]

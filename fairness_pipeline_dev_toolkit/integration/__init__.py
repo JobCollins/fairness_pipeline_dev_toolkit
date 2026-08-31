@@ -12,9 +12,13 @@ Internal modules (do not import directly):
 - .mlflow_logger
 """
 
-from .mlflow_logger import log_fairness_metrics, log_workflow_results
+from .mlflow_logger import (
+    log_fairness_metrics,
+    log_llm_eval_results,
+    log_workflow_results,
+)
 from .orchestrator import ValidationResult, WorkflowResult, execute_workflow
-from .pytest_plugin import assert_fairness
+from .pytest_plugin import assert_fairness, assert_llm_fairness
 from .reporting import to_markdown_report
 
 __all__ = [
@@ -23,6 +27,8 @@ __all__ = [
     "ValidationResult",
     "log_workflow_results",
     "log_fairness_metrics",
+    "log_llm_eval_results",
     "to_markdown_report",
     "assert_fairness",
+    "assert_llm_fairness",
 ]

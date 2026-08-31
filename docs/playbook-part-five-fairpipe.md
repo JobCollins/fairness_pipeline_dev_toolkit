@@ -145,6 +145,7 @@ eo = analyzer.equalized_odds_difference(
 
 - **`fairpipe.integration.to_markdown_report(results)`** — builds a Markdown table from a mapping of metric names to `MetricResult`-like objects or dicts.
 - **`fairpipe.integration.assert_fairness(value, threshold, comparator="<=", allow_nan=False, context=None)`** — pytest-style helper; raises **`AssertionError`** on breach (not a dedicated fairness exception type). **`comparator`** is one of **`"<="`**, **`"<"`**, **`">="`**, **`">"`**; any other string raises **`ValueError`**.
+- **`assert_llm_fairness(metric, threshold, ...)`** — same contract for LLM `MetricResult`s from `run_llm_eval()`. See [docs/llm_evals_intro.md](llm_evals_intro.md). Until BL-009, do not treat shipped refusal/toxicity/BBQ demo caches as unlabeled evidence.
 
 ```python
 from fairpipe import FairnessAnalyzer, to_markdown_report, assert_fairness
@@ -389,6 +390,12 @@ calibrated = cal.transform(scores, groups)
 - **`FairnessDriftAndAlertEngine`**, **`DriftConfig`**, **`MonitoringSettings`**, **`AlertEvent`**
 - **`FairnessReportingDashboard`**, **`ReportConfig`**
 - **`FairnessABTestAnalyzer`**
+
+**`ColumnMap`** maps batch columns onto the tracker (`y_pred`, optional `y_true`,
+`protected=` — a sequence of column names, **not** `sensitive=`). Production LLM
+logs use `fairpipe.llm_evals.sample_production_llm_records()` (1/N already-produced
+rows → group + 0/1 score) and the same `process_batch` / drift engine; see the
+Integration Guide Production Monitoring section.
 
 **`FairnessDriftAndAlertEngine`** compares recent vs reference windows (e.g. KS-based scoring on metric time series), optionally with wavelet decomposition when PyWavelets is available and configured. This module does **not** implement external incident integrations (PagerDuty, Slack, etc.) in code; it emits in-memory **`AlertEvent`** records for downstream use.
 

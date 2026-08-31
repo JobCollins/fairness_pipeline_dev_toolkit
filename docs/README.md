@@ -46,6 +46,7 @@ After building, open `docs/_build/html/index.html` in your browser.
 - `index.rst`: Main documentation index
 - `conf.py`: Sphinx configuration
 - `getting_started.md`: Getting started guide
+- `llm_evals_intro.md`: LLM fairness evals (Phase 0–2)
 - `*.md`: Additional documentation files (converted to HTML by MyST parser)
 
 ## Continuous Integration

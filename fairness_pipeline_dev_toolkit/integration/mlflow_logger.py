@@ -259,3 +259,28 @@ def log_workflow_results(
                     pass
 
     return True
+
+
+def log_llm_eval_results(
+    results: Mapping[str, Any],
+    *,
+    artifact_name: Optional[str] = None,
+    artifact_content: Optional[str] = None,
+) -> bool:
+    """Log LLM eval MetricResults the same way ``log_fairness_metrics`` logs classifier results."""
+    ok = log_fairness_metrics(
+        results,
+        prefix="llm_eval_",
+        artifact_name=artifact_name,
+        artifact_content=artifact_content,
+    )
+    if not ok:
+        return False
+    import mlflow
+
+    for name, val in results.items():
+        res_dict = _coerce_result_to_dict(val)
+        caveat = res_dict.get("caveat")
+        if caveat:
+            mlflow.set_tag(f"llm_eval.{name}.caveat", str(caveat))
+    return True
