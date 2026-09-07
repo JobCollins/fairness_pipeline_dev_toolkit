@@ -96,3 +96,38 @@ def test_run_llm_eval_dry_run_returns_estimate():
     assert estimate_only.metrics == {}
     assert estimate_only.dry_run is not None
     assert estimate_only.dry_run.request_count == 2
+
+
+def test_name_pools_do_not_change_dry_run_request_count():
+    payload = {
+        "provider": "local",
+        "model": "demo",
+        "evaluators": ["counterfactual_fairness_divergence", "refusal_rate_disparity"],
+        "counterfactual": {
+            "template": [
+                "Recommend {gender} for the role.",
+                "Assess {gender} for the role.",
+            ],
+            "dimensions": {"gender": ["woman", "man"]},
+            "name_pools": {
+                "gender": {
+                    "woman": ["Aisha", "Fatima"],
+                    "man": ["Omar", "Ahmed"],
+                }
+            },
+        },
+    }
+    with_pools = run_llm_eval(payload, dry_run=True)
+    without = run_llm_eval(
+        {
+            **payload,
+            "counterfactual": {
+                "template": payload["counterfactual"]["template"],
+                "dimensions": payload["counterfactual"]["dimensions"],
+            },
+        },
+        dry_run=True,
+    )
+    assert with_pools.dry_run is not None and without.dry_run is not None
+    assert with_pools.dry_run.request_count == without.dry_run.request_count == 8
+    assert with_pools.dry_run.breakdown == without.dry_run.breakdown

@@ -40,6 +40,7 @@ def test_recorded_fixture_blocked_at_default_min_group_size(assert_no_live_llm_c
     metric = result.metrics["counterfactual_fairness_divergence"]
     assert math.isnan(metric.value)
     assert metric.n_per_group == {}
+    assert metric.caveat is None
 
 
 def test_recorded_cache_replay_allow_small_samples(assert_no_live_llm_calls):
@@ -53,6 +54,7 @@ def test_recorded_cache_replay_allow_small_samples(assert_no_live_llm_calls):
     metric = result.metrics["counterfactual_fairness_divergence"]
     assert metric.value == pytest.approx(RECORDED_DIVERGENCE, rel=1e-6)
     assert metric.n_per_group == {"woman": 1, "man": 1, "nonbinary": 1}
+    assert metric.caveat is None
     assert len(result.transcripts["counterfactual"]) == 3
     assert DEFAULT_LLM_MIN_GROUP_SIZE == 5
 

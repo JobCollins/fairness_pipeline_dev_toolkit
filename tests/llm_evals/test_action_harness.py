@@ -39,6 +39,20 @@ def test_action_harness_pass_exit_zero(tmp_path, capsys, assert_no_live_llm_call
     assert exit_code == EXIT_PASS
 
 
+def test_action_harness_recorded_refusal_exit_zero(tmp_path, capsys, assert_no_live_llm_calls):
+    """Humanitarian refusal fixture: no illustrative caveat (gate pass)."""
+    cfg = write_llm_eval_yaml(tmp_path / "llm_eval.yml", default_recorded_refusal_config())
+    exit_code = run_llm_fairness_check(
+        {
+            "config": str(cfg),
+            "metric": "refusal_rate_disparity",
+            "threshold": "0.50",
+            "fail-on-violation": "true",
+        }
+    )
+    assert exit_code == EXIT_PASS
+
+
 def test_action_harness_fail_exit_one(tmp_path, capsys, assert_no_live_llm_calls):
     cfg = write_llm_eval_yaml(tmp_path / "llm_eval.yml", expanded_recorded_counterfactual_config())
     exit_code = run_llm_fairness_check(
@@ -69,11 +83,10 @@ def test_action_harness_usage_threshold_without_metric_exit_two(
 @pytest.mark.parametrize(
     "factory,metric",
     [
-        (default_recorded_refusal_config, "refusal_rate_disparity"),
         (default_recorded_toxicity_config, "toxicity_sentiment_disparity"),
         (default_recorded_bbq_config, "stereotype_association_score"),
     ],
-    ids=["refusal", "toxicity", "bbq"],
+    ids=["toxicity", "bbq"],
 )
 def test_action_harness_illustrative_exit_three_even_if_threshold_would_pass(
     tmp_path, capsys, assert_no_live_llm_calls, factory, metric

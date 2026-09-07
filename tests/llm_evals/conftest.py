@@ -32,6 +32,8 @@ def write_llm_eval_yaml(path: Path, config: LLMEvalConfig) -> Path:
             "dimensions": config.counterfactual.dimensions,
             "defaults": config.counterfactual.defaults,
         }
+        if config.counterfactual.name_pools:
+            block["counterfactual"]["name_pools"] = config.counterfactual.name_pools
     if config.bbq_path:
         block["bbq_path"] = config.bbq_path
     if config.allow_small_samples:

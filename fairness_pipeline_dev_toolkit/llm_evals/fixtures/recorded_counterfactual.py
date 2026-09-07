@@ -109,6 +109,7 @@ def _prompt_entries(config: LLMEvalConfig) -> List[Dict[str, str]]:
         config.counterfactual.template,
         config.counterfactual.dimensions,
         config.counterfactual.defaults,
+        config.counterfactual.name_pools,
     )
     return [
         {

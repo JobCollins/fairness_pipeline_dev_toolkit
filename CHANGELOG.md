@@ -9,6 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`counterfactual.name_pools`:** optional `{dimension: {group_label: [value_per_template, ...]}}`
+  on `CounterfactualConfig`. When set, `generate_counterfactual_prompts()` substitutes the
+  pooled value into the template while `CounterfactualPrompt.group` stays the semantic label.
+  YAML/REST validation rejects wrong-length pools, unknown dimensions, and unknown group
+  labels. Absent or empty `name_pools` is a no-op (Phase 1 hiring fixtures unchanged).
+  `provider: local` is not supported for name-pool probes (`biased_hiring_responder` keys
+  off literal `"woman"` / `"man"` substrings). Rotate names across templates: a
+  single-name-per-group design can report a gender-looking disparity that is an artifact
+  of one name string (humanitarian recording: David 0.0 vs Tariq 1.0 on identical
+  asylum-template text).
+- **BL-011:** `refusal_score` / `refusal_rate_disparity` detect phrase-level refusal
+  signals and do not distinguish a genuine refusal to engage from a scope disclaimer on
+  an otherwise complete answer. Documented limitation; scorer unchanged.
+
+### Changed
+
+- **Recorded humanitarian refusal fixture:** `fixtures/recorded_refusal/` is live Haiku
+  data (5 templates × 3 groups, `name_pools`, `max_tokens=512`), not a hiring-cache copy.
+  Manifest omits `illustrative`; `caveat_for_cache_dir()` returns `None`. BL-009's
+  **refusal-fixture half is closed**; the **disparity-signal half stays open** because
+  every response scores 1.0 under lexical `refusal_score` (ceiling; [BL-011](docs/fairpipe-technical-backlog.md#bl-011--refusal_score-cannot-distinguish-refusal-to-engage-from-a-scope-disclaimer)).
+  Do **not** cite this fixture as evidence of group-level refusal disparity. Toxicity and BBQ remain illustrative.
+- **`populate_recorded_refusal_cache()`** live-records those humanitarian templates
+  (Phase 1 cache-once-replay). It no longer copies `recorded_counterfactual_expanded/`.
+- **`CounterfactualFairnessEvaluator`** now wraps both the guard/`nan` path and the computed
+  result in `with_fixture_caveat()`, matching refusal and toxicity. The expanded Phase 1
+  fixture has no `illustrative` manifest key, so the published divergence stays
+  `caveat is None`.
+
 ## [v0.10.0] — 2026-08-31
 
 LLM fairness evals (Option A): counterfactual, refusal, toxicity, and BBQ stereotype

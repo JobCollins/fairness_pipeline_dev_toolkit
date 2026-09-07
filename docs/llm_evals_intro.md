@@ -17,6 +17,11 @@ Four evaluators, all returning `MetricResult` and all calling `apply_min_group_s
 Naive matched pairing is **not** used for the three rate metrics. A hiring-template design still
 balances sample size across groups; the disparity is a difference of group means.
 
+`refusal_rate_disparity` detects phrase-level refusal signals (`i cannot`, `i can't`,
+`cannot provide`, …). It does **not** distinguish a genuine refusal to engage from a
+scope disclaimer on an otherwise complete answer, so it can saturate in advisory
+domains ([BL-011](fairpipe-technical-backlog.md#bl-011--refusal_score-cannot-distinguish-refusal-to-engage-from-a-scope-disclaimer)).
+
 Toxicity scoring is a **lexical** proxy by default (no moderation API key). Pass `scorer=` to
 `ToxicitySentimentEvaluator.run_async` to plug in an external moderator.
 
@@ -40,7 +45,8 @@ result = run_llm_eval(default_recorded_bbq_config(), with_ci=True)
 | Metrics: DPD, EOD, etc. | Metrics: counterfactual divergence, refusal/toxicity rate disparity, BBQ stereotype association |
 | Backends: native / Fairlearn / Aequitas | Providers: OpenAI / Anthropic / local |
 
-Both paths emit **`MetricResult`** objects with `.value`, `.ci`, and `.effect_size`.
+Both paths emit **`MetricResult`** objects with `.value`, `.ci`, `.effect_size`, `.n_per_group`,
+and `.caveat`.
 
 ## Install
 
@@ -89,6 +95,16 @@ shipped fixture path.
 
 Credentials (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`) are read from **environment variables only** — never from YAML.
 
+Optional `counterfactual.name_pools` maps `{dimension: {group_label: [value_per_template, ...]}}`
+so a probe can hold an explicit descriptor constant and vary only a demographically-coded name.
+Each pool list must match the template count exactly. Omit it to keep the literal group-label
+swap used by the hiring fixtures. **Rotate names across templates by default** — a
+single-name-per-group design can report a clean group disparity that is actually an
+artifact of one name string (humanitarian case study: David vs Tariq on an identical
+asylum template). **`provider: local` does not support name-pool configs** —
+`biased_hiring_responder` keys off the words `"woman"` / `"man"` in the prompt, so name-only
+templates would report zero disparity. Use a recorded cache or a live provider.
+
 ## CLI
 
 Estimate cost before live calls:
@@ -124,7 +140,7 @@ blocked = run_llm_eval(default_recorded_counterfactual_config(), with_ci=False)
 # n=9 per group → finite metric + CI, no allow_small_samples
 result = run_llm_eval(expanded_recorded_counterfactual_config(), with_ci=True)
 metric = result.metrics["counterfactual_fairness_divergence"]
-print(metric.value, metric.ci, metric.n_per_group)
+print(metric.value, metric.ci, metric.n_per_group, metric.caveat)
 ```
 
 **`min_group_size`:** LLM evals default to **5** prompts per group (`DEFAULT_LLM_MIN_GROUP_SIZE`),
@@ -139,7 +155,7 @@ semantics as `NativeAdapter`. Use `allow_small_samples=True` (Python) or
 |---|---|---|---|
 | `default_recorded_counterfactual_config()` | `recorded_counterfactual/` | n=1/group | `nan` (guard demo) |
 | `expanded_recorded_counterfactual_config()` | `recorded_counterfactual_expanded/` | n=9/group | finite divergence + CI (citable) |
-| `default_recorded_refusal_config()` | `recorded_refusal/` | n=9/group | cache **replays**; hiring-copy, vacuous 0.0 — **BL-009**, not evidence |
+| `default_recorded_refusal_config()` | `recorded_refusal/` | n=5/group | finite 0.0; **15/15 lexical ceiling — not a disparity finding** |
 | `default_recorded_toxicity_config()` | `recorded_toxicity/` | n=9/group | cache **replays**; hiring-copy, vacuous 0.0 — **BL-009**, not evidence |
 | `default_recorded_bbq_config()` | `recorded_bbq/` | n=6/group | cache **replays**; all-ambiguous gold-unknown — **BL-009**, not evidence |
 
@@ -155,9 +171,15 @@ Fetch pinned BBQ JSONL (network, no LLM):
 pytest -m live_bbq tests/llm_evals/test_phase2_evaluators.py
 ```
 
-Refusal and toxicity caches are currently **copies** of the expanded hiring-response cache
+Toxicity cache is currently a **copy** of the expanded hiring-response cache
 (same provider/model/params/prompts). That is enough to prove replay; it is **not** a
 disparity measurement. BBQ responses are recorded separately on an all-ambiguous local subset.
+The refusal fixture is a live humanitarian recording (not a hiring copy). All 15 responses
+score 1.0 under lexical `refusal_score` — a **ceiling**, not a disparity measurement.
+`refusal_rate_disparity` detects phrase-level refusal signals and does not distinguish a
+genuine refusal from a scope disclaimer on an otherwise complete answer
+([BL-011](fairpipe-technical-backlog.md#bl-011--refusal_score-cannot-distinguish-refusal-to-engage-from-a-scope-disclaimer)).
+Do not cite the pooled 0.0 as evidence of equal treatment.
 
 ## CI gating and MLflow
 
@@ -178,7 +200,9 @@ walks through the counterfactual probe only (no API key):
 - **Part B** — `expanded_recorded_counterfactual_config()` (n=9/group, 27 Haiku texts) →
   finite **≈ 0.196** divergence and a percentile bootstrap CI on **27 template-level pairwise
   values** (not tokens inside one response). Interpret 0.20 as lexical feature distance
-  (sentiment / refusal / length / overlap), not an unfairness percentage.
+  (sentiment / refusal / length / overlap), not an unfairness percentage. The same
+  `MetricResult` (`value`, `ci`, `n_per_group`, `caveat`) is what `assert_llm_fairness()`,
+  Markdown reports, and MLflow consume.
 
 If a Jupyter kernel is labeled `.venv` but `sys.executable` is Homebrew Python 3.12.12, the
 notebook prepends the repo root to `sys.path`. Prefer kernel **Python (fairpipe .venv)**.
@@ -203,6 +227,8 @@ that should call a provider ([Environment Variables](integration_guide.md#enviro
 
 ## Still open
 
-- **BL-009** — re-record refusal/toxicity (and add disambiguated BBQ items) before citing
-  those fixtures as evidence.
+- **BL-009** — refusal **fixture** closed (real humanitarian cache). Refusal
+  **disparity-signal**, toxicity (hiring-copy), and BBQ (all-ambiguous) still open.
+- **BL-011** — `refusal_score` cannot distinguish refusal-to-engage from a scope
+  disclaimer; the humanitarian recording saturates 15/15 as a result.
 - **BL-010** — companion-repo `llm-fairness-check` mode in `SvrusIO/fairpipe-action`.

@@ -145,7 +145,7 @@ eo = analyzer.equalized_odds_difference(
 
 - **`fairpipe.integration.to_markdown_report(results)`** — builds a Markdown table from a mapping of metric names to `MetricResult`-like objects or dicts.
 - **`fairpipe.integration.assert_fairness(value, threshold, comparator="<=", allow_nan=False, context=None)`** — pytest-style helper; raises **`AssertionError`** on breach (not a dedicated fairness exception type). **`comparator`** is one of **`"<="`**, **`"<"`**, **`">="`**, **`">"`**; any other string raises **`ValueError`**.
-- **`assert_llm_fairness(metric, threshold, ...)`** — same contract for LLM `MetricResult`s from `run_llm_eval()`. See [docs/llm_evals_intro.md](llm_evals_intro.md). Until BL-009, do not treat shipped refusal/toxicity/BBQ demo caches as unlabeled evidence.
+- **`assert_llm_fairness(metric, threshold, ...)`** — same contract for LLM `MetricResult`s from `run_llm_eval()`. See [docs/llm_evals_intro.md](llm_evals_intro.md). Do not treat shipped toxicity/BBQ demo caches as unlabeled evidence until those BL-009 halves close. Humanitarian `recorded_refusal` is live data but not a disparity finding (15/15 lexical ceiling).
 
 ```python
 from fairpipe import FairnessAnalyzer, to_markdown_report, assert_fairness

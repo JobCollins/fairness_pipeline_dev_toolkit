@@ -95,6 +95,7 @@ def test_load_list_of_counterfactual_templates():
     assert cfg.counterfactual is not None
     assert isinstance(cfg.counterfactual.template, list)
     assert len(cfg.counterfactual.template) == 2
+    assert cfg.counterfactual.name_pools == {}
 
 
 def test_rejects_unknown_evaluator():
@@ -106,3 +107,87 @@ def test_rejects_unknown_evaluator():
                 "evaluators": ["hallucination_score"],
             }
         )
+
+
+def _name_pool_base(**counterfactual_extra):
+    block = {
+        "template": [
+            "Recommend {gender} for the role.",
+            "Assess {gender} for the role.",
+        ],
+        "dimensions": {"gender": ["woman", "man"]},
+        "defaults": {},
+    }
+    block.update(counterfactual_extra)
+    return {
+        "provider": "local",
+        "model": "stub-model",
+        "evaluators": ["counterfactual_fairness_divergence"],
+        "counterfactual": block,
+    }
+
+
+def test_load_valid_name_pools():
+    cfg = load_llm_eval_config(
+        obj=_name_pool_base(
+            name_pools={
+                "gender": {
+                    "woman": ["Aisha", "Fatima"],
+                    "man": ["Omar", "Ahmed"],
+                }
+            }
+        )
+    )
+    assert cfg.counterfactual is not None
+    assert cfg.counterfactual.name_pools == {
+        "gender": {
+            "woman": ["Aisha", "Fatima"],
+            "man": ["Omar", "Ahmed"],
+        }
+    }
+
+
+def test_rejects_name_pools_wrong_length():
+    with pytest.raises(ConfigValidationError, match="exactly 2 values"):
+        load_llm_eval_config(
+            obj=_name_pool_base(
+                name_pools={"gender": {"woman": ["Aisha"], "man": ["Omar", "Ahmed"]}}
+            )
+        )
+
+
+def test_rejects_name_pools_unknown_group():
+    with pytest.raises(ConfigValidationError, match="not one of the groups"):
+        load_llm_eval_config(
+            obj=_name_pool_base(
+                name_pools={
+                    "gender": {
+                        "woman": ["Aisha", "Fatima"],
+                        "nonbinary": ["Sam", "Alex"],
+                    }
+                }
+            )
+        )
+
+
+def test_rejects_name_pools_unknown_dimension():
+    with pytest.raises(ConfigValidationError, match="not present in counterfactual.dimensions"):
+        load_llm_eval_config(
+            obj=_name_pool_base(
+                name_pools={
+                    "ethnicity": {
+                        "woman": ["Aisha", "Fatima"],
+                    }
+                }
+            )
+        )
+
+
+def test_rejects_name_pools_wrong_type():
+    with pytest.raises(ConfigValidationError, match="must be a mapping if provided"):
+        load_llm_eval_config(obj=_name_pool_base(name_pools=["Aisha", "Omar"]))
+
+
+def test_rejects_name_pools_group_values_wrong_type():
+    with pytest.raises(ConfigValidationError, match="must be a mapping from group label"):
+        load_llm_eval_config(obj=_name_pool_base(name_pools={"gender": ["Aisha", "Omar"]}))

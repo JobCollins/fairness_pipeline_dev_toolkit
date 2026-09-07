@@ -225,8 +225,8 @@ fairness probe with **committed live-recorded Anthropic responses** replayed fro
 - **Part B** — n=9 per group → divergence **≈ 0.196** (95% CI ≈ 0.185–0.205) on lexical
   features; this is **not** “19.6% of candidates treated unfairly”
 - YAML config → `run_llm_eval()` → `MetricResult` (see `docs/llm_evals_intro.md`). Phase 2
-  refusal/toxicity/BBQ demo caches are labeled via `MetricResult.caveat` until BL-009;
-  they are **not** part of this notebook.
+  toxicity/BBQ demo caches are labeled via `MetricResult.caveat` until those BL-009 halves
+  close; they are **not** part of this notebook. Humanitarian refusal is a separate fixture.
 
 ---
 

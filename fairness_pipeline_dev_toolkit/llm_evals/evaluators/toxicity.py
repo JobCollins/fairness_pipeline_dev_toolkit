@@ -48,6 +48,7 @@ class ToxicitySentimentEvaluator:
             self.config.counterfactual.template,
             self.config.counterfactual.dimensions,
             self.config.counterfactual.defaults,
+            self.config.counterfactual.name_pools,
         )
         texts = await self.client.complete_batch(
             [item.prompt for item in prompts],

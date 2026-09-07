@@ -21,6 +21,7 @@ from ..probes.counterfactual import (
     matched_pairwise_divergences,
     response_key,
 )
+from ..provenance import with_fixture_caveat
 
 
 class CounterfactualFairnessEvaluator:
@@ -79,6 +80,7 @@ class CounterfactualFairnessEvaluator:
             self.counterfactual.template,
             self.counterfactual.dimensions,
             self.counterfactual.defaults,
+            self.counterfactual.name_pools,
         )
         if self.config.max_requests_per_run is not None:
             if len(prompts) > self.config.max_requests_per_run:
@@ -110,12 +112,15 @@ class CounterfactualFairnessEvaluator:
 
         if not can_compute:
             return (
-                MetricResult(
-                    metric="counterfactual_fairness_divergence",
-                    value=float("nan"),
-                    ci=None,
-                    effect_size=float("nan"),
-                    n_per_group=eligible_n_per_group,
+                with_fixture_caveat(
+                    MetricResult(
+                        metric="counterfactual_fairness_divergence",
+                        value=float("nan"),
+                        ci=None,
+                        effect_size=float("nan"),
+                        n_per_group=eligible_n_per_group,
+                    ),
+                    self.config.cache_dir,
                 ),
                 transcript_rows,
             )
@@ -142,12 +147,15 @@ class CounterfactualFairnessEvaluator:
                 random_state=random_state,
             )
 
-        result = MetricResult(
-            metric="counterfactual_fairness_divergence",
-            value=float(value),
-            ci=ci,
-            effect_size=float(value) if np.isfinite(value) else float("nan"),
-            n_per_group=reporting_n_per_group,
+        result = with_fixture_caveat(
+            MetricResult(
+                metric="counterfactual_fairness_divergence",
+                value=float(value),
+                ci=ci,
+                effect_size=float(value) if np.isfinite(value) else float("nan"),
+                n_per_group=reporting_n_per_group,
+            ),
+            self.config.cache_dir,
         )
         return result, transcript_rows
 

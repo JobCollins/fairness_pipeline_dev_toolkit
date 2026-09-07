@@ -75,12 +75,19 @@ def generate_counterfactual_prompts(
     template: TemplateSpec,
     dimensions: Dict[str, List[str]],
     defaults: Dict[str, str] | None = None,
+    name_pools: Dict[str, Dict[str, List[str]]] | None = None,
 ) -> List[CounterfactualPrompt]:
-    """Build one prompt per (template, dimension, group), holding other fields at defaults."""
+    """Build one prompt per (template, dimension, group), holding other fields at defaults.
+
+    When ``name_pools[dimension][group]`` is set, that group's *substituted text*
+    is ``pool[replicate_id]`` rather than the literal group label. ``.group``
+    still stores the semantic label. Absent or empty ``name_pools`` is a no-op.
+    """
     templates = as_template_list(template)
     if not templates:
         raise ValueError("At least one counterfactual template is required.")
     defaults = dict(defaults or {})
+    name_pools = name_pools or {}
     fill_values = {
         dim: defaults.get(dim, values[0]) for dim, values in dimensions.items() if values
     }
@@ -91,7 +98,18 @@ def generate_counterfactual_prompts(
             if len(values) < 2:
                 continue
             for value in values:
-                context = {**fill_values, dimension: value}
+                substituted = str(value)
+                pool = name_pools.get(dimension, {}).get(substituted)
+                if pool is not None:
+                    try:
+                        substituted = str(pool[replicate_id])
+                    except IndexError as exc:
+                        raise ValueError(
+                            f"name_pools[{dimension!r}][{value!r}] has {len(pool)} "
+                            f"values but replicate_id={replicate_id} (need one value "
+                            "per template)."
+                        ) from exc
+                context = {**fill_values, dimension: substituted}
                 try:
                     prompt = tmpl.format(**context)
                 except KeyError as exc:

@@ -578,8 +578,10 @@ def test_counterfactual_replay():
     assert_llm_fairness(metric, threshold=0.25)
 ```
 
-Do not gate production on shipped `recorded_refusal` / `recorded_toxicity` / `recorded_bbq`
-values until BL-009 (`MetricResult.caveat` is set). See [docs/llm_evals_intro.md](llm_evals_intro.md).
+Do not gate production on shipped `recorded_toxicity` / `recorded_bbq`
+values until those BL-009 halves close (`MetricResult.caveat` is set). Humanitarian
+`recorded_refusal` is live data but **not** a disparity finding (15/15 lexical ceiling).
+See [docs/llm_evals_intro.md](llm_evals_intro.md).
 
 #### Use Case: Pre-commit Hook
 

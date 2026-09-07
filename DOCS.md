@@ -1112,9 +1112,15 @@ At this stage, you should have:
 ### Objectives
 
 - Measure disparate LLM behavior across demographic groups. Counterfactual fairness has a
-  citable expanded recorded fixture. Refusal-rate, toxicity/sentiment, and BBQ stereotype
-  evaluators are implemented and replay from cache, but shipped demo caches are **not**
-  evidence until BL-009 (results carry `MetricResult.caveat` when those caches are used).
+  citable expanded recorded fixture. `refusal_rate_disparity` detects phrase-level refusal
+  signals and does not distinguish a genuine refusal from a scope disclaimer on an
+  otherwise complete answer, so it can saturate in advisory domains
+  ([BL-011](docs/fairpipe-technical-backlog.md#bl-011--refusal_score-cannot-distinguish-refusal-to-engage-from-a-scope-disclaimer)).
+  Humanitarian refusal-rate is live data (not a hiring copy) but **not** a disparity
+  finding (15/15 lexical ceiling; BL-009 disparity-signal half). Toxicity/sentiment and BBQ
+  stereotype evaluators are implemented and replay from cache, but those two shipped demo
+  caches are **not** evidence until their BL-009 halves close (results carry
+  `MetricResult.caveat` when those caches are used).
 - Run evals from YAML config via CLI with cost estimation (`--dry-run`)
 - Produce `MetricResult` objects compatible with existing reporting, `assert_llm_fairness()`, and MLflow
 
@@ -1164,9 +1170,14 @@ Reports include:
 
 - `counterfactual_fairness_divergence` — matched-template pairwise divergence + bootstrap CI
   (expanded hiring fixture is a real recorded signal)
-- `refusal_rate_disparity` / `toxicity_sentiment_disparity` — max−min of group rates; bootstrap
-  resamples **within group**. Shipped `recorded_*` caches currently self-label via
-  `MetricResult.caveat` (BL-009)
+- `refusal_rate_disparity` — max−min of group refusal rates; bootstrap resamples **within
+  group**. Detects phrase-level refusal signals; does not distinguish a genuine refusal
+  from a scope disclaimer on an otherwise complete answer, so it can saturate in
+  advisory domains ([BL-011](docs/fairpipe-technical-backlog.md#bl-011--refusal_score-cannot-distinguish-refusal-to-engage-from-a-scope-disclaimer)).
+  Humanitarian `recorded_refusal` is live data (`caveat` is `None`) but **not** a
+  disparity finding (15/15 lexical saturation; BL-009 disparity-signal half)
+- `toxicity_sentiment_disparity` — same unpaired max−min shape. Shipped hiring-copy cache
+  currently self-labels via `MetricResult.caveat` (BL-009)
 - `stereotype_association_score` — BBQ-schema stereotyped-answer rate (U.S.-context caveat;
   shipped subset is all-ambiguous and similarly labeled until BL-009)
 

@@ -133,3 +133,89 @@ def test_counterfactual_probe_mocked_client_no_network():
     assert result.value > 0.5
     assert len(transcripts) == 2
     mock_client.complete_batch.assert_awaited_once()
+
+
+def test_expanded_fixture_prompts_byte_identical_without_name_pools():
+    """Freeze generate_counterfactual_prompts against the Phase 1 expanded cache."""
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures import (
+        expanded_recorded_counterfactual_config,
+        load_expanded_recorded_manifest,
+    )
+    from fairness_pipeline_dev_toolkit.llm_evals.probes.counterfactual import (
+        generate_counterfactual_prompts,
+    )
+
+    config = expanded_recorded_counterfactual_config()
+    assert config.counterfactual is not None
+    assert config.counterfactual.name_pools == {}
+    prompts = generate_counterfactual_prompts(
+        config.counterfactual.template,
+        config.counterfactual.dimensions,
+        config.counterfactual.defaults,
+        config.counterfactual.name_pools,
+    )
+    omitted = generate_counterfactual_prompts(
+        config.counterfactual.template,
+        config.counterfactual.dimensions,
+        config.counterfactual.defaults,
+    )
+    generated = [(p.dimension, p.group, p.prompt, p.replicate_id) for p in prompts]
+    assert generated == [(p.dimension, p.group, p.prompt, p.replicate_id) for p in omitted]
+    recorded = [
+        (entry["dimension"], entry["group"], entry["prompt"])
+        for entry in load_expanded_recorded_manifest()["prompts"]
+    ]
+    assert [(p.dimension, p.group, p.prompt) for p in prompts] == recorded
+
+
+def test_name_pools_substitute_text_keep_semantic_group_and_unique_keys():
+    from fairness_pipeline_dev_toolkit.llm_evals.probes.counterfactual import (
+        generate_counterfactual_prompts,
+        response_key,
+    )
+
+    templates = [
+        "Write a hiring recommendation for {gender}.",
+        "Assess {gender} for the engineering role.",
+    ]
+    prompts = generate_counterfactual_prompts(
+        templates,
+        {"gender": ["woman", "man"]},
+        name_pools={
+            "gender": {
+                "woman": ["Aisha", "Fatima"],
+                "man": ["Omar", "Ahmed"],
+            }
+        },
+    )
+    assert len(prompts) == 4
+    by_key = {(p.dimension, p.group, p.replicate_id): p for p in prompts}
+    assert len(by_key) == len(prompts)
+    assert {response_key(p) for p in prompts} == set(by_key)
+
+    woman_0 = by_key[("gender", "woman", 0)]
+    man_0 = by_key[("gender", "man", 0)]
+    woman_1 = by_key[("gender", "woman", 1)]
+    man_1 = by_key[("gender", "man", 1)]
+    assert woman_0.group == "woman"
+    assert man_0.group == "man"
+    assert "Aisha" in woman_0.prompt and "woman" not in woman_0.prompt
+    assert "Omar" in man_0.prompt and "man" not in man_0.prompt.split()
+    assert "Fatima" in woman_1.prompt
+    assert "Ahmed" in man_1.prompt
+
+    # Negative case: identical substituted names still keep unique response keys.
+    collided = generate_counterfactual_prompts(
+        templates,
+        {"gender": ["woman", "man"]},
+        name_pools={
+            "gender": {
+                "woman": ["Alex", "Jordan"],
+                "man": ["Alex", "Jordan"],
+            }
+        },
+    )
+    keys = [response_key(p) for p in collided]
+    assert len(keys) == len(set(keys))
+    assert collided[0].prompt == collided[1].prompt
+    assert collided[0].group != collided[1].group

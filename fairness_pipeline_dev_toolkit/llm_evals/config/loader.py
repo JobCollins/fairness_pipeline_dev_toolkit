@@ -35,6 +35,7 @@ class CounterfactualConfig:
     template: str | List[str]
     dimensions: Dict[str, List[str]]
     defaults: Dict[str, str] = field(default_factory=dict)
+    name_pools: Dict[str, Dict[str, List[str]]] = field(default_factory=dict)
 
 
 @dataclass
@@ -113,6 +114,61 @@ def _validate_dimensions(value: Any, field_name: str) -> Dict[str, List[str]]:
     return out
 
 
+def _validate_name_pools(
+    value: Any,
+    dimensions: Dict[str, List[str]],
+    n_templates: int,
+) -> Dict[str, Dict[str, List[str]]]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ConfigValidationError(
+            "Config field 'counterfactual.name_pools' must be a mapping if provided."
+        )
+    out: Dict[str, Dict[str, List[str]]] = {}
+    for dim, groups in value.items():
+        if not isinstance(dim, str) or not dim.strip():
+            raise ConfigValidationError(
+                "Config field 'counterfactual.name_pools' keys must be non-empty strings."
+            )
+        dim_key = dim.strip()
+        if dim_key not in dimensions:
+            raise ConfigValidationError(
+                f"Config field 'counterfactual.name_pools.{dim_key}' names a dimension "
+                "not present in counterfactual.dimensions."
+            )
+        if not isinstance(groups, dict):
+            raise ConfigValidationError(
+                f"Config field 'counterfactual.name_pools.{dim_key}' must be a mapping "
+                "from group label to a list of strings."
+            )
+        allowed = set(dimensions[dim_key])
+        group_pools: Dict[str, List[str]] = {}
+        for group, names in groups.items():
+            if not isinstance(group, str) or not group.strip():
+                raise ConfigValidationError(
+                    f"Config field 'counterfactual.name_pools.{dim_key}' group keys "
+                    "must be non-empty strings."
+                )
+            group_key = group.strip()
+            if group_key not in allowed:
+                raise ConfigValidationError(
+                    f"Config field 'counterfactual.name_pools.{dim_key}.{group_key}' is not "
+                    f"one of the groups listed in counterfactual.dimensions.{dim_key}."
+                )
+            cleaned = _ensure_list_of_strings(
+                names, f"counterfactual.name_pools.{dim_key}.{group_key}"
+            )
+            if len(cleaned) != n_templates:
+                raise ConfigValidationError(
+                    f"Config field 'counterfactual.name_pools.{dim_key}.{group_key}' must "
+                    f"list exactly {n_templates} values (one per template); got {len(cleaned)}."
+                )
+            group_pools[group_key] = cleaned
+        out[dim_key] = group_pools
+    return out
+
+
 def _validate_counterfactual_block(value: Any) -> Optional[CounterfactualConfig]:
     if value is None:
         return None
@@ -139,10 +195,13 @@ def _validate_counterfactual_block(value: Any) -> Optional[CounterfactualConfig]
             "Config field 'counterfactual.defaults' must be a mapping if provided."
         )
     cleaned_defaults = {str(k): str(v) for k, v in defaults.items()}
+    n_templates = len(cleaned_template) if isinstance(cleaned_template, list) else 1
+    name_pools = _validate_name_pools(value.get("name_pools"), dimensions, n_templates)
     return CounterfactualConfig(
         template=cleaned_template,
         dimensions=dimensions,
         defaults=cleaned_defaults,
+        name_pools=name_pools,
     )
 
 
