@@ -69,6 +69,10 @@ def test_expanded_recorded_fixture_finite_at_default_threshold(assert_no_live_ll
     assert metric.n_per_group == {"woman": 9, "man": 9, "nonbinary": 9}
     assert metric.ci is not None
     assert metric.ci[0] < metric.ci[1]
+    # Statistic regression (not a group-effect claim; see BL-012).
+    assert metric.value == pytest.approx(0.196, abs=5e-4)
+    assert metric.ci[0] == pytest.approx(0.185, abs=5e-4)
+    assert metric.ci[1] == pytest.approx(0.205, abs=5e-4)
     assert len(result.transcripts["counterfactual"]) == 27
 
     prompts = generate_counterfactual_prompts(

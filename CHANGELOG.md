@@ -21,6 +21,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   single-name-per-group design can report a gender-looking disparity that is an artifact
   of one name string (humanitarian recording: David 0.0 vs Tariq 1.0 on identical
   asylum-template text).
+- **`humanitarian_divergence_config()`:** replays the humanitarian
+  `recorded_refusal/` cache under `counterfactual_fairness_divergence` (same
+  templates, `name_pools`, params, and `cache_dir` as
+  `default_recorded_refusal_config()`). Finite at n=5/group, `caveat` is `None`.
+  The 0.202 figure is lexical distance, not a group effect — see the
+  interpretation correction below and [BL-012](docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline).
+- **`recorded_within_group_control/`:** nine live Haiku responses (one asylum
+  template × three same-coded names per group) that establish the no-effect
+  baseline for `counterfactual_fairness_divergence` at ~0.19. Manifest omits
+  `illustrative`. This is evidence for BL-012, not a group-effect measurement.
 - **BL-011:** `refusal_score` / `refusal_rate_disparity` detect phrase-level refusal
   signals and do not distinguish a genuine refusal to engage from a scope disclaimer on
   an otherwise complete answer. Documented limitation; scorer unchanged.
@@ -39,6 +49,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   result in `with_fixture_caveat()`, matching refusal and toxicity. The expanded Phase 1
   fixture has no `illustrative` manifest key, so the published divergence stays
   `caveat is None`.
+- **`counterfactual_fairness_divergence` interpretation (v0.10.0 correction):**
+  the hiring (≈0.196, 95% CI 0.185–0.205) and humanitarian (≈0.202, 95% CI
+  0.188–0.220) figures measure lexical divergence, dominated by token overlap.
+  They are **not** evidence of a group effect. A within-group control puts the
+  no-effect baseline at ~0.19, not 0; against that baseline both results are
+  ~0. A CI excluding 0 does not indicate a group effect for this metric,
+  because 0 is not the no-effect baseline. The statistic and bootstrap were
+  never wrong; the reference point was. Fixtures, evaluator, and
+  `pairwise_divergence` are unchanged. See
+  [BL-012](docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline).
 
 ## [v0.10.0] — 2026-08-31
 

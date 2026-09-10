@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import json
 import math
+from dataclasses import replace
 
 import pytest
 
 from fairness_pipeline_dev_toolkit.llm_evals import run_llm_eval
+from fairness_pipeline_dev_toolkit.llm_evals.config import CounterfactualConfig
 from fairness_pipeline_dev_toolkit.llm_evals.fixtures import (
     default_recorded_bbq_config,
     default_recorded_refusal_config,
     default_recorded_toxicity_config,
+    humanitarian_divergence_config,
     populate_recorded_bbq_cache,
     populate_recorded_refusal_cache,
     populate_recorded_toxicity_cache,
@@ -30,6 +33,63 @@ def test_recorded_humanitarian_refusal_fixture_finite_at_default_threshold(
     assert metric.n_per_group == {"woman": 5, "man": 5, "ambiguous": 5}
     assert metric.caveat is None
     assert caveat_for_cache_dir(default_recorded_refusal_config().cache_dir) is None
+
+
+def test_humanitarian_divergence_shares_refusal_counterfactual_block():
+    """Divergence and refusal configs must stay on the same prompts/params/cache."""
+    refusal = default_recorded_refusal_config()
+    divergence = humanitarian_divergence_config()
+    assert divergence.evaluators == ["counterfactual_fairness_divergence"]
+    assert divergence.cache_dir == refusal.cache_dir
+    assert divergence.params == refusal.params
+    assert divergence.provider == refusal.provider
+    assert divergence.model == refusal.model
+    assert divergence.counterfactual is not None
+    assert refusal.counterfactual is not None
+    assert divergence.counterfactual.template == refusal.counterfactual.template
+    assert divergence.counterfactual.dimensions == refusal.counterfactual.dimensions
+    assert divergence.counterfactual.name_pools == refusal.counterfactual.name_pools
+    assert divergence.params == {"temperature": 0.0, "max_tokens": 512}
+
+
+def test_humanitarian_divergence_replays_at_default_threshold(assert_no_live_llm_calls):
+    """Humanitarian cache under divergence: finite at n=5/group, no caveat, CI present."""
+    result = run_llm_eval(humanitarian_divergence_config(), with_ci=True, bootstrap_B=200)
+    metric = result.metrics["counterfactual_fairness_divergence"]
+    assert math.isfinite(metric.value)
+    assert 0.0 < metric.value < 1.0
+    assert metric.n_per_group == {"woman": 5, "man": 5, "ambiguous": 5}
+    assert metric.caveat is None
+    assert metric.ci is not None
+    assert metric.ci[0] < metric.ci[1]
+    assert len(result.transcripts["counterfactual"]) == 15
+
+
+def test_humanitarian_divergence_below_threshold_returns_nan(assert_no_live_llm_calls):
+    """n=1/group humanitarian slice still replays the cache and the guard returns nan."""
+    cfg = humanitarian_divergence_config()
+    assert cfg.counterfactual is not None
+    first_template = (
+        cfg.counterfactual.template[0]
+        if isinstance(cfg.counterfactual.template, list)
+        else cfg.counterfactual.template
+    )
+    small = replace(
+        cfg,
+        counterfactual=CounterfactualConfig(
+            template=[first_template],
+            dimensions=dict(cfg.counterfactual.dimensions),
+            name_pools={
+                dim: {group: names[:1] for group, names in pools.items()}
+                for dim, pools in cfg.counterfactual.name_pools.items()
+            },
+        ),
+    )
+    result = run_llm_eval(small, with_ci=False)
+    metric = result.metrics["counterfactual_fairness_divergence"]
+    assert math.isnan(metric.value)
+    assert metric.ci is None
+    assert metric.n_per_group == {}
 
 
 def test_recorded_toxicity_cache_replays_without_error(assert_no_live_llm_calls):

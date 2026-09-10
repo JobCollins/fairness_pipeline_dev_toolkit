@@ -76,19 +76,23 @@ HUMANITARIAN_REFUSAL_NAME_POOLS = {
 HUMANITARIAN_REFUSAL_PARAMS = {"temperature": 0.0, "max_tokens": 512}
 
 
+def _humanitarian_counterfactual() -> CounterfactualConfig:
+    return CounterfactualConfig(
+        template=list(HUMANITARIAN_REFUSAL_TEMPLATES),
+        dimensions=dict(HUMANITARIAN_REFUSAL_DIMENSIONS),
+        name_pools={
+            dim: {group: list(names) for group, names in pools.items()}
+            for dim, pools in HUMANITARIAN_REFUSAL_NAME_POOLS.items()
+        },
+    )
+
+
 def _refusal_config(cache_dir: Path) -> LLMEvalConfig:
     return LLMEvalConfig(
         provider=RECORDED_PROVIDER,
         model=RECORDED_MODEL,
         evaluators=["refusal_rate_disparity"],
-        counterfactual=CounterfactualConfig(
-            template=list(HUMANITARIAN_REFUSAL_TEMPLATES),
-            dimensions=dict(HUMANITARIAN_REFUSAL_DIMENSIONS),
-            name_pools={
-                dim: {group: list(names) for group, names in pools.items()}
-                for dim, pools in HUMANITARIAN_REFUSAL_NAME_POOLS.items()
-            },
-        ),
+        counterfactual=_humanitarian_counterfactual(),
         cache_dir=str(cache_dir),
         params=dict(HUMANITARIAN_REFUSAL_PARAMS),
     )
@@ -96,6 +100,22 @@ def _refusal_config(cache_dir: Path) -> LLMEvalConfig:
 
 def default_recorded_refusal_config() -> LLMEvalConfig:
     return _refusal_config(RECORDED_REFUSAL_CACHE_DIR)
+
+
+def humanitarian_divergence_config() -> LLMEvalConfig:
+    """Replay the humanitarian cache under ``counterfactual_fairness_divergence``.
+
+    Same templates, ``name_pools``, params, and ``cache_dir`` as
+    ``default_recorded_refusal_config()`` so cache keys stay byte-identical.
+    """
+    return LLMEvalConfig(
+        provider=RECORDED_PROVIDER,
+        model=RECORDED_MODEL,
+        evaluators=["counterfactual_fairness_divergence"],
+        counterfactual=_humanitarian_counterfactual(),
+        cache_dir=str(RECORDED_REFUSAL_CACHE_DIR),
+        params=dict(HUMANITARIAN_REFUSAL_PARAMS),
+    )
 
 
 def _toxicity_config(cache_dir: Path) -> LLMEvalConfig:
@@ -192,14 +212,7 @@ async def _populate_recorded_refusal_cache(
         provider=provider,
         model=model,
         evaluators=["refusal_rate_disparity"],
-        counterfactual=CounterfactualConfig(
-            template=list(HUMANITARIAN_REFUSAL_TEMPLATES),
-            dimensions=dict(HUMANITARIAN_REFUSAL_DIMENSIONS),
-            name_pools={
-                dim: {group: list(names) for group, names in pools.items()}
-                for dim, pools in HUMANITARIAN_REFUSAL_NAME_POOLS.items()
-            },
-        ),
+        counterfactual=_humanitarian_counterfactual(),
         params=params,
     )
     entries = _prompt_entries(config)

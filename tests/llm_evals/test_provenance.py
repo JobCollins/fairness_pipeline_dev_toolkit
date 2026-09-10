@@ -19,11 +19,13 @@ from fairness_pipeline_dev_toolkit.llm_evals.evaluators.counterfactual_fairness 
     CounterfactualFairnessEvaluator,
 )
 from fairness_pipeline_dev_toolkit.llm_evals.fixtures import (
+    RECORDED_WITHIN_GROUP_CONTROL_CACHE_DIR,
     default_recorded_bbq_config,
     default_recorded_counterfactual_config,
     default_recorded_refusal_config,
     default_recorded_toxicity_config,
     expanded_recorded_counterfactual_config,
+    humanitarian_divergence_config,
 )
 from fairness_pipeline_dev_toolkit.llm_evals.provenance import (
     CAVEAT_RECORDED_BBQ,
@@ -55,6 +57,10 @@ def test_other_cache_paths_and_user_configs_do_not_produce_caveat(tmp_path):
     assert caveat_for_cache_dir(expanded_recorded_counterfactual_config().cache_dir) is None
     assert caveat_for_cache_dir(default_recorded_counterfactual_config().cache_dir) is None
     assert caveat_for_cache_dir(default_recorded_refusal_config().cache_dir) is None
+    assert caveat_for_cache_dir(humanitarian_divergence_config().cache_dir) is None
+    assert caveat_for_cache_dir(
+        str(RECORDED_WITHIN_GROUP_CONTROL_CACHE_DIR)
+    ) is None
 
 
 def test_illustrative_false_on_same_layout_clears_caveat(tmp_path):

@@ -217,13 +217,16 @@ measurement and detection through mitigation and CI/CD integration.
 
 ### [LLM Counterfactual Fairness](case_studies/llm_counterfactual_fairness.ipynb)
 
-Measures gender-coded divergence in LLM hiring recommendations using the counterfactual
-fairness probe with **committed live-recorded Anthropic responses** replayed from cache
-(no API key required). Select kernel **Python (fairpipe .venv)** if imports fail.
+Walks through fairpipe's counterfactual probe on **committed live-recorded Anthropic
+responses** replayed from cache (no API key required). Select kernel **Python (fairpipe
+.venv)** if imports fail.
 
 - **Part A** — n=1 per group → **`nan`** at default `min_group_size=5` (guard demonstration)
-- **Part B** — n=9 per group → divergence **≈ 0.196** (95% CI ≈ 0.185–0.205) on lexical
-  features; this is **not** “19.6% of candidates treated unfairly”
+- **Part B** — n=9 per group → finite lexical divergence **≈ 0.196** (95% CI ≈ 0.185–0.205).
+  That is **not** a group effect. A within-group control puts the no-effect baseline at
+  ~0.19, not 0; a CI excluding 0 does not indicate a group effect
+  ([BL-012](docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
+  The notebook demonstrates the pipeline (recording, replay, guards, CIs) on real output.
 - YAML config → `run_llm_eval()` → `MetricResult` (see `docs/llm_evals_intro.md`). Phase 2
   toxicity/BBQ demo caches are labeled via `MetricResult.caveat` until those BL-009 halves
   close; they are **not** part of this notebook. Humanitarian refusal is a separate fixture.

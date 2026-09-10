@@ -1232,14 +1232,34 @@ metric = result.metrics["counterfactual_fairness_divergence"]
 ```
 
 When `LLMEvalConfig.cache_dir` is set, the runner enables **replay-only** mode (`CacheMissError`
-on miss). Recorded helpers (`default_recorded_*_config()`, `expanded_recorded_counterfactual_config()`)
+on miss). Recorded helpers (`default_recorded_*_config()`,
+`expanded_recorded_counterfactual_config()`, `humanitarian_divergence_config()`)
 point at committed fixture directories.
+
+`humanitarian_divergence_config()` replays the same humanitarian cache as
+`default_recorded_refusal_config()` (`recorded_refusal/`, 5 templates × 3 groups,
+`name_pools`, `max_tokens=512`) under `counterfactual_fairness_divergence`. It is
+finite at default `min_group_size=5` (`n_per_group` 5/5/5, `caveat` is `None`).
+The ≈0.202 figure is lexical distance (token overlap dominates), **not** a group
+effect. A within-group control puts the no-effect baseline at ~0.19, not 0; hiring
+≈0.196 is the same construct. A CI excluding 0 does not indicate a group effect
+for this metric
+([BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
+The fixtures demonstrate the pipeline (recording, replay, guards, CIs, provenance)
+on real model output.
+
+```python
+from fairpipe.llm_evals import humanitarian_divergence_config, run_llm_eval
+
+result = run_llm_eval(humanitarian_divergence_config(), with_ci=True)
+metric = result.metrics["counterfactual_fairness_divergence"]
+```
 
 `POST /llm-eval` serializes each metric with the same keys as
 `api/routes/validate.py::_result_to_dict` (`metric`, `value`, `ci`, `effect_size`,
 `n_per_group`, `caveat`). That `caveat` key **is** `MetricResult.caveat` (non-null on
 shipped BL-009 toxicity/BBQ demo fixtures; `null` on expanded counterfactual, humanitarian
-refusal, user configs, and on
+refusal / humanitarian divergence, user configs, and on
 classifier `/validate` / `/workflow`) — not a separate REST envelope. Gating is
 three-state: `gate_status` is `pass` | `fail` | `illustrative`, and `passed` is
 `true` | `false` | `null` aligned 1:1. See [REST API](#rest-api) below.
@@ -1256,7 +1276,13 @@ are dropped. See [Production Monitoring](integration_guide.md#production-monitor
 ### `CounterfactualFairnessEvaluator`
 
 Phase 1 flagship. Matched-by-template pairwise lexical divergence; bootstrap on those pair
-values. Expanded recorded fixture is citable (notebook Part B ≈ 0.196).
+values. The expanded hiring replay is ≈0.196 (95% CI 0.185–0.205); the humanitarian
+replay is ≈0.202 (95% CI 0.188–0.220). Both measure lexical distance, dominated by
+token overlap. **They are not group-effect findings.** A within-group control
+establishes the no-effect baseline at ~0.19, not 0. A CI excluding 0 does not
+indicate a group effect for this metric
+([BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
+The recorded caches demonstrate the pipeline on real model output.
 
 ### `RefusalRateEvaluator` / `ToxicitySentimentEvaluator` / `StereotypeAssociationEvaluator`
 
@@ -1400,7 +1426,9 @@ Name-pool probes are **not** supported with `provider: local`. The bundled
 text, so a name-substituted template would collapse to a single response and report zero
 disparity. Use a recorded cache or a live provider for name-signaled audits.
 
-**Valid evaluators:** `counterfactual_fairness_divergence` (Phase 1, citable expanded fixture).
+**Valid evaluators:** `counterfactual_fairness_divergence` (Phase 1; hiring and
+humanitarian replays are lexical distance, **not** group-effect findings —
+[BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
 Phase 2 also implements `refusal_rate_disparity` (phrase-level lexical scorer; does not
 distinguish refusal-to-engage from a scope disclaimer —
 [BL-011](fairpipe-technical-backlog.md#bl-011--refusal_score-cannot-distinguish-refusal-to-engage-from-a-scope-disclaimer);
@@ -1409,8 +1437,8 @@ humanitarian cache is live data, not a hiring copy, but **not** a disparity find
 `stereotype_association_score`. Shipped demo caches for toxicity/BBQ self-label via
 `MetricResult.caveat` until BL-009 re-records them. Divergence now also attaches
 `MetricResult.caveat` when the cache manifest has `illustrative: true`; the expanded
-Phase 1 fixture and the humanitarian refusal fixture have no such flag and stay
-`caveat is None`.
+Phase 1 fixture, the humanitarian refusal fixture, and
+`humanitarian_divergence_config()` have no such flag and stay `caveat is None`.
 
 ### `estimate_dry_run()` / `DryRunEstimate`
 
@@ -1638,7 +1666,9 @@ The default response is aggregated metrics and CIs only — **no raw transcripts
 
 Shipped `recorded_toxicity` / `recorded_bbq` fixtures set
 `caveat` (text includes `BL-009`) and therefore `gate_status: "illustrative"`,
-`passed: null`. The expanded counterfactual fixture is citable (`caveat: null`).
+`passed: null`. The expanded counterfactual fixture has `caveat: null` but is **not**
+a group-effect finding: 0.196 is lexical distance against a ~0.19 within-group
+baseline ([BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
 Humanitarian `recorded_refusal` also has `caveat: null` but is **not** a disparity
 finding (15/15 lexical saturation).
 

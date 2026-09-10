@@ -9,7 +9,7 @@ Four evaluators, all returning `MetricResult` and all calling `apply_min_group_s
 
 | Metric | Statistic | Pairing |
 |---|---|---|
-| `counterfactual_fairness_divergence` | max mean pairwise feature divergence | **Matched by template** (same prompt, swapped group) |
+| `counterfactual_fairness_divergence` | max mean pairwise feature divergence | **Matched by template** (same prompt, swapped group). Lexical distance; **0 is not the no-effect baseline** ([BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)). |
 | `refusal_rate_disparity` | max − min group refusal rate | Unpaired group rates (DPD-style); bootstrap resamples **within group** |
 | `toxicity_sentiment_disparity` | max − min group toxicity/sentiment rate | Same unpaired group-rate design |
 | `stereotype_association_score` | max − min stereotyped-answer rate on BBQ-schema items | Unpaired; items are not template-paired |
@@ -154,10 +154,12 @@ semantics as `NativeAdapter`. Use `allow_small_samples=True` (Python) or
 | Helper | Path | Size | Default-path result |
 |---|---|---|---|
 | `default_recorded_counterfactual_config()` | `recorded_counterfactual/` | n=1/group | `nan` (guard demo) |
-| `expanded_recorded_counterfactual_config()` | `recorded_counterfactual_expanded/` | n=9/group | finite divergence + CI (citable) |
+| `expanded_recorded_counterfactual_config()` | `recorded_counterfactual_expanded/` | n=9/group | finite divergence + CI; **lexical distance, not a group effect** ([BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)) |
+| `humanitarian_divergence_config()` | `recorded_refusal/` | n=5/group | finite ~0.202; same construct as hiring — **not a group effect** |
 | `default_recorded_refusal_config()` | `recorded_refusal/` | n=5/group | finite 0.0; **15/15 lexical ceiling — not a disparity finding** |
 | `default_recorded_toxicity_config()` | `recorded_toxicity/` | n=9/group | cache **replays**; hiring-copy, vacuous 0.0 — **BL-009**, not evidence |
 | `default_recorded_bbq_config()` | `recorded_bbq/` | n=6/group | cache **replays**; all-ambiguous gold-unknown — **BL-009**, not evidence |
+| `load_within_group_control_records()` | `recorded_within_group_control/` | 9 texts | within-group baseline ~0.19; **not** a group-effect fixture |
 
 Regenerate **LLM** recordings (requires `ANTHROPIC_API_KEY`):
 
@@ -199,9 +201,12 @@ walks through the counterfactual probe only (no API key):
   eligible `n_per_group`. The three cached completions still replay; the guard fires afterward.
 - **Part B** — `expanded_recorded_counterfactual_config()` (n=9/group, 27 Haiku texts) →
   finite **≈ 0.196** divergence and a percentile bootstrap CI on **27 template-level pairwise
-  values** (not tokens inside one response). Interpret 0.20 as lexical feature distance
-  (sentiment / refusal / length / overlap), not an unfairness percentage. The same
-  `MetricResult` (`value`, `ci`, `n_per_group`, `caveat`) is what `assert_llm_fairness()`,
+  values**. That number is lexical feature distance (token overlap dominates), **not** a
+  group-effect size. A within-group control puts the no-effect baseline at **~0.19, not 0**;
+  a CI excluding 0 does not indicate a group effect
+  ([BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
+  The notebook is a pipeline demonstration (recording, replay, guards, CIs, provenance).
+  The same `MetricResult` (`value`, `ci`, `n_per_group`, `caveat`) is what `assert_llm_fairness()`,
   Markdown reports, and MLflow consume.
 
 If a Jupyter kernel is labeled `.venv` but `sys.executable` is Homebrew Python 3.12.12, the
@@ -227,6 +232,8 @@ that should call a provider ([Environment Variables](integration_guide.md#enviro
 
 ## Still open
 
+- **BL-012** — `counterfactual_fairness_divergence` has no no-effect baseline; 0.196 /
+  0.202 are lexical distance, not group effects.
 - **BL-009** — refusal **fixture** closed (real humanitarian cache). Refusal
   **disparity-signal**, toxicity (hiring-copy), and BBQ (all-ambiguous) still open.
 - **BL-011** — `refusal_score` cannot distinguish refusal-to-engage from a scope

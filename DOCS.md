@@ -1111,8 +1111,13 @@ At this stage, you should have:
 
 ### Objectives
 
-- Measure disparate LLM behavior across demographic groups. Counterfactual fairness has a
-  citable expanded recorded fixture. `refusal_rate_disparity` detects phrase-level refusal
+- Measure disparate LLM behavior across demographic groups.
+  `counterfactual_fairness_divergence` reports lexical feature distance (token overlap
+  dominates). The expanded hiring replay is ≈0.196 and the humanitarian replay is ≈0.202;
+  **neither is a group-effect finding.** A within-group control puts the no-effect
+  baseline at ~0.19, not 0; a CI excluding 0 does not indicate a group effect
+  ([BL-012](docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
+  `refusal_rate_disparity` detects phrase-level refusal
   signals and does not distinguish a genuine refusal from a scope disclaimer on an
   otherwise complete answer, so it can saturate in advisory domains
   ([BL-011](docs/fairpipe-technical-backlog.md#bl-011--refusal_score-cannot-distinguish-refusal-to-engage-from-a-scope-disclaimer)).
@@ -1189,12 +1194,14 @@ Live provider HTTP is forbidden by default (`FAIRPIPE_LLM_ALLOW_LIVE=1` to opt i
 
 See **[docs/llm_evals_intro.md](docs/llm_evals_intro.md)** and
 **`case_studies/llm_counterfactual_fairness.ipynb`** (Part A: `nan` guard; Part B: ≈0.196
-divergence with CI on the expanded Haiku fixture). Prefer kernel **Python (fairpipe .venv)**.
+lexical distance on the expanded Haiku fixture — **not** a group effect; see
+[BL-012](docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
+Prefer kernel **Python (fairpipe .venv)**.
 
 ### Output
 
 At this stage, you should have:
-- ✅ LLM eval `MetricResult`s (counterfactual fixture is citable; Phase 2 demo caches carry `caveat`)
+- ✅ LLM eval `MetricResult`s (counterfactual fixture demonstrates the pipeline; Phase 2 demo caches carry `caveat`)
 - ✅ Markdown report artifact
 - ✅ Optional transcripts JSON (separate from report)
 - ✅ Pytest + MLflow integration (`assert_llm_fairness`, `log_llm_eval_results`)

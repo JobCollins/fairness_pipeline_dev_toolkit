@@ -22,6 +22,7 @@
 | BL-009 | Re-record Phase 2 fixtures so they can produce group-level disparity | P1 | **refusal fixture closed** (real data); **disparity-signal still open**; toxicity + BBQ still open |
 | BL-010 | Wire `llm-fairness-check` mode into `SvrusIO/fairpipe-action` | P1 | companion repo |
 | BL-011 | `refusal_score` cannot distinguish refusal-to-engage from a scope disclaimer | P1 | open |
+| BL-012 | `counterfactual_fairness_divergence` has no no-effect baseline | P1 | open |
 
 ---
 
@@ -417,6 +418,7 @@ groups = 27 live-recorded Claude Haiku responses, n=9 per group). Bootstrap resa
 matched template-level pairwise divergences (9 per group-pair). The notebook Part A keeps the
 n=1 fixture as a **positive guard demonstration** (`nan` at default threshold); Part B reports
 a finite divergence **≈ 0.196** (95% CI ≈ 0.185–0.205) with no `allow_small_samples` override.
+That figure is lexical distance, not a group effect — see **BL-012**.
 
 **Phase 2 note:** BL-008 evaluators must ship with adequately-sized recorded-cache fixtures
 **(≥5 responses per group) from the start** — do not land n=1 / `allow_small_samples` demos
@@ -652,6 +654,10 @@ Candidates include:
 The design choice is not decided. Document the limitation on the shipped metric until
 one is chosen.
 
+Cross-reference **BL-012**: the same underlying pattern in a different metric — a number
+that looks like a fairness measurement but whose reference point is wrong or whose
+construct is off.
+
 ### Acceptance criteria
 - A chosen construct is documented (what counts as a refusal for this metric)
 - Default-path tests cover the chosen construct, including a negative case that today's
@@ -661,6 +667,87 @@ one is chosen.
 - Humanitarian `recorded_refusal/` is not silently re-interpreted as a disparity finding
   if the scorer changes; a re-record or a documented rescore of the committed texts is
   an explicit follow-up
+
+---
+
+## BL-012 — `counterfactual_fairness_divergence` has no no-effect baseline
+
+**Status: open.** Does not change `pairwise_divergence`, the feature set, the evaluator,
+or the hiring / humanitarian recordings. Those are valid. What was wrong is treating
+the reported value as a group-effect size against a no-effect baseline of **0**.
+
+### Where Discovered
+A within-group control on the humanitarian asylum template (nine live Haiku calls,
+`temperature=0.0`, `max_tokens=512`, `claude-haiku-4-5`): three same-coded names per
+group, same template. Fixture: `fixtures/recorded_within_group_control/` (manifest
+omits `illustrative`).
+
+The case-study notebook's Part B stated that the hiring CI "does not include 0, so
+under this featureization the gender-coded completions are detectably different."
+That reasoning assumes a fair model would produce lexically identical responses when
+only a gender token changes. The control shows the no-effect baseline is **~0.19**.
+
+Same pattern as **BL-011**: a number that looks like a fairness measurement but whose
+reference point is wrong.
+
+### Control data (do not summarize away)
+
+Nine responses. Pairwise `pairwise_divergence` on all C(9,2)=36 pairs:
+
+| | mean | min | max | pairs |
+|---|---|---|---|---|
+| Within-group (same gender coding, different names) | **0.190** | 0.152 | 0.221 | 9 |
+| Cross-group (different gender coding) | **0.187** | 0.123 | 0.222 | 27 |
+
+Within-group is *slightly higher* than cross-group. Ranges overlap completely.
+
+Per-group within-group means: woman 0.187, man 0.192, ambiguous 0.193. No group is
+an outlier.
+
+Four-feature mean absolute pairwise difference:
+
+| Feature | Hiring (27 pairs) | Humanitarian (15 pairs) | Control within (9) | Control cross (27) |
+|---|---|---|---|---|
+| sentiment | 0.0067 | 0.0024 | 0.0039 | 0.0027 |
+| refusal | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| normalized length | 0.0769 | 0.0792 | 0.0761 | 0.0671 |
+| token overlap (1 − Jaccard) | 0.6987 | 0.7251 | 0.6811 | 0.6770 |
+| **mean pairwise** | **0.196** | **0.202** | **0.190** | **0.187** |
+
+Token overlap is ~90% of every figure. Refusal contributes exactly 0 everywhere
+(hiring: all 0.0; humanitarian and control: all 1.0).
+
+Against the ~0.19 baseline, hiring 0.196 − 0.190 ≈ 0.006 (inconsistent sign).
+Humanitarian 0.202 is the same. Neither shows a detectable group effect.
+
+The bootstrap CI on the hiring statistic (0.185–0.205) was never wrong. It correctly
+bounded the statistic. The statistic was being compared against the wrong reference
+point. A CI excluding 0 does **not** indicate a group effect for this metric.
+
+Names: woman Amina / Fatima / Leyla; man Tariq / Hassan / Omar; ambiguous Noor /
+Kiran / Alex. Woman and man arms held MENA region; the ambiguous arm could not
+(Noor MENA, Kiran South Asia, Alex Global). Mixed-region ambiguous within-group
+mean (0.193) is still indistinguishable from the region-held arms.
+
+### Impact
+Anyone using `counterfactual_fairness_divergence` on their own data will treat a
+CI that excludes 0 as a group effect unless warned. Shipped v0.10.0 docs and the
+Part B write-up made that error. Docs are corrected; this item tracks the metric
+contract.
+
+### Fix direction (candidate, not a decision)
+
+Reporting cross-group divergence *relative to* a within-group baseline would make
+the metric a **contrast** rather than a raw distance. That changes the metric's
+contract and needs its own design pass. Do not pick it here.
+
+### Acceptance criteria
+- Docs state that 0 is not the no-effect baseline and that a CI excluding 0 is not
+  a group-effect finding for this metric
+- `recorded_within_group_control/` remains committed with a manifest (no
+  `illustrative` flag) as the baseline any redesign is measured against
+- A chosen contract (raw distance vs within-group contrast, or another design) is
+  documented before any code change to `pairwise_divergence` or the evaluator
 
 ---
 
@@ -695,6 +782,7 @@ Create one GitHub issue per backlog item. Suggested labels:
 | BL-009 | `enhancement`, `llm-evals`, `phase-2`, `testing`, `fixtures` |
 | BL-010 | `enhancement`, `ci-cd`, `llm-evals`, `companion-repo` |
 | BL-011 | `enhancement`, `llm-evals`, `scoring`, `construct-validity` |
+| BL-012 | `enhancement`, `llm-evals`, `scoring`, `construct-validity` |
 
 ---
 
