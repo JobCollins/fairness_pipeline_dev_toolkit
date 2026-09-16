@@ -195,19 +195,29 @@ log_llm_eval_results(result.metrics)
 ## Case study
 
 [`case_studies/llm_counterfactual_fairness.ipynb`](../case_studies/llm_counterfactual_fairness.ipynb)
-walks through the counterfactual probe only (no API key):
+is about **what goes wrong when measuring LLM fairness**, demonstrated on committed Haiku
+recordings (no API key):
 
-- **Part A** — `default_recorded_counterfactual_config()` (n=1/group) → **`nan`**, empty
-  eligible `n_per_group`. The three cached completions still replay; the guard fires afterward.
-- **Part B** — `expanded_recorded_counterfactual_config()` (n=9/group, 27 Haiku texts) →
-  finite **≈ 0.196** divergence and a percentile bootstrap CI on **27 template-level pairwise
-  values**. That number is lexical feature distance (token overlap dominates), **not** a
-  group-effect size. A within-group control puts the no-effect baseline at **~0.19, not 0**;
-  a CI excluding 0 does not indicate a group effect
+- **§1 Single-name designs manufacture group effects.** The humanitarian asylum pilot
+  scored 1.0 / 0.0 / 1.0 on refusal; that was David vs Tariq, not gender. A
+  single-name-per-group design would have reported a clean 0.333 disparity. Rotation
+  (`name_pools`) is the default because of that.
+- **§2 Lexical-distance metrics have a non-zero no-effect baseline.** Token overlap is
+  ~90% of `counterfactual_fairness_divergence`. A within-group control puts the no-effect
+  baseline at **~0.19, not 0**; a CI excluding 0 does not indicate a group effect
   ([BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
-  The notebook is a pipeline demonstration (recording, replay, guards, CIs, provenance).
-  The same `MetricResult` (`value`, `ci`, `n_per_group`, `caveat`) is what `assert_llm_fairness()`,
-  Markdown reports, and MLflow consume.
+  Hiring is 0.196 − 0.190 ≈ 0.006.
+- **§3 What the fixtures do demonstrate.** `default_recorded_counterfactual_config()`
+  (n=1/group; third arm **`nonbinary`**, the literal prompt token) → **`nan`**, empty
+  eligible `n_per_group`. The three cached completions still replay; the guard fires
+  afterward. `expanded_recorded_counterfactual_config()` (n=9/group, 27 Haiku texts) →
+  finite **≈ 0.196** and a percentile bootstrap CI on **27 template-level pairwise
+  values**. Pipeline demonstration (recording, replay, guards, CIs, provenance), **not** a
+  fairness finding. The same `MetricResult` (`value`, `ci`, `n_per_group`, `caveat`) is
+  what `assert_llm_fairness()`, Markdown reports, and MLflow consume.
+- **§4 Limitations.** One model, one temperature, two domains; BL-011 refusal ceiling;
+  humanitarian n=5/group with zero margin on `min_group_size=5`; hiring's third group is
+  the prompt token `nonbinary`, not name-ambiguity.
 
 If a Jupyter kernel is labeled `.venv` but `sys.executable` is Homebrew Python 3.12.12, the
 notebook prepends the repo root to `sys.path`. Prefer kernel **Python (fairpipe .venv)**.

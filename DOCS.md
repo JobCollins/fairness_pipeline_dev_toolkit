@@ -1193,10 +1193,11 @@ tracker / drift engine (see [docs/integration_guide.md](docs/integration_guide.m
 Live provider HTTP is forbidden by default (`FAIRPIPE_LLM_ALLOW_LIVE=1` to opt in).
 
 See **[docs/llm_evals_intro.md](docs/llm_evals_intro.md)** and
-**`case_studies/llm_counterfactual_fairness.ipynb`** (Part A: `nan` guard; Part B: ≈0.196
-lexical distance on the expanded Haiku fixture — **not** a group effect; see
-[BL-012](docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
-Prefer kernel **Python (fairpipe .venv)**.
+**`case_studies/llm_counterfactual_fairness.ipynb`** (four sections: single-name designs
+manufacture group effects; lexical-distance metrics have a ~0.19 no-effect baseline, not 0
+— [BL-012](docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline);
+n=1/`nonbinary` → `nan` guard and n=9 pipeline replay on the expanded Haiku fixture,
+**not** a group effect; limitations). Prefer kernel **Python (fairpipe .venv)**.
 
 ### Output
 
