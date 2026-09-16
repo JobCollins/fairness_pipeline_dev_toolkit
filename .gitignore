@@ -71,5 +71,3 @@ case_studies/data/
 docs/PHASE_3_HANDOFF.md
 docs/PHASE_3_CICD_HANDOFF.md
 docs/PHASE_3_MONITORING_HANDOFF.md
-
-fairness_pipeline_dev_toolkit/llm_evals/fixtures/recorded_refusal/cache/*
