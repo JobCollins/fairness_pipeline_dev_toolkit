@@ -232,7 +232,8 @@ forbidden by default). Replay of a valid recorded cache should finish in about a
 - **REST:** `POST /llm-eval` — same three-state `gate_status` / `passed` (null when
   illustrative). Credentials env-only; default body is aggregated metrics (no transcripts).
 - **Local Action harness:** `run_llm_fairness_check()` with Action-shaped `with:` keys.
-  Wiring `llm-fairness-check` into `SvrusIO/fairpipe-action` is [BL-010](fairpipe-technical-backlog.md).
+  `llm-fairness-check` in [`SvrusIO/fairpipe-action@v2`](https://github.com/SvrusIO/fairpipe-action)
+  ([BL-010](fairpipe-technical-backlog.md) closed at `b629800`).
 - **Production logs:** `sample_production_llm_records()` keeps 1/N already-produced rows
   (group + 0/1 score, no provider HTTP) and feeds the existing tracker / drift engine.
   See [Production Monitoring](integration_guide.md#production-monitoring).
@@ -248,4 +249,3 @@ that should call a provider ([Environment Variables](integration_guide.md#enviro
   **disparity-signal**, toxicity (hiring-copy), and BBQ (all-ambiguous) still open.
 - **BL-011** — `refusal_score` cannot distinguish refusal-to-engage from a scope
   disclaimer; the humanitarian recording saturates 15/15 as a result.
-- **BL-010** — companion-repo `llm-fairness-check` mode in `SvrusIO/fairpipe-action`.

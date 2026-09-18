@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- **BL-010 closed:** `llm-fairness-check` mode landed in
+  [`SvrusIO/fairpipe-action@v2`](https://github.com/SvrusIO/fairpipe-action)
+  (merge `b629800`). README, `docs/integration_guide.md`, and case-study snippets
+  now use `@v2`. Published LLM Action examples gate `refusal_rate_disparity` so
+  exit 3 (illustrative) is reachable on released **0.10.0** — on that wheel only
+  refusal / toxicity / stereotype call `with_fixture_caveat`;
+  `counterfactual_fairness_divergence` caveat wiring remains unreleased HEAD.
+- `docs/fairpipe-technical-backlog.md`: BL-010 marked closed with acceptance
+  criteria checked off.
+
 ### Added
 
 - **`counterfactual.name_pools`:** optional `{dimension: {group_label: [value_per_template, ...]}}`

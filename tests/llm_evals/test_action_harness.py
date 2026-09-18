@@ -1,6 +1,6 @@
 """Local Action harness: Action-shaped inputs → reserved CLI exit codes.
 
-No real GitHub Actions run. ``SvrusIO/fairpipe-action`` is a separate repo (BL-010).
+No real GitHub Actions run. ``SvrusIO/fairpipe-action@v2`` is a separate repo (BL-010 closed).
 """
 
 from __future__ import annotations

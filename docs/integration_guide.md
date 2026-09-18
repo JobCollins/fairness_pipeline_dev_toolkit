@@ -337,7 +337,7 @@ jobs:
 
 #### Use Case: GitHub Actions (`llm-fairness-check`)
 
-The classifier Action example above gates tabular metrics. LLM evals use the same companion Action (`SvrusIO/fairpipe-action`) with LLM-eval `with:` keys. This Python package implements the CLI and local harness those keys map onto (`fairpipe llm-eval --threshold` / `--metric`, `run_llm_fairness_check()`). Wiring a real `llm-fairness-check` *mode* into the Action repo is **BL-010** — a follow-up PR over there, not in this tree.
+The classifier Action example above gates tabular metrics. LLM evals use the same companion Action ([`SvrusIO/fairpipe-action@v2`](https://github.com/SvrusIO/fairpipe-action)) with LLM-eval `with:` keys. This Python package implements the CLI and local harness those keys map onto (`fairpipe llm-eval --threshold` / `--metric`, `run_llm_fairness_check()`). Wiring `llm-fairness-check` into the Action is **[BL-010](fairpipe-technical-backlog.md)** — **closed** at Action tag `v2` / merge `b629800`.
 
 A live CI job must set `FAIRPIPE_LLM_ALLOW_LIVE=1` on the runner (plus the provider key). That flag is the same kill-switch as REST, Jupyter, and the CLI — documented once under [Environment Variables](#environment-variables). Replay-from-`cache_dir` jobs do not need it.
 
@@ -351,13 +351,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: SvrusIO/fairpipe-action@v1
+      - uses: SvrusIO/fairpipe-action@v2
         env:
           FAIRPIPE_LLM_ALLOW_LIVE: "1"
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         with:
           config: llm_eval.yml
-          metric: "counterfactual_fairness_divergence"
+          metric: "refusal_rate_disparity"
           threshold: "0.25"
           fail-on-violation: "true"
 ```
@@ -373,7 +373,7 @@ Exit codes (same mapping as `fairpipe llm-eval`, reserved so they do not collide
 
 `fail-on-violation: "false"` remaps exit 1 to 0 (report-only). Usage (2) and illustrative (3) stay as-is.
 
-Until BL-010 lands in `fairpipe-action`, the equivalent CLI job is:
+The example gates `refusal_rate_disparity` so exit 3 is reachable on released fairpipe **0.10.0** (refusal / toxicity / stereotype attach `MetricResult.caveat`; `counterfactual_fairness_divergence` caveat wiring is unreleased HEAD and lands next toolkit release). Equivalent CLI:
 
 ```yaml
       - name: Install fairpipe
@@ -385,7 +385,7 @@ Until BL-010 lands in `fairpipe-action`, the equivalent CLI job is:
         run: |
           fairpipe llm-eval \
             --config llm_eval.yml \
-            --metric counterfactual_fairness_divergence \
+            --metric refusal_rate_disparity \
             --threshold 0.25 \
             --report-md artifacts/llm_report.md
 ```

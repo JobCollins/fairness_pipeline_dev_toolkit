@@ -20,7 +20,7 @@
 | BL-007 | Expand LLM counterfactual recorded-cache fixture to clear `min_group_size=5` | P1 | **closed (Phase 1)** |
 | BL-008 | Phase 2 LLM evaluators: per-evaluator recorded-cache fixtures (≥5/group) | P1 | v0.8.0 |
 | BL-009 | Re-record Phase 2 fixtures so they can produce group-level disparity | P1 | **refusal fixture closed** (real data); **disparity-signal still open**; toxicity + BBQ still open |
-| BL-010 | Wire `llm-fairness-check` mode into `SvrusIO/fairpipe-action` | P1 | companion repo |
+| BL-010 | Wire `llm-fairness-check` mode into `SvrusIO/fairpipe-action` | P1 | **closed** (`@v2` / `b629800`) |
 | BL-011 | `refusal_score` cannot distinguish refusal-to-engage from a scope disclaimer | P1 | open |
 | BL-012 | `counterfactual_fairness_divergence` has no no-effect baseline | P1 | open |
 
@@ -575,35 +575,39 @@ group-rate variation** (not merely finite), or a documented uniform-rate table. 
 
 ## BL-010 — Wire `llm-fairness-check` mode into `SvrusIO/fairpipe-action`
 
-**Status: open.** This fAIr / fairpipe Python package already exposes the CLI
+**Status: closed.** Landed in companion repo [`SvrusIO/fairpipe-action`](https://github.com/SvrusIO/fairpipe-action) as tag **`v2`** at merge commit **`b629800`** (PR [#2](https://github.com/SvrusIO/fairpipe-action/pull/2), 2026-09-18). `@v1` was force-moved to `68c2bb7` (last pre-mode release with `metric` / `metric-value`). `@v1.0.0` remains an immutable pin at `d8fe950`.
+
+This fAIr / fairpipe Python package already exposed the CLI
 (`fairpipe llm-eval --threshold` / `--metric`) and a local harness
 (`run_llm_fairness_check()`) that accept Action-shaped inputs and honor exit
-0 / 1 / 2 / 3. That is **not** this item. BL-010 is a follow-up PR on the
-**companion repo** [`SvrusIO/fairpipe-action`](https://github.com/SvrusIO/fairpipe-action)
-— a separate GitHub repository, external to this Python package.
+0 / 1 / 2 / 3. BL-010 was the Action-repo wiring of that contract — not a change
+in this tree.
 
 ### Where Discovered
 Phase 3 CI/CD `llm-fairness-check` session. Spec §8 and `docs/playbook-part-five-fairpipe.md`
 already treat `fairpipe-action` as external. README and `docs/integration_guide.md`
-document an `llm-fairness-check` YAML example (`uses: SvrusIO/fairpipe-action@v1`)
-mirroring the existing `fairness-check` example. Until the Action grows an
-LLM-eval mode, that YAML is the intended contract, not a working composite step.
+documented an `llm-fairness-check` YAML example (`uses: SvrusIO/fairpipe-action@v1`)
+mirroring the existing `fairness-check` example. Until the Action grew an
+LLM-eval mode, that YAML was the intended contract, not a working composite step.
 
 ### Acceptance criteria
 - Action `with:` inputs map onto this package's CLI/harness: `config` (llm_eval YAML
-  path), `metric`, `threshold`, `fail-on-violation`
+  path), `metric`, `threshold`, `fail-on-violation` — **done**
 - Reserved exit codes are honored: pass=0, fail=1, usage=2, illustrative=3.
   A caveated (illustrative) metric exits 3 even when the number would pass the
-  threshold — same as REST `gate_status=illustrative` / `passed=null` and this
-  repo's local harness tests
+  threshold — **done** (Action CI covers all four on the real runner)
 - `fail-on-violation: false` remaps exit 1 to 0; usage (2) and illustrative (3)
-  are not remapped
+  are not remapped — **done**
 - Live jobs document `FAIRPIPE_LLM_ALLOW_LIVE=1` (plus provider key in the runner
-  env) as a **deployment requirement**. Default-forbid is the correct safe
-  default; without the flag a genuine eval fails closed with `LiveLLMCallForbidden`
-- Replay-from-`cache_dir` jobs still work without the flag
-- This fAIr repo's local harness + README YAML are **not** that PR and must not
-  be treated as closing BL-010
+  env) as a **deployment requirement** — **done**
+- Replay-from-`cache_dir` jobs still work without the flag — **done** (bare
+  `fairpipe` install, no `[llm]` extra)
+- Docs now point at `@v2`; published LLM examples gate `refusal_rate_disparity`
+  so exit 3 is reachable on released 0.10.0
+
+### Closed by
+`SvrusIO/fairpipe-action` PR #2 → `v2` / `b629800`. This package's local harness
+was never that PR and is unchanged.
 
 ---
 

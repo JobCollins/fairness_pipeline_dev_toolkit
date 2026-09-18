@@ -2,8 +2,8 @@
 
 ``SvrusIO/fairpipe-action`` is a separate repository. This helper is what *this*
 package exposes so that companion-repo can map ``with:`` keys onto
-``fairpipe llm-eval`` without forking the gate. Wiring a real
-``llm-fairness-check`` mode into the Action is BL-010.
+``fairpipe llm-eval`` without forking the gate. ``llm-fairness-check`` mode
+landed in ``SvrusIO/fairpipe-action@v2`` (BL-010 closed at merge ``b629800``).
 """
 
 from __future__ import annotations

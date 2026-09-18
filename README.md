@@ -146,7 +146,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: SvrusIO/fairpipe-action@v1
+      - uses: SvrusIO/fairpipe-action@v2
         with:
           csv: data/predictions.csv
           y-true: y_true
@@ -171,13 +171,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: SvrusIO/fairpipe-action@v1
+      - uses: SvrusIO/fairpipe-action@v2
         env:
           FAIRPIPE_LLM_ALLOW_LIVE: "1"
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         with:
           config: llm_eval.yml
-          metric: "counterfactual_fairness_divergence"
+          metric: "refusal_rate_disparity"
           threshold: "0.25"
           fail-on-violation: "true"
 ```
@@ -191,7 +191,7 @@ A red check can be decoded without opening the report:
 | 2 | *(usage)* | `--threshold` without `--metric`, unknown metric, cache miss / live-forbidden |
 | 3 | `illustrative` | Gated metric has a non-null `caveat` — **even if the number would pass** |
 
-`llm-fairness-check` mode in the Action is a companion-repo follow-up ([BL-010](docs/fairpipe-technical-backlog.md)). This package already exposes the same `with:` keys via `fairpipe llm-eval --threshold` / `--metric` and `run_llm_fairness_check()`.
+The example gates `refusal_rate_disparity` so exit 3 is reachable on released fairpipe **0.10.0** (refusal / toxicity / stereotype attach caveats; `counterfactual_fairness_divergence` caveat wiring lands in a later toolkit release). `llm-fairness-check` mode ships in [`SvrusIO/fairpipe-action@v2`](https://github.com/SvrusIO/fairpipe-action) ([BL-010](docs/fairpipe-technical-backlog.md) closed). This package exposes the same `with:` keys via `fairpipe llm-eval --threshold` / `--metric` and `run_llm_fairness_check()`.
 
 → **[SvrusIO/fairpipe-action](https://github.com/SvrusIO/fairpipe-action)**
 
