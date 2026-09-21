@@ -69,6 +69,29 @@ def bootstrap_ci(
         raise ValueError(f"Unknown bootstrap method: {method}")
 
 
+def bootstrap_difference_of_means(
+    a: np.ndarray,
+    b: np.ndarray,
+    *,
+    B: int = 2000,
+    level: float = 0.95,
+    random_state: Optional[int] = 42,
+) -> Tuple[float, float]:
+    """Percentile CI for ``mean(a) - mean(b)`` with independent resamples of each sample."""
+    x = np.asarray(a, dtype=float)
+    y = np.asarray(b, dtype=float)
+    n_a, n_b = x.shape[0], y.shape[0]
+    if n_a == 0 or n_b == 0:
+        return (np.nan, np.nan)
+    rng = np.random.default_rng(random_state)
+    stats = np.empty(B, dtype=float)
+    for i in range(B):
+        sample_a = x[rng.integers(0, n_a, n_a)]
+        sample_b = y[rng.integers(0, n_b, n_b)]
+        stats[i] = float(np.mean(sample_a) - np.mean(sample_b))
+    return _percentile_ci(stats, level)
+
+
 def bca_ci(
     x: np.ndarray,
     stat_fn: Callable[[np.ndarray], float],

@@ -24,6 +24,13 @@ class LLMEvalAdapter(Protocol):
         **kwargs: Any,
     ) -> MetricResult: ...
 
+    def counterfactual_fairness_contrast(
+        self,
+        *,
+        min_group_size: int = DEFAULT_LLM_MIN_GROUP_SIZE,
+        **kwargs: Any,
+    ) -> MetricResult: ...
+
     def refusal_rate_disparity(
         self,
         *,
@@ -62,6 +69,18 @@ class StubLLMEvalAdapter:
     ) -> MetricResult:
         return MetricResult(
             metric="counterfactual_fairness_divergence",
+            value=0.0,
+            n_per_group={"A": min_group_size, "B": min_group_size},
+        )
+
+    def counterfactual_fairness_contrast(
+        self,
+        *,
+        min_group_size: int = DEFAULT_LLM_MIN_GROUP_SIZE,
+        **kwargs: Any,
+    ) -> MetricResult:
+        return MetricResult(
+            metric="counterfactual_fairness_contrast",
             value=0.0,
             n_per_group={"A": min_group_size, "B": min_group_size},
         )

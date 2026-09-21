@@ -9,20 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Documentation
-
-- **BL-010 closed:** `llm-fairness-check` mode landed in
-  [`SvrusIO/fairpipe-action@v2`](https://github.com/SvrusIO/fairpipe-action)
-  (merge `b629800`). README, `docs/integration_guide.md`, and case-study snippets
-  now use `@v2`. Published LLM Action examples gate `refusal_rate_disparity` so
-  exit 3 (illustrative) is reachable on released **0.10.0** — on that wheel only
-  refusal / toxicity / stereotype call `with_fixture_caveat`;
-  `counterfactual_fairness_divergence` caveat wiring remains unreleased HEAD.
-- `docs/fairpipe-technical-backlog.md`: BL-010 marked closed with acceptance
-  criteria checked off.
-
 ### Added
 
+- **`counterfactual_fairness_contrast` (BL-012 Phase 2):** sibling metric to
+  `counterfactual_fairness_divergence`. Configures an explicit
+  `counterfactual.control_dimension` whose values are same-coded (within-group baseline);
+  reports signed `max(gated means) − control mean` with an independent difference-of-means
+  bootstrap CI. Near-zero or negative is the expected null reading. Does **not** change
+  what `counterfactual_fairness_divergence` returns. Costs: roughly doubles API calls;
+  control values must be genuinely same-coded or the contrast under-reports (David→Tariq
+  trap). BL-012 remains open pending real-data validation (Phase 3).
+- **`counterfactual.control_dimension`:** validated in the counterfactual config block
+  (must name an existing dimension with ≥2 values; cannot be the sole dimension; required
+  when the contrast evaluator is listed).
 - **`counterfactual.name_pools`:** optional `{dimension: {group_label: [value_per_template, ...]}}`
   on `CounterfactualConfig`. When set, `generate_counterfactual_prompts()` substitutes the
   pooled value into the template while `CounterfactualPrompt.group` stays the semantic label.
@@ -46,6 +45,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BL-011:** `refusal_score` / `refusal_rate_disparity` detect phrase-level refusal
   signals and do not distinguish a genuine refusal to engage from a scope disclaimer on
   an otherwise complete answer. Documented limitation; scorer unchanged.
+
+### Documentation
+
+- **BL-010 closed:** `llm-fairness-check` mode landed in
+  [`SvrusIO/fairpipe-action@v2`](https://github.com/SvrusIO/fairpipe-action)
+  (merge `b629800`). README, `docs/integration_guide.md`, and case-study snippets
+  now use `@v2`. Published LLM Action examples gate `refusal_rate_disparity` so
+  exit 3 (illustrative) is reachable on released **0.10.0** — on that wheel only
+  refusal / toxicity / stereotype call `with_fixture_caveat`;
+  `counterfactual_fairness_divergence` caveat wiring remains unreleased HEAD.
+- `docs/fairpipe-technical-backlog.md`: BL-010 marked closed with acceptance
+  criteria checked off.
 
 ### Changed
 

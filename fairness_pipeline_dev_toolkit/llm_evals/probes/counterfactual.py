@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Sequence, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 
 @dataclass(frozen=True)
@@ -197,17 +197,12 @@ def matched_pairwise_divergences(
     return values
 
 
-def divergence_by_dimension(
+def pairwise_divergences_by_dimension(
     prompts: List[CounterfactualPrompt],
     responses: Dict[Tuple[str, str, int], str],
-) -> Tuple[float, Dict[str, int]]:
-    """Return max mean matched pairwise divergence across dimensions and per-group counts."""
+) -> Dict[str, List[float]]:
+    """Matched pairwise divergences grouped by dimension name."""
     by_dimension: Dict[str, List[float]] = {}
-    n_per_group: Dict[str, int] = {}
-
-    for item in prompts:
-        n_per_group[item.group] = n_per_group.get(item.group, 0) + 1
-
     for left, right in iter_matched_pairs(prompts):
         left_text = responses[response_key(left)]
         right_text = responses[response_key(right)]
@@ -216,9 +211,41 @@ def divergence_by_dimension(
         by_dimension.setdefault(left.dimension, []).append(
             pairwise_divergence(feat_left, feat_right)
         )
+    return by_dimension
 
-    if not by_dimension:
+
+def n_per_group_by_dimension(
+    prompts: List[CounterfactualPrompt],
+) -> Dict[str, Dict[str, int]]:
+    """Per-dimension group counts: ``{dimension: {group: n}}``."""
+    out: Dict[str, Dict[str, int]] = {}
+    for item in prompts:
+        counts = out.setdefault(item.dimension, {})
+        counts[item.group] = counts.get(item.group, 0) + 1
+    return out
+
+
+def divergence_by_dimension(
+    prompts: List[CounterfactualPrompt],
+    responses: Dict[Tuple[str, str, int], str],
+    *,
+    exclude_dimensions: Optional[Iterable[str]] = None,
+) -> Tuple[float, Dict[str, int]]:
+    """Return max mean matched pairwise divergence across dimensions and per-group counts.
+
+    When ``exclude_dimensions`` is set, those dimensions are omitted from the max
+    (used so a within-group control arm does not compete with the gated statistic).
+    Absent or empty exclusion preserves the historical all-dimensions max.
+    """
+    by_dimension = pairwise_divergences_by_dimension(prompts, responses)
+    n_per_group: Dict[str, int] = {}
+    for item in prompts:
+        n_per_group[item.group] = n_per_group.get(item.group, 0) + 1
+
+    excluded = set(exclude_dimensions or ())
+    eligible = {dim: vals for dim, vals in by_dimension.items() if dim not in excluded and vals}
+    if not eligible:
         return float("nan"), n_per_group
 
-    dimension_means = [sum(vals) / len(vals) for vals in by_dimension.values()]
+    dimension_means = [sum(vals) / len(vals) for vals in eligible.values()]
     return max(dimension_means), n_per_group
