@@ -86,9 +86,11 @@ async def run_llm_eval_async(
     metrics: Dict[str, MetricResult] = {}
     transcripts: Dict[str, Any] = {}
 
-    if "counterfactual_fairness_divergence" in config.evaluators:
+    need_divergence = "counterfactual_fairness_divergence" in config.evaluators
+    need_contrast = "counterfactual_fairness_contrast" in config.evaluators
+    if need_divergence or need_contrast:
         evaluator = CounterfactualFairnessEvaluator(config, llm_client)
-        metric, rows = await evaluator.run_async(
+        kwargs = dict(
             min_group_size=min_group_size,
             allow_small_samples=allow_small,
             with_ci=with_ci,
@@ -96,8 +98,23 @@ async def run_llm_eval_async(
             bootstrap_B=bootstrap_B,
             random_state=random_state,
         )
-        metrics["counterfactual_fairness_divergence"] = metric
-        transcripts["counterfactual"] = rows
+        if need_divergence and need_contrast:
+            prompts, responses, rows = await evaluator.prepare_async()
+            metrics["counterfactual_fairness_divergence"] = evaluator._compute_divergence(
+                prompts, responses, **kwargs
+            )
+            metrics["counterfactual_fairness_contrast"] = evaluator._compute_contrast(
+                prompts, responses, **kwargs
+            )
+            transcripts["counterfactual"] = rows
+        elif need_divergence:
+            metric, rows = await evaluator.run_async(**kwargs)
+            metrics["counterfactual_fairness_divergence"] = metric
+            transcripts["counterfactual"] = rows
+        else:
+            metric, rows = await evaluator.run_contrast_async(**kwargs)
+            metrics["counterfactual_fairness_contrast"] = metric
+            transcripts["counterfactual"] = rows
 
     if "refusal_rate_disparity" in config.evaluators:
         evaluator = RefusalRateEvaluator(config, llm_client)

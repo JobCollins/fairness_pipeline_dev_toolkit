@@ -4,12 +4,13 @@ fairpipe's LLM fairness evals measure **disparate treatment in generative model 
 
 ## What it measures
 
-Four evaluators, all returning `MetricResult` and all calling `apply_min_group_size()`
-(default **5** per group):
+Four evaluators historically; five with the BL-012 contrast sibling — all return
+`MetricResult` and call `apply_min_group_size()` (default **5** per group):
 
 | Metric | Statistic | Pairing |
 |---|---|---|
 | `counterfactual_fairness_divergence` | max mean pairwise feature divergence | **Matched by template** (same prompt, swapped group). Lexical distance; **0 is not the no-effect baseline** ([BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)). |
+| `counterfactual_fairness_contrast` | gated mean − control mean (signed) | Same matcher; requires `control_dimension` with same-coded values. Near-zero/negative ≈ null. Roughly doubles API calls; bad control coding under-reports (David→Tariq trap). |
 | `refusal_rate_disparity` | max − min group refusal rate | Unpaired group rates (DPD-style); bootstrap resamples **within group** |
 | `toxicity_sentiment_disparity` | max − min group toxicity/sentiment rate | Same unpaired group-rate design |
 | `stereotype_association_score` | max − min stereotyped-answer rate on BBQ-schema items | Unpaired; items are not template-paired |
@@ -206,7 +207,11 @@ recordings (no API key):
   ~90% of `counterfactual_fairness_divergence`. A within-group control puts the no-effect
   baseline at **~0.19, not 0**; a CI excluding 0 does not indicate a group effect
   ([BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
-  Hiring is 0.196 − 0.190 ≈ 0.006.
+  Hiring is 0.196 − 0.190 ≈ 0.006. The sibling metric `counterfactual_fairness_contrast`
+  reports that difference in-run via an explicit `control_dimension` (same-coded values);
+  near-zero or negative is the expected null. It roughly doubles API calls, and poorly
+  chosen control names (ethnicity/region variation) inflate the baseline — the same trap
+  as David→Tariq. BL-012 stays open until contrast is validated on real recordings.
 - **§3 What the fixtures do demonstrate.** `default_recorded_counterfactual_config()`
   (n=1/group; third arm **`nonbinary`**, the literal prompt token) → **`nan`**, empty
   eligible `n_per_group`. The three cached completions still replay; the guard fires

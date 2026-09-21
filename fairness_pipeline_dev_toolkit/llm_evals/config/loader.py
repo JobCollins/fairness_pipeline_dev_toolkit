@@ -11,6 +11,7 @@ VALID_PROVIDERS = frozenset({"openai", "anthropic", "local"})
 VALID_EVALUATORS = frozenset(
     {
         "counterfactual_fairness_divergence",
+        "counterfactual_fairness_contrast",
         "refusal_rate_disparity",
         "toxicity_sentiment_disparity",
         "stereotype_association_score",
@@ -36,6 +37,7 @@ class CounterfactualConfig:
     dimensions: Dict[str, List[str]]
     defaults: Dict[str, str] = field(default_factory=dict)
     name_pools: Dict[str, Dict[str, List[str]]] = field(default_factory=dict)
+    control_dimension: Optional[str] = None
 
 
 @dataclass
@@ -169,6 +171,37 @@ def _validate_name_pools(
     return out
 
 
+def _validate_control_dimension(
+    value: Any,
+    dimensions: Dict[str, List[str]],
+) -> Optional[str]:
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ConfigValidationError(
+            "Config field 'counterfactual.control_dimension' must be a non-empty string "
+            "when provided."
+        )
+    key = value.strip()
+    if key not in dimensions:
+        raise ConfigValidationError(
+            f"Config field 'counterfactual.control_dimension' names {key!r}, which is "
+            "not present in counterfactual.dimensions."
+        )
+    if len(dimensions[key]) < 2:
+        raise ConfigValidationError(
+            f"Config field 'counterfactual.control_dimension' ({key!r}) must name a "
+            "dimension with at least two values."
+        )
+    gated = [dim for dim in dimensions if dim != key]
+    if not gated:
+        raise ConfigValidationError(
+            f"Config field 'counterfactual.control_dimension' names {key!r}, which is "
+            "the only dimension — a separate gated dimension is required for contrast."
+        )
+    return key
+
+
 def _validate_counterfactual_block(value: Any) -> Optional[CounterfactualConfig]:
     if value is None:
         return None
@@ -197,11 +230,13 @@ def _validate_counterfactual_block(value: Any) -> Optional[CounterfactualConfig]
     cleaned_defaults = {str(k): str(v) for k, v in defaults.items()}
     n_templates = len(cleaned_template) if isinstance(cleaned_template, list) else 1
     name_pools = _validate_name_pools(value.get("name_pools"), dimensions, n_templates)
+    control_dimension = _validate_control_dimension(value.get("control_dimension"), dimensions)
     return CounterfactualConfig(
         template=cleaned_template,
         dimensions=dimensions,
         defaults=cleaned_defaults,
         name_pools=name_pools,
+        control_dimension=control_dimension,
     )
 
 
@@ -251,6 +286,7 @@ def _validate_llm_eval_block(raw: Dict[str, Any]) -> LLMEvalConfig:
     counterfactual = _validate_counterfactual_block(raw.get("counterfactual"))
     needs_counterfactual = {
         "counterfactual_fairness_divergence",
+        "counterfactual_fairness_contrast",
         "refusal_rate_disparity",
         "toxicity_sentiment_disparity",
     }
@@ -259,6 +295,12 @@ def _validate_llm_eval_block(raw: Dict[str, Any]) -> LLMEvalConfig:
             "Config field 'counterfactual' is required when "
             f"{sorted(needs_counterfactual)} is listed in evaluators."
         )
+    if "counterfactual_fairness_contrast" in evaluators:
+        if counterfactual is None or not counterfactual.control_dimension:
+            raise ConfigValidationError(
+                "Config field 'counterfactual.control_dimension' is required when "
+                "'counterfactual_fairness_contrast' is listed in evaluators."
+            )
 
     bbq_path = raw.get("bbq_path")
     if bbq_path is not None and not isinstance(bbq_path, str):
