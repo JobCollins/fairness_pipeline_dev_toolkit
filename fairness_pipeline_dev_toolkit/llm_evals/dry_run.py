@@ -89,12 +89,17 @@ def estimate_dry_run(
     breakdown: Dict[str, int] = {}
     request_count = 0
 
-    if "counterfactual_fairness_divergence" in evaluators:
+    cf_probe_evals = (
+        "counterfactual_fairness_divergence",
+        "counterfactual_fairness_contrast",
+    )
+    if any(name in evaluators for name in cf_probe_evals):
         if not counterfactual_dimensions:
             raise ConfigValidationError(
                 "counterfactual.dimensions is required when running "
-                "counterfactual_fairness_divergence."
+                "counterfactual_fairness_divergence or counterfactual_fairness_contrast."
             )
+        # Both metrics share one prompt set; count once even if both are listed.
         cf_count, cf_breakdown = estimate_counterfactual_requests(
             counterfactual_dimensions, n_templates=n_templates
         )

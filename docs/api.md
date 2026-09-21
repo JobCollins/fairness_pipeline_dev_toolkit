@@ -1313,6 +1313,7 @@ from fairpipe.llm_evals import LLMEvalAdapter, MetricResult
 |--------|---------|
 | `available()` | `bool` — provider SDK installed and credential present |
 | `counterfactual_fairness_divergence(...)` | `MetricResult` |
+| `counterfactual_fairness_contrast(...)` | `MetricResult` — gated divergence minus within-group control |
 | `refusal_rate_disparity(...)` | `MetricResult` |
 | `toxicity_sentiment_disparity(...)` | `MetricResult` |
 | `stereotype_association_score(...)` | `MetricResult` |
@@ -1421,6 +1422,22 @@ this field exists to support, not an optional refinement.
         man: [Omar, Ahmed]
 ```
 
+**`counterfactual.control_dimension`:** names a dimension whose values are **same-coded**
+(e.g. `control: [Amina, Fatima, Leyla]` — three woman-coded names). Required when
+`counterfactual_fairness_contrast` is listed in `evaluators`. Validation (same style as
+`name_pools`): must name an existing dimension with ≥2 values, and must not be the sole
+dimension (a separate gated dimension is required). Unread keys are not accepted — the
+loader reads this field explicitly via `.get("control_dimension")`.
+
+`counterfactual_fairness_contrast` is a **sibling** to `counterfactual_fairness_divergence`
+(raw lexical distance unchanged). It reports
+`max(gated dimension means) − mean(control dimension)` as a **signed** contrast. Near-zero
+or negative values are the expected null reading (cross-group distance at or below the
+within-group baseline). Two real costs: the control arm roughly **doubles API calls**, and
+control values must be genuinely same-coded — if they also vary by ethnicity or region, the
+baseline inflates and the contrast under-reports (same trap as the David→Tariq finding).
+BL-012 stays open until this metric is validated on real recorded data.
+
 Name-pool probes are **not** supported with `provider: local`. The bundled
 `biased_hiring_responder` infers group from the literal words `"woman"` / `"man"` in the prompt
 text, so a name-substituted template would collapse to a single response and report zero
@@ -1428,9 +1445,10 @@ disparity. Use a recorded cache or a live provider for name-signaled audits.
 
 **Valid evaluators:** `counterfactual_fairness_divergence` (Phase 1; hiring and
 humanitarian replays are lexical distance, **not** group-effect findings —
-[BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
-Phase 2 also implements `refusal_rate_disparity` (phrase-level lexical scorer; does not
-distinguish refusal-to-engage from a scope disclaimer —
+[BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline));
+`counterfactual_fairness_contrast` (BL-012 Phase 2 sibling via `control_dimension`; not yet
+validated on live recordings). Phase 2 also implements `refusal_rate_disparity` (phrase-level
+lexical scorer; does not distinguish refusal-to-engage from a scope disclaimer —
 [BL-011](fairpipe-technical-backlog.md#bl-011--refusal_score-cannot-distinguish-refusal-to-engage-from-a-scope-disclaimer);
 humanitarian cache is live data, not a hiring copy, but **not** a disparity finding:
 15/15 lexical ceiling), `toxicity_sentiment_disparity`, and
