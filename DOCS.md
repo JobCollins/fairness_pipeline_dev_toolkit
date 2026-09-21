@@ -1,6 +1,6 @@
 # Fairness Pipeline Development Toolkit - Comprehensive User Guide
 
-**Version:** 0.10.0
+**Version:** 0.11.0
 
 This guide walks you through using the Fairness Pipeline Development Toolkit across the complete model development cycle—from initial data exploration to production monitoring. Whether you're building a new model or improving an existing one, this toolkit provides the tools and workflows to ensure fairness at every stage.
 
@@ -83,7 +83,7 @@ pip install -r requirements.txt
 fairpipe version
 ```
 
-You should see the version number (e.g., `0.10.0`).
+You should see the version number (e.g., `0.11.0`).
 
 ---
 
@@ -1461,7 +1461,7 @@ This guide has walked you through using the Fairness Pipeline Development Toolki
 
 ---
 
-**Version**: 0.10.0
+**Version**: 0.11.0
 **Last Updated**: 2026-08-31 (LLM fairness evals: probes, REST, CI/CD gate, production sampling)
 
 For questions, issues, or contributions, please see [CONTRIBUTING.md](CONTRIBUTING.md).

@@ -63,7 +63,7 @@ export OPENAI_API_KEY="sk-..."
 export ANTHROPIC_API_KEY="..."
 ```
 
-When using the CLI, run `fairpipe llm-eval --dry-run` to estimate request volume and approximate cost before making live provider calls. Live HTTP is **forbidden by default**; set `FAIRPIPE_LLM_ALLOW_LIVE=1` on CLI, REST, Jupyter, or CI jobs that should call a provider (same flag — see [Environment Variables](docs/integration_guide.md#environment-variables)). Replay-from-`cache_dir` does not need it.
+When using the CLI, run `fairpipe llm-eval --dry-run` to estimate request volume and approximate cost before making live provider calls. Live HTTP is **forbidden by default**; set `FAIRPIPE_LLM_ALLOW_LIVE=1` on CLI, REST, Jupyter, or CI jobs that should call a provider (same flag — see [Environment Variables](https://github.com/SvrusIO/fAIr/blob/main/docs/integration_guide.md#environment-variables)). Replay-from-`cache_dir` does not need it.
 
 ```bash
 fairpipe llm-eval --config llm_eval.yml --dry-run
@@ -71,7 +71,7 @@ fairpipe llm-eval --config llm_eval.yml --report-md artifacts/llm_report.md --wi
 fairpipe llm-eval --config llm_eval.yml --metric counterfactual_fairness_divergence --threshold 0.25
 ```
 
-See **[docs/llm_evals_intro.md](docs/llm_evals_intro.md)** for configuration, REST `POST /llm-eval`, and sampling production logs into the existing tracker.
+See **[docs/llm_evals_intro.md](https://github.com/SvrusIO/fAIr/blob/main/docs/llm_evals_intro.md)** for configuration, REST `POST /llm-eval`, and sampling production logs into the existing tracker.
 
 ---
 
@@ -80,20 +80,19 @@ See **[docs/llm_evals_intro.md](docs/llm_evals_intro.md)** for configuration, RE
 **Start here (hosted):** **[Documentation — SvrusIO.github.io/fAIr](https://SvrusIO.github.io/fAIr)**  
 Built from this repo’s Sphinx sources; includes getting started, user guide, API reference, integration, performance, and security links.
 
-**In-repo references** (for browsing on GitHub or a checkout):
+**In-repo references** (absolute links so they resolve on PyPI as well as GitHub):
 
 | Topic | Location |
 |--------|----------|
-| LLM fairness evals | [docs/llm_evals_intro.md](docs/llm_evals_intro.md) |
-| Getting started | [docs/getting_started.md](docs/getting_started.md) |
-| User guide (long-form) | [DOCS.md](DOCS.md) |
-| API reference | [docs/api.md](docs/api.md) |
-| Playbook · fairpipe (as implemented) | [docs/playbook-part-five-fairpipe.md](docs/playbook-part-five-fairpipe.md) |
-| Integration guide | [docs/integration_guide.md](docs/integration_guide.md) |
-| Architecture / ADR | [docs/ADR-001-architecture.md](docs/ADR-001-architecture.md) |
-| Versioning | [docs/VERSIONING.md](docs/VERSIONING.md) |
-| Release checklist (mirror / PyPI) | [docs/RELEASE.md](docs/RELEASE.md) |
-| Changelog | [CHANGELOG.md](CHANGELOG.md) |
+| LLM fairness evals | [docs/llm_evals_intro.md](https://github.com/SvrusIO/fAIr/blob/main/docs/llm_evals_intro.md) |
+| Getting started | [docs/getting_started.md](https://github.com/SvrusIO/fAIr/blob/main/docs/getting_started.md) |
+| User guide (long-form) | [DOCS.md](https://github.com/SvrusIO/fAIr/blob/main/DOCS.md) |
+| API reference | [docs/api.md](https://github.com/SvrusIO/fAIr/blob/main/docs/api.md) |
+| Playbook · fairpipe (as implemented) | [docs/playbook-part-five-fairpipe.md](https://github.com/SvrusIO/fAIr/blob/main/docs/playbook-part-five-fairpipe.md) |
+| Integration guide | [docs/integration_guide.md](https://github.com/SvrusIO/fAIr/blob/main/docs/integration_guide.md) |
+| Architecture / ADR | [docs/ADR-001-architecture.md](https://github.com/SvrusIO/fAIr/blob/main/docs/ADR-001-architecture.md) |
+| Versioning | [docs/VERSIONING.md](https://github.com/SvrusIO/fAIr/blob/main/docs/VERSIONING.md) |
+| Changelog | [CHANGELOG.md](https://github.com/SvrusIO/fAIr/blob/main/CHANGELOG.md) |
 
 ---
 
@@ -128,7 +127,7 @@ result = analyzer.demographic_parity_difference(
 print(result.value, result.ci)
 ```
 
-CLI commands, YAML configuration, workflow orchestration, training, monitoring, and the optional REST API are documented on **[the docs site](https://SvrusIO.github.io/fAIr)** and in **[docs/api.md](docs/api.md)**.
+CLI commands, YAML configuration, workflow orchestration, training, monitoring, and the optional REST API are documented on **[the docs site](https://SvrusIO.github.io/fAIr)** and in **[docs/api.md](https://github.com/SvrusIO/fAIr/blob/main/docs/api.md)**.
 
 ---
 
@@ -191,7 +190,7 @@ A red check can be decoded without opening the report:
 | 2 | *(usage)* | `--threshold` without `--metric`, unknown metric, cache miss / live-forbidden |
 | 3 | `illustrative` | Gated metric has a non-null `caveat` — **even if the number would pass** |
 
-The example gates `refusal_rate_disparity` so exit 3 is reachable on released fairpipe **0.10.0** (refusal / toxicity / stereotype attach caveats; `counterfactual_fairness_divergence` caveat wiring lands in a later toolkit release). `llm-fairness-check` mode ships in [`SvrusIO/fairpipe-action@v2`](https://github.com/SvrusIO/fairpipe-action) ([BL-010](docs/fairpipe-technical-backlog.md) closed). This package exposes the same `with:` keys via `fairpipe llm-eval --threshold` / `--metric` and `run_llm_fairness_check()`.
+The example gates `refusal_rate_disparity` so exit 3 is reachable when the gated metric is caveated (refusal / toxicity / stereotype / divergence all call `with_fixture_caveat` as of **0.11.0**). `llm-fairness-check` mode ships in [`SvrusIO/fairpipe-action@v2`](https://github.com/SvrusIO/fairpipe-action) ([BL-010](https://github.com/SvrusIO/fAIr/blob/main/docs/fairpipe-technical-backlog.md) closed). This package exposes the same `with:` keys via `fairpipe llm-eval --threshold` / `--metric` and `run_llm_fairness_check()`.
 
 → **[SvrusIO/fairpipe-action](https://github.com/SvrusIO/fairpipe-action)**
 
@@ -206,7 +205,7 @@ pip install -e ".[dev]"
 pytest -q
 ```
 
-See **[CONTRIBUTING.md](CONTRIBUTING.md)** and **[SECURITY.md](SECURITY.md)**.
+See **[CONTRIBUTING.md](https://github.com/SvrusIO/fAIr/blob/main/CONTRIBUTING.md)** and **[SECURITY.md](https://github.com/SvrusIO/fAIr/blob/main/SECURITY.md)**.
 
 ---
 
@@ -215,7 +214,7 @@ See **[CONTRIBUTING.md](CONTRIBUTING.md)** and **[SECURITY.md](SECURITY.md)**.
 Real-world bias audits demonstrating fairpipe's full pipeline — from
 measurement and detection through mitigation and CI/CD integration.
 
-### [What goes wrong when measuring LLM fairness](case_studies/llm_counterfactual_fairness.ipynb)
+### [What goes wrong when measuring LLM fairness](https://github.com/SvrusIO/fAIr/blob/main/case_studies/llm_counterfactual_fairness.ipynb)
 
 Two measurement failures on **committed live-recorded Anthropic responses** replayed from
 cache (no API key required). Select kernel **Python (fairpipe .venv)** if imports fail.
@@ -226,13 +225,13 @@ cache (no API key required). Select kernel **Python (fairpipe .venv)** if import
 - **§2** — `counterfactual_fairness_divergence` has a no-effect baseline of ~0.19, not 0
   (token overlap ~90% of the score). A CI excluding 0 is not a group effect; hiring is
   0.196 − 0.190 ≈ 0.006
-  ([BL-012](docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
+  ([BL-012](https://github.com/SvrusIO/fAIr/blob/main/docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
 - **§3** — Pipeline demonstration on real output, not a fairness finding: n=1/group
   (third arm **`nonbinary`**) → **`nan`** at `min_group_size=5`; n=9/group → finite
   lexical divergence **≈ 0.196** (95% CI ≈ 0.185–0.205).
 - **§4** — One model, one temperature, two domains; BL-011 refusal ceiling; hiring's
   third group is the prompt token `nonbinary`, not name-ambiguity.
-- YAML config → `run_llm_eval()` → `MetricResult` (see `docs/llm_evals_intro.md`). Phase 2
+- YAML config → `run_llm_eval()` → `MetricResult` (see [`docs/llm_evals_intro.md`](https://github.com/SvrusIO/fAIr/blob/main/docs/llm_evals_intro.md)). Phase 2
   toxicity/BBQ demo caches are labeled via `MetricResult.caveat` until those BL-009 halves
   close; they are **not** part of this notebook. Humanitarian refusal is a separate fixture.
 

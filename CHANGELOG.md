@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.11.0] — 2026-09-21
+
+Additive minor: `counterfactual_fairness_contrast` plus the divergence interpretation
+correction that 0.10.0's PyPI README still framed wrongly.
+
+**`counterfactual_fairness_contrast`** reports gated-dimension divergence against a
+same-coded control baseline measured in the **same run**, because the raw divergence
+metric's no-effect baseline is ~0.19–0.26, not 0. Two controls in the same domain
+measured **0.190** and **0.258** (~36% spread), so the baseline must be per-run rather
+than a shipped constant.
+
+**Interpretation correction:** divergence figures published at 0.10.0 (hiring **0.196**)
+are lexical distance, not evidence of group effects. A CI excluding 0 does **not**
+indicate a group effect for that metric.
+
 ### Added
 
 - **`counterfactual_fairness_contrast` (BL-012):** sibling metric to
@@ -30,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   above the earlier one-template within-group control (**0.190**), which is why the baseline
   is per-run rather than a shipped constant. Two control prompts share byte-identical
   gender-arm cache entries; the difference-of-means CI still treats the arms as independent.
-  BL-012 remains open until you confirm backlog closure.
+  BL-012 remains open pending backlog confirmation.
 - **`counterfactual.name_pools`:** optional `{dimension: {group_label: [value_per_template, ...]}}`
   on `CounterfactualConfig`. When set, `generate_counterfactual_prompts()` substitutes the
   pooled value into the template while `CounterfactualPrompt.group` stays the semantic label.
@@ -60,12 +75,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BL-010 closed:** `llm-fairness-check` mode landed in
   [`SvrusIO/fairpipe-action@v2`](https://github.com/SvrusIO/fairpipe-action)
   (merge `b629800`). README, `docs/integration_guide.md`, and case-study snippets
-  now use `@v2`. Published LLM Action examples gate `refusal_rate_disparity` so
-  exit 3 (illustrative) is reachable on released **0.10.0** — on that wheel only
-  refusal / toxicity / stereotype call `with_fixture_caveat`;
-  `counterfactual_fairness_divergence` caveat wiring remains unreleased HEAD.
+  use `@v2`. `counterfactual_fairness_divergence` now calls `with_fixture_caveat`
+  (same path as refusal / toxicity / stereotype).
 - `docs/fairpipe-technical-backlog.md`: BL-010 marked closed with acceptance
   criteria checked off.
+- **Case study rewrite:** `case_studies/llm_counterfactual_fairness.ipynb` reframed
+  around two measurement failures (single-name-per-group artifact; divergence baseline
+  ≠ 0) rather than presenting hiring 0.196 as a group-effect finding.
 
 ### Changed
 
@@ -81,6 +97,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   result in `with_fixture_caveat()`, matching refusal and toxicity. The expanded Phase 1
   fixture has no `illustrative` manifest key, so the published divergence stays
   `caveat is None`.
+- **Fail-closed control fill:** when `control_dimension` is set and a template has two or
+  more non-control placeholders, `generate_counterfactual_prompts()` raises
+  `ConfigValidationError` instead of silently filling one slot (avoids “Fatima in Fatima”
+  collapses). Prefer an explicit `{control}` placeholder.
 - **`counterfactual_fairness_divergence` interpretation (v0.10.0 correction):**
   the hiring (≈0.196, 95% CI 0.185–0.205) and humanitarian (≈0.202, 95% CI
   0.188–0.220) figures measure lexical divergence, dominated by token overlap.
