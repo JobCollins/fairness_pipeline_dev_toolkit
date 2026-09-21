@@ -25,13 +25,17 @@ from .recorded_within_group_control import (
     load_within_group_control_records,
 )
 from .recorded_group_rates import (
+    RECORDED_HUMANITARIAN_CONTRAST_CACHE_DIR,
+    RECORDED_HUMANITARIAN_CONTRAST_MANIFEST_PATH,
     RECORDED_REFUSAL_CACHE_DIR,
     RECORDED_REFUSAL_MANIFEST_PATH,
     RECORDED_TOXICITY_CACHE_DIR,
     RECORDED_TOXICITY_MANIFEST_PATH,
     default_recorded_refusal_config,
     default_recorded_toxicity_config,
+    humanitarian_contrast_config,
     humanitarian_divergence_config,
+    populate_humanitarian_contrast_cache,
     populate_recorded_refusal_cache,
     populate_recorded_toxicity_cache,
 )
@@ -43,6 +47,8 @@ __all__ = [
     "EXPANDED_COUNTERFACTUAL_MANIFEST_PATH",
     "RECORDED_REFUSAL_CACHE_DIR",
     "RECORDED_REFUSAL_MANIFEST_PATH",
+    "RECORDED_HUMANITARIAN_CONTRAST_CACHE_DIR",
+    "RECORDED_HUMANITARIAN_CONTRAST_MANIFEST_PATH",
     "RECORDED_TOXICITY_CACHE_DIR",
     "RECORDED_TOXICITY_MANIFEST_PATH",
     "RECORDED_BBQ_CACHE_DIR",
@@ -52,6 +58,7 @@ __all__ = [
     "default_recorded_counterfactual_config",
     "expanded_recorded_counterfactual_config",
     "humanitarian_divergence_config",
+    "humanitarian_contrast_config",
     "default_recorded_refusal_config",
     "default_recorded_toxicity_config",
     "default_recorded_bbq_config",
@@ -62,6 +69,7 @@ __all__ = [
     "populate_recorded_counterfactual_cache",
     "populate_expanded_recorded_counterfactual_cache",
     "populate_recorded_refusal_cache",
+    "populate_humanitarian_contrast_cache",
     "populate_recorded_toxicity_cache",
     "populate_recorded_bbq_cache",
 ]

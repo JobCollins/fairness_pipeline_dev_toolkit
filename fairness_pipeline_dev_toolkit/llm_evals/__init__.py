@@ -32,10 +32,12 @@ from .fixtures import (
     default_recorded_refusal_config,
     default_recorded_toxicity_config,
     expanded_recorded_counterfactual_config,
+    humanitarian_contrast_config,
     humanitarian_divergence_config,
     load_recorded_manifest,
     load_recorded_within_group_control_manifest,
     load_within_group_control_records,
+    populate_humanitarian_contrast_cache,
     populate_recorded_counterfactual_cache,
 )
 from .gating import (
@@ -112,6 +114,7 @@ __all__ = [
     "default_recorded_counterfactual_config",
     "expanded_recorded_counterfactual_config",
     "humanitarian_divergence_config",
+    "humanitarian_contrast_config",
     "default_recorded_refusal_config",
     "default_recorded_toxicity_config",
     "default_recorded_bbq_config",
@@ -119,4 +122,5 @@ __all__ = [
     "load_recorded_within_group_control_manifest",
     "load_within_group_control_records",
     "populate_recorded_counterfactual_cache",
+    "populate_humanitarian_contrast_cache",
 ]
