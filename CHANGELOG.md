@@ -11,17 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`counterfactual_fairness_contrast` (BL-012 Phase 2):** sibling metric to
+- **`counterfactual_fairness_contrast` (BL-012):** sibling metric to
   `counterfactual_fairness_divergence`. Configures an explicit
   `counterfactual.control_dimension` whose values are same-coded (within-group baseline);
   reports signed `max(gated means) − control mean` with an independent difference-of-means
   bootstrap CI. Near-zero or negative is the expected null reading. Does **not** change
   what `counterfactual_fairness_divergence` returns. Costs: roughly doubles API calls;
   control values must be genuinely same-coded or the contrast under-reports (David→Tariq
-  trap). BL-012 remains open pending real-data validation (Phase 3).
+  trap). Gate is magnitude-based (`abs(value) > threshold`) while the metric is signed.
 - **`counterfactual.control_dimension`:** validated in the counterfactual config block
   (must name an existing dimension with ≥2 values; cannot be the sole dimension; required
   when the contrast evaluator is listed).
+- **`recorded_humanitarian_contrast/` + `humanitarian_contrast_config()`:** humanitarian
+  gated arm (copied from `recorded_refusal/`) plus live-recorded same-coded control arm
+  (Fatima / Amina / Leyla × 5 templates, Haiku, `temperature=0`, `max_tokens=512`). Manifest
+  omits `illustrative`. Recorded contrast ≈ **−0.056** (gated ≈ 0.202, control ≈ 0.258;
+  95% CI ≈ −0.128 to 0.004, includes 0) — expected null. Control mean **0.258** is ~36%
+  above the earlier one-template within-group control (**0.190**), which is why the baseline
+  is per-run rather than a shipped constant. Two control prompts share byte-identical
+  gender-arm cache entries; the difference-of-means CI still treats the arms as independent.
+  BL-012 remains open until you confirm backlog closure.
 - **`counterfactual.name_pools`:** optional `{dimension: {group_label: [value_per_template, ...]}}`
   on `CounterfactualConfig`. When set, `generate_counterfactual_prompts()` substitutes the
   pooled value into the template while `CounterfactualPrompt.group` stays the semantic label.

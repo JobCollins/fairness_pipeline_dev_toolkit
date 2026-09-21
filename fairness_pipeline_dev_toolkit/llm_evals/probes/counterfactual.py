@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
+from fairness_pipeline_dev_toolkit.exceptions import ConfigValidationError
+
 
 @dataclass(frozen=True)
 class CounterfactualPrompt:
@@ -76,12 +78,24 @@ def generate_counterfactual_prompts(
     dimensions: Dict[str, List[str]],
     defaults: Dict[str, str] | None = None,
     name_pools: Dict[str, Dict[str, List[str]]] | None = None,
+    *,
+    control_dimension: str | None = None,
 ) -> List[CounterfactualPrompt]:
     """Build one prompt per (template, dimension, group), holding other fields at defaults.
 
     When ``name_pools[dimension][group]`` is set, that group's *substituted text*
     is ``pool[replicate_id]`` rather than the literal group label. ``.group``
     still stores the semantic label. Absent or empty ``name_pools`` is a no-op.
+
+    When ``control_dimension`` is set and the template has no ``{control_dimension}``
+    placeholder (humanitarian-style ``{gender}`` + name_pools), control-arm values
+    are written into the sole non-control dimension placeholder present in the
+    template so same-coded names land in the person slot. The trigger is explicit
+    (``control_dimension=``); the target slot is inferred only when exactly one
+    non-control placeholder appears. Two or more non-control placeholders raise
+    ``ConfigValidationError`` (add an explicit ``{control}`` placeholder instead).
+    Templates that already expose ``{control}`` (Phase 2 engineered form) are left
+    unchanged.
     """
     templates = as_template_list(template)
     if not templates:
@@ -110,6 +124,26 @@ def generate_counterfactual_prompts(
                             "per template)."
                         ) from exc
                 context = {**fill_values, dimension: substituted}
+                if (
+                    control_dimension
+                    and dimension == control_dimension
+                    and f"{{{control_dimension}}}" not in tmpl
+                ):
+                    candidates = [
+                        dim_key
+                        for dim_key in dimensions
+                        if dim_key != control_dimension and f"{{{dim_key}}}" in tmpl
+                    ]
+                    if len(candidates) > 1:
+                        raise ConfigValidationError(
+                            f"Template has multiple non-control placeholders "
+                            f"{candidates} while control_dimension={control_dimension!r} "
+                            f"has no {{{control_dimension}}} placeholder; cannot infer "
+                            f"which slot control values should fill. Add an explicit "
+                            f"{{{control_dimension}}} placeholder to the template."
+                        )
+                    if len(candidates) == 1:
+                        context[candidates[0]] = substituted
                 try:
                     prompt = tmpl.format(**context)
                 except KeyError as exc:

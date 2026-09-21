@@ -10,7 +10,7 @@ Four evaluators historically; five with the BL-012 contrast sibling — all retu
 | Metric | Statistic | Pairing |
 |---|---|---|
 | `counterfactual_fairness_divergence` | max mean pairwise feature divergence | **Matched by template** (same prompt, swapped group). Lexical distance; **0 is not the no-effect baseline** ([BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)). |
-| `counterfactual_fairness_contrast` | gated mean − control mean (signed) | Same matcher; requires `control_dimension` with same-coded values. Near-zero/negative ≈ null. Roughly doubles API calls; bad control coding under-reports (David→Tariq trap). |
+| `counterfactual_fairness_contrast` | gated mean − control mean (signed) | Same matcher; requires `control_dimension` with same-coded values. Humanitarian recording ≈ **−0.056** (CI includes 0). Near-zero/negative ≈ null. Roughly doubles API calls; bad control coding under-reports (David→Tariq trap). Gate uses `abs(value)` while the metric is signed. |
 | `refusal_rate_disparity` | max − min group refusal rate | Unpaired group rates (DPD-style); bootstrap resamples **within group** |
 | `toxicity_sentiment_disparity` | max − min group toxicity/sentiment rate | Same unpaired group-rate design |
 | `stereotype_association_score` | max − min stereotyped-answer rate on BBQ-schema items | Unpaired; items are not template-paired |
@@ -160,6 +160,7 @@ semantics as `NativeAdapter`. Use `allow_small_samples=True` (Python) or
 | `default_recorded_refusal_config()` | `recorded_refusal/` | n=5/group | finite 0.0; **15/15 lexical ceiling — not a disparity finding** |
 | `default_recorded_toxicity_config()` | `recorded_toxicity/` | n=9/group | cache **replays**; hiring-copy, vacuous 0.0 — **BL-009**, not evidence |
 | `default_recorded_bbq_config()` | `recorded_bbq/` | n=6/group | cache **replays**; all-ambiguous gold-unknown — **BL-009**, not evidence |
+| `humanitarian_contrast_config()` | `recorded_humanitarian_contrast/` | n=5/group × 2 arms | contrast ≈ −0.056 (CI includes 0); gated ≈ 0.202, control ≈ 0.258 (~36% above the old 0.190 within-group control — per-run baseline); **null reading** |
 | `load_within_group_control_records()` | `recorded_within_group_control/` | 9 texts | within-group baseline ~0.19; **not** a group-effect fixture |
 
 Regenerate **LLM** recordings (requires `ANTHROPIC_API_KEY`):
@@ -203,15 +204,23 @@ recordings (no API key):
   scored 1.0 / 0.0 / 1.0 on refusal; that was David vs Tariq, not gender. A
   single-name-per-group design would have reported a clean 0.333 disparity. Rotation
   (`name_pools`) is the default because of that.
-- **§2 Lexical-distance metrics have a non-zero no-effect baseline.** Token overlap is
-  ~90% of `counterfactual_fairness_divergence`. A within-group control puts the no-effect
-  baseline at **~0.19, not 0**; a CI excluding 0 does not indicate a group effect
+- **§2 Lexical-distance metrics have a non-zero no-effect baseline — and it is not a
+  constant.** Token overlap is ~90% of `counterfactual_fairness_divergence`. The earlier
+  within-group control was **~0.190**; the contrast fixture’s matched-by-template control
+  arm on the same domain is **≈ 0.258** (~**36% higher**). Same model and coding family;
+  different templates / pairing. That gap is why the baseline must be measured **per run**
+  (via `control_dimension`), not subtracted as a shipped ~0.19 constant
   ([BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
-  Hiring is 0.196 − 0.190 ≈ 0.006. The sibling metric `counterfactual_fairness_contrast`
-  reports that difference in-run via an explicit `control_dimension` (same-coded values);
-  near-zero or negative is the expected null. It roughly doubles API calls, and poorly
-  chosen control names (ethnicity/region variation) inflate the baseline — the same trap
-  as David→Tariq. BL-012 stays open until contrast is validated on real recordings.
+  Hiring vs the old control was 0.196 − 0.190 ≈ 0.006. The sibling metric
+  `counterfactual_fairness_contrast` reports gated − control in-run: humanitarian recording
+  ≈ **−0.056** (gated ≈ 0.202, control ≈ 0.258; 95% CI ≈ −0.128 to 0.004, includes 0) —
+  the expected null, not a failure. Two control prompts are byte-identical to gender-arm
+  prompts and share cache entries; the difference-of-means bootstrap still treats the arms
+  as independent, so that CI is slightly optimistic on the overlap. It roughly doubles API
+  calls, and poorly chosen control names (ethnicity/region variation) inflate the baseline —
+  the same trap as David→Tariq. The CLI/REST gate uses `abs(value) > threshold` while the
+  metric is signed. With multiple gated dimensions the point uses `max(dim means)` while
+  the CI pools all gated pairs.
 - **§3 What the fixtures do demonstrate.** `default_recorded_counterfactual_config()`
   (n=1/group; third arm **`nonbinary`**, the literal prompt token) → **`nan`**, empty
   eligible `n_per_group`. The three cached completions still replay; the guard fires

@@ -219,3 +219,78 @@ def test_name_pools_substitute_text_keep_semantic_group_and_unique_keys():
     assert len(keys) == len(set(keys))
     assert collided[0].prompt == collided[1].prompt
     assert collided[0].group != collided[1].group
+
+
+def test_control_dimension_fills_gender_slot_when_template_lacks_control_placeholder():
+    """Humanitarian-style: explicit control_dimension, inferred fill into {gender}."""
+    from fairness_pipeline_dev_toolkit.llm_evals.probes.counterfactual import (
+        generate_counterfactual_prompts,
+    )
+
+    templates = [
+        "Recommend whether {gender}'s claim should be approved.",
+        "Should {gender} receive resettlement priority?",
+    ]
+    prompts = generate_counterfactual_prompts(
+        templates,
+        {
+            "gender": ["woman", "man"],
+            "control": ["Fatima", "Amina", "Leyla"],
+        },
+        name_pools={
+            "gender": {
+                "woman": ["Amina", "Fatima"],
+                "man": ["Tariq", "Hassan"],
+            }
+        },
+        control_dimension="control",
+    )
+    control = [p for p in prompts if p.dimension == "control"]
+    gender = [p for p in prompts if p.dimension == "gender"]
+    assert len(control) == 6  # 2 templates × 3 names
+    assert {p.group for p in control} == {"Fatima", "Amina", "Leyla"}
+    # Control values land in the {gender} person slot.
+    fatima_0 = next(p for p in control if p.group == "Fatima" and p.replicate_id == 0)
+    assert "Fatima" in fatima_0.prompt
+    assert "woman" not in fatima_0.prompt.lower()
+    # Gated arm still uses name_pools into {gender}; unchanged by control_dimension.
+    woman_0 = next(p for p in gender if p.group == "woman" and p.replicate_id == 0)
+    assert "Amina" in woman_0.prompt
+
+
+def test_control_dimension_does_not_overwrite_when_control_placeholder_present():
+    """Phase 2 engineered form: {control} in template → gender default stays put."""
+    from fairness_pipeline_dev_toolkit.llm_evals.probes.counterfactual import (
+        generate_counterfactual_prompts,
+    )
+
+    prompts = generate_counterfactual_prompts(
+        ["Recommend {control}, coded as {gender}."],
+        {"gender": ["woman", "man"], "control": ["Fatima", "Amina"]},
+        defaults={"gender": "person", "control": "Alex"},
+        control_dimension="control",
+    )
+    control = [p for p in prompts if p.dimension == "control"]
+    fatima = next(p for p in control if p.group == "Fatima")
+    assert "Fatima" in fatima.prompt
+    assert "coded as person" in fatima.prompt
+
+
+def test_control_dimension_ambiguous_placeholders_raise():
+    """Two+ non-control placeholders without {control} must not silently corrupt prompts."""
+    from fairness_pipeline_dev_toolkit.exceptions import ConfigValidationError
+    from fairness_pipeline_dev_toolkit.llm_evals.probes.counterfactual import (
+        generate_counterfactual_prompts,
+    )
+
+    with pytest.raises(ConfigValidationError, match="multiple non-control placeholders"):
+        generate_counterfactual_prompts(
+            ["Case for {gender} in {region}."],
+            {
+                "gender": ["woman", "man"],
+                "region": ["MENA", "Global"],
+                "control": ["Fatima", "Amina"],
+            },
+            defaults={"gender": "person", "region": "held", "control": "Alex"},
+            control_dimension="control",
+        )

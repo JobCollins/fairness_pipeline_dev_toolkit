@@ -70,6 +70,7 @@ class CounterfactualFairnessEvaluator:
             self.counterfactual.dimensions,
             self.counterfactual.defaults,
             self.counterfactual.name_pools,
+            control_dimension=self.counterfactual.control_dimension,
         )
         if self.config.max_requests_per_run is not None:
             if len(prompts) > self.config.max_requests_per_run:
