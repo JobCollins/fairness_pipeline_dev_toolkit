@@ -747,7 +747,18 @@ def test_model_fairness():
 
 ### `assert_llm_fairness()`
 
-Same operators and NaN policy as `assert_fairness()`, for LLM `MetricResult` values.
+Same gate policy as the CLI / REST helper `evaluate_llm_eval_gate()` (not a separate
+comparison of `.value` alone):
+
+- Non-null `MetricResult.caveat` → assertion failure as **illustrative** (CLI exit 3),
+  even when the number would pass `threshold`. Precedence: illustrative wins over
+  undefined when both apply.
+- Non-finite `value` → assertion failure as **undefined** (CLI exit 4). Usually
+  `min_group_size` excluded every eligible group. `allow_nan=True` skips that raise
+  (plugin-only; CLI / REST still report undefined).
+- Otherwise fail when `abs(value) > threshold` (**magnitude-based**). Signed metrics
+  such as `counterfactual_fairness_contrast` are gated on absolute size — calibrate
+  thresholds accordingly.
 Do not treat shipped `recorded_toxicity` / `recorded_bbq` replay values as production
 evidence (`MetricResult.caveat` will be set). Humanitarian `recorded_refusal` is live
 data (`caveat` is `None`) but **not** a disparity finding: all 15 responses score 1.0
@@ -759,6 +770,7 @@ from fairpipe.integration import assert_llm_fairness
 assert_llm_fairness(result.metrics["counterfactual_fairness_divergence"], threshold=0.25)
 ```
 
+Classifier checks still use `assert_fairness()` (signed comparators / `allow_nan`).
 ### `log_llm_eval_results()`
 
 Logs LLM eval `MetricResult` maps via `log_fairness_metrics` with prefix `llm_eval_`.
@@ -1218,7 +1230,7 @@ fairpipe llm-eval --config llm_eval.yml --metric counterfactual_fairness_diverge
 | `--threshold` | Gate the selected `--metric` (requires `--metric`) |
 | `--metric` | Metric key to gate |
 
-Exit codes (same function as REST, `evaluate_llm_eval_gate()`): `0` pass, `1` fail, `2` usage, `3` illustrative. A caveated metric exits `3` even when the number would pass `--threshold`. Cache miss / `LiveLLMCallForbidden` exit `2` (instant, no hang).
+Exit codes (same function as REST, `evaluate_llm_eval_gate()`): `0` pass, `1` fail, `2` usage, `3` illustrative, `4` undefined. A caveated metric exits `3` even when the number would pass `--threshold`. A non-finite metric (typically `min_group_size`) exits `4` — never a silent pass. Cache miss / `LiveLLMCallForbidden` exit `2` (instant, no hang). `fairpipe validate` uses only 0/1/2; exit 4 does not collide.
 
 Local Action harness: `fairpipe.llm_evals.run_llm_fairness_check({"config", "metric", "threshold", "fail-on-violation"})`.
 
@@ -1261,7 +1273,7 @@ metric = result.metrics["counterfactual_fairness_divergence"]
 shipped BL-009 toxicity/BBQ demo fixtures; `null` on expanded counterfactual, humanitarian
 refusal / humanitarian divergence, user configs, and on
 classifier `/validate` / `/workflow`) — not a separate REST envelope. Gating is
-three-state: `gate_status` is `pass` | `fail` | `illustrative`, and `passed` is
+four-state: `gate_status` is `pass` | `fail` | `illustrative` | `undefined`, and `passed` is
 `true` | `false` | `null` aligned 1:1. See [REST API](#rest-api) below.
 
 ### Production sampling
@@ -1697,20 +1709,21 @@ Live HTTP is forbidden until `FAIRPIPE_LLM_ALLOW_LIVE=1` is set on the process.
 
 Or pass YAML as `{"config": "provider: anthropic\\nmodel: ...\\n..."}`.
 
-**Gating** is three-state, not boolean-plus-caveat:
+**Gating** is four-state, not boolean-plus-caveat:
 
 | `gate_status` | `passed` | Meaning |
 |---------------|----------|---------|
-| `pass` | `true` | No caveat on the gated metric; within threshold (or no threshold) |
+| `pass` | `true` | Finite non-caveated metric; within threshold (or no threshold) |
 | `fail` | `false` | Threshold miss on a **non-caveated** gated metric |
 | `illustrative` | `null` | Gated metric has a non-null `caveat` (even if the number would pass) |
+| `undefined` | `null` | Gated metric is non-finite (insufficient evidence; typically `min_group_size`) |
 
 `gate_status` is canonical. `passed: null` exists so a bool-only client does not treat
-illustrative (fix-the-config) as a threshold fail (fix-the-model). If `threshold` is
-omitted, the route still returns `illustrative` when any returned metric (or the
-selected `metric` if present) has a caveat; otherwise `pass`.
+illustrative (fix-the-config) or undefined (guard-fired) as a threshold fail
+(fix-the-model). Precedence: **illustrative > undefined > fail > pass**. If `threshold` is
+omitted, the route still returns `illustrative` / `undefined` when applicable; otherwise `pass`.
 
-HTTP **200** for `pass` / `fail` / `illustrative` (same as `/validate`: `passed=false`
+HTTP **200** for `pass` / `fail` / `illustrative` / `undefined` (same as `/validate`: `passed=false`
 is 200, not 500). **422** for bad config or credential fields in the body. Cache miss
 with `cache_dir` set raises `CacheMissError` → **4xx** (replay-only; no live call).
 

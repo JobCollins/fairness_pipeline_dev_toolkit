@@ -147,6 +147,26 @@ def test_llm_eval_threshold_fail_non_caveated(client, assert_no_live_llm_calls):
     assert abs(metric["value"]) > 0.01
 
 
+def test_llm_eval_undefined_when_min_group_size_excludes_all(client, assert_no_live_llm_calls):
+    """Non-finite metric (guard fired) → gate_status=undefined, passed=null."""
+    payload = _payload_from_config(
+        expanded_recorded_counterfactual_config(),
+        threshold=0.50,
+        metric="counterfactual_fairness_divergence",
+        min_group_size=999,
+    )
+    r = client.post("/llm-eval", json=payload)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["gate_status"] == "undefined"
+    assert body["passed"] is None
+    metric = body["metrics"]["counterfactual_fairness_divergence"]
+    assert metric["caveat"] is None
+    assert metric["value"] is None or (
+        isinstance(metric["value"], float) and metric["value"] != metric["value"]
+    )
+
+
 def test_llm_eval_credential_field_in_json(client):
     payload = _payload_from_config(expanded_recorded_counterfactual_config(), api_key="sk-secret")
     r = client.post("/llm-eval", json=payload)

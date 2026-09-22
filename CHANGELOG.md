@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`assert_llm_fairness()` (BL-017):** routes through `evaluate_llm_eval_gate()` so
+  pytest matches CLI / REST. Caveated (`MetricResult.caveat`) results now **fail** as
+  illustrative (CLI exit 3) even when the number would pass the threshold; non-caveated
+  results use **magnitude** gating (`abs(value) > threshold`). Tests that previously
+  passed on a caveated demo fixture, or that treated a negative signed contrast as a
+  pass under `comparator="<="`, will now fail — that is intentional alignment with the
+  CLI. `comparator` remains an unused kwarg for call-site compatibility; classifier
+  `assert_fairness()` is unchanged.
+- **`undefined` gate status (Wave 1c extended):** non-finite gated metrics (typically
+  `min_group_size` excluded every eligible group) are no longer a silent pass. New
+  status `undefined` with CLI exit **4**; REST `gate_status: "undefined"` /
+  `passed: null`. Precedence: **illustrative > undefined > fail > pass** — a caveated
+  demo fixture below `min_group_size` stays illustrative. `assert_llm_fairness` raises
+  on undefined (names `min_group_size`); `allow_nan=True` is again a meaningful
+  plugin-only opt-in to skip that raise. **Breaking** for callers that treated NaN /
+  undersized-group results as a green gate.
+
 ## [v0.11.0] — 2026-09-21
 
 Additive minor: `counterfactual_fairness_contrast` plus the divergence interpretation

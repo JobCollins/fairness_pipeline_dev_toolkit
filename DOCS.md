@@ -1186,7 +1186,9 @@ Reports include:
 - `stereotype_association_score` — BBQ-schema stereotyped-answer rate (U.S.-context caveat;
   shipped subset is all-ambiguous and similarly labeled until BL-009)
 
-Gate in tests with `assert_llm_fairness(metric, threshold=...)`. Log with `log_llm_eval_results`
+Gate in tests with `assert_llm_fairness(metric, threshold=...)` — same policy as
+`evaluate_llm_eval_gate()` / CLI (caveats → illustrative fail; magnitude threshold).
+Log with `log_llm_eval_results`
 (caveats become MLflow tags). CLI: `fairpipe llm-eval --metric ... --threshold ...` (exit 0/1/2/3).
 REST: `POST /llm-eval`. Production logs: `sample_production_llm_records()` into the existing
 tracker / drift engine (see [docs/integration_guide.md](docs/integration_guide.md#production-monitoring)).

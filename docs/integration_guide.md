@@ -366,12 +366,13 @@ Exit codes (same mapping as `fairpipe llm-eval`, reserved so they do not collide
 
 | Exit | `gate_status` | Meaning |
 |------|----------------|---------|
-| 0 | `pass` | Threshold met (or no threshold) on a non-caveated metric |
+| 0 | `pass` | Threshold met (or no threshold) on a finite non-caveated metric |
 | 1 | `fail` | Threshold miss on a **non-caveated** gated metric |
 | 2 | *(usage)* | `--threshold` without `--metric`, unknown metric, cache miss / live-forbidden |
 | 3 | `illustrative` | Gated metric has a non-null `caveat` — **even if the number would pass** |
+| 4 | `undefined` | Gated metric is non-finite (insufficient evidence; typically `min_group_size`) |
 
-`fail-on-violation: "false"` remaps exit 1 to 0 (report-only). Usage (2) and illustrative (3) stay as-is.
+`fail-on-violation: "false"` remaps exit 1 to 0 (report-only). Usage (2), illustrative (3), and undefined (4) stay as-is.
 
 The example gates `refusal_rate_disparity` so exit 3 is reachable on released fairpipe **0.10.0** (refusal / toxicity / stereotype attach `MetricResult.caveat`; `counterfactual_fairness_divergence` caveat wiring is unreleased HEAD and lands next toolkit release). Equivalent CLI:
 
@@ -565,8 +566,12 @@ pytest tests/test_fairness.py -v
 
 #### Use Case: pytest for LLM fairness evals
 
-`assert_llm_fairness()` uses the same operators and NaN policy as `assert_fairness()`. Default
-pytest excludes live provider and live BBQ fetches (`-m 'not live_llm and not live_bbq'`).
+`assert_llm_fairness()` uses the **same** policy as `fairpipe llm-eval --threshold` /
+`evaluate_llm_eval_gate()`: caveated results fail as illustrative (CLI exit 3);
+non-finite results fail as undefined (CLI exit 4 — typically `min_group_size`);
+non-caveated finite results fail when `abs(value) > threshold` (magnitude-based).
+`allow_nan=True` is a plugin-only opt-in to tolerate undefined. Default pytest excludes live
+provider and live BBQ fetches (`-m 'not live_llm and not live_bbq'`).
 
 ```python
 from fairpipe.llm_evals import expanded_recorded_counterfactual_config, run_llm_eval
@@ -579,10 +584,10 @@ def test_counterfactual_replay():
 ```
 
 Do not gate production on shipped `recorded_toxicity` / `recorded_bbq`
-values until those BL-009 halves close (`MetricResult.caveat` is set). Humanitarian
+values until those BL-009 halves close (`MetricResult.caveat` is set — the assertion
+will fail as illustrative). Humanitarian
 `recorded_refusal` is live data but **not** a disparity finding (15/15 lexical ceiling).
 See [docs/llm_evals_intro.md](llm_evals_intro.md).
-
 #### Use Case: Pre-commit Hook
 
 ```python
@@ -1298,9 +1303,9 @@ not a supported workaround. Live HTTP uses the same
 **server process** for a genuine eval; omit it (the default) so a misconfigured
 server fails closed with `LiveLLMCallForbidden`.
 
-`gate_status` is three-state (`pass` / `fail` / `illustrative`). `passed` is `true` /
+`gate_status` is four-state (`pass` / `fail` / `illustrative` / `undefined`). `passed` is `true` /
 `false` / `null` aligned 1:1 so a bool-only client does not treat an illustrative
-(demo-fixture) result as a threshold fail. HTTP 200 for all three; 422 for bad
+(demo-fixture) or undefined (`min_group_size`) result as a threshold fail. HTTP 200 for all four; 422 for bad
 config or credentials in the body; cache miss with `cache_dir` set is 4xx (no live
 call). The default body is aggregated metrics + CIs — no raw transcripts.
 

@@ -31,6 +31,7 @@ from fairness_pipeline_dev_toolkit.llm_evals.gating import (
     EXIT_FAIL,
     EXIT_ILLUSTRATIVE,
     EXIT_PASS,
+    EXIT_UNDEFINED,
     EXIT_USAGE,
 )
 
@@ -167,6 +168,30 @@ def test_llm_eval_cli_recorded_illustrative_exit_three_even_if_threshold_would_p
         ]
     )
     assert exit_code == EXIT_ILLUSTRATIVE
+
+
+def test_llm_eval_cli_undefined_exit_four_when_min_group_size_excludes_all(
+    tmp_path, capsys, assert_no_live_llm_calls
+):
+    """Raised min_group_size → nan metric → exit 4 (not a silent pass)."""
+    cfg = write_llm_eval_yaml(tmp_path / "llm_eval.yml", expanded_recorded_counterfactual_config())
+    exit_code = main(
+        [
+            "llm-eval",
+            "--config",
+            str(cfg),
+            "--metric",
+            "counterfactual_fairness_divergence",
+            "--threshold",
+            "0.50",
+            "--min-group-size",
+            "999",
+        ]
+    )
+    assert exit_code == EXIT_UNDEFINED
+    captured = capsys.readouterr()
+    assert "undefined" in captured.err.lower() or "insufficient evidence" in captured.err.lower()
+    assert "min_group_size" in captured.err
 
 
 def test_llm_eval_cli_threshold_without_metric_exit_two(tmp_path, capsys):

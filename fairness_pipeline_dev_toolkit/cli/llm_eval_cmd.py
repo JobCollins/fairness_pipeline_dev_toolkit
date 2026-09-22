@@ -9,8 +9,10 @@ from fairness_pipeline_dev_toolkit.llm_evals.client import (
 )
 from fairness_pipeline_dev_toolkit.llm_evals.config import load_llm_eval_config
 from fairness_pipeline_dev_toolkit.llm_evals.gating import (
+    EXIT_UNDEFINED,
     EXIT_USAGE,
     GATE_STATUS_TO_EXIT,
+    GATE_UNDEFINED,
     evaluate_llm_eval_gate,
 )
 from fairness_pipeline_dev_toolkit.llm_evals.guards import DEFAULT_LLM_MIN_GROUP_SIZE
@@ -96,6 +98,18 @@ def cmd_llm_eval(args: argparse.Namespace) -> int:
         )
         return EXIT_USAGE
 
+    if gate_status == GATE_UNDEFINED:
+        print(
+            "error: gated metric is undefined (insufficient evidence) — fairpipe "
+            "declined to produce a finite disparity number. A demographic group "
+            "likely fell below min_group_size, so every eligible group was "
+            "excluded (or fewer than two remain). Raise sample size / "
+            "--min-group-size, or use --allow-small-samples only for labelled "
+            "illustrative smoke tests. This is not a pass.",
+            file=sys.stderr,
+        )
+        return EXIT_UNDEFINED
+
     return GATE_STATUS_TO_EXIT[gate_status]
 
 
@@ -147,9 +161,10 @@ def register_llm_eval_parser(sub) -> None:
         type=float,
         default=None,
         help=(
-            "Optional: gate the selected --metric (exit 0 pass / 1 fail / 3 illustrative). "
-            "A caveated (illustrative) metric always exits 3, even when the number would "
-            "pass the threshold. Requires --metric when set."
+            "Optional: gate the selected --metric (exit 0 pass / 1 fail / "
+            "3 illustrative / 4 undefined). A caveated metric always exits 3; "
+            "a non-finite metric (typically min_group_size) exits 4. Requires "
+            "--metric when set."
         ),
     )
     p.add_argument(
@@ -157,7 +172,8 @@ def register_llm_eval_parser(sub) -> None:
         default=None,
         help=(
             "LLM-eval metric key to gate (required when --threshold is set). "
-            "Without --threshold, a caveat on this metric still exits 3."
+            "Without --threshold, a caveat still exits 3 and a non-finite value "
+            "still exits 4."
         ),
     )
     p.set_defaults(func=cmd_llm_eval)

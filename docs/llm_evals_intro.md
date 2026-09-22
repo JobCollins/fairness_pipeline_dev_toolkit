@@ -187,6 +187,11 @@ Do not cite the pooled 0.0 as evidence of equal treatment.
 
 ## CI gating and MLflow
 
+`assert_llm_fairness` shares `evaluate_llm_eval_gate()` with the CLI (caveat →
+illustrative / exit 3; non-finite → undefined / exit 4, typically `min_group_size`;
+otherwise `abs(value) > threshold`). `allow_nan=True` is a plugin-only opt-in for
+undefined.
+
 ```python
 from fairpipe.integration import assert_llm_fairness, log_llm_eval_results
 
@@ -241,10 +246,11 @@ forbidden by default). Replay of a valid recorded cache should finish in about a
 ## CI/CD, REST, and production monitoring (Phase 3)
 
 - **CLI gate:** `fairpipe llm-eval --metric ... --threshold ...` — exit 0 pass / 1 fail /
-  2 usage / 3 illustrative (`evaluate_llm_eval_gate()`). A caveated metric exits 3 even
-  when the number would pass. Dry-run stays 0 and does not call a provider.
-- **REST:** `POST /llm-eval` — same three-state `gate_status` / `passed` (null when
-  illustrative). Credentials env-only; default body is aggregated metrics (no transcripts).
+  2 usage / 3 illustrative / 4 undefined (`evaluate_llm_eval_gate()`). A caveated metric
+  exits 3 even when the number would pass; a non-finite metric (typically `min_group_size`)
+  exits 4. Dry-run stays 0 and does not call a provider.
+- **REST:** `POST /llm-eval` — same four-state `gate_status` / `passed` (null when
+  illustrative or undefined). Credentials env-only; default body is aggregated metrics (no transcripts).
 - **Local Action harness:** `run_llm_fairness_check()` with Action-shaped `with:` keys.
   `llm-fairness-check` in [`SvrusIO/fairpipe-action@v2`](https://github.com/SvrusIO/fairpipe-action)
   ([BL-010](fairpipe-technical-backlog.md) closed at `b629800`).

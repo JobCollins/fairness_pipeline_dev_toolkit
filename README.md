@@ -185,10 +185,13 @@ A red check can be decoded without opening the report:
 
 | Exit | `gate_status` | Meaning |
 |------|----------------|---------|
-| 0 | `pass` | Threshold met (or no threshold) on a non-caveated metric |
+| 0 | `pass` | Threshold met (or no threshold) on a finite non-caveated metric |
 | 1 | `fail` | Threshold miss on a **non-caveated** gated metric |
 | 2 | *(usage)* | `--threshold` without `--metric`, unknown metric, cache miss / live-forbidden |
 | 3 | `illustrative` | Gated metric has a non-null `caveat` — **even if the number would pass** |
+| 4 | `undefined` | Gated metric is non-finite (insufficient evidence; typically `min_group_size`) |
+
+`fairpipe validate` uses only exits 0/1/2 — exit 4 is reserved for LLM-eval undefined and does not collide.
 
 The example gates `refusal_rate_disparity` so exit 3 is reachable when the gated metric is caveated (refusal / toxicity / stereotype / divergence all call `with_fixture_caveat` as of **0.11.0**). `llm-fairness-check` mode ships in [`SvrusIO/fairpipe-action@v2`](https://github.com/SvrusIO/fairpipe-action) ([BL-010](https://github.com/SvrusIO/fAIr/blob/main/docs/fairpipe-technical-backlog.md) closed). This package exposes the same `with:` keys via `fairpipe llm-eval --threshold` / `--metric` and `run_llm_fairness_check()`.
 
