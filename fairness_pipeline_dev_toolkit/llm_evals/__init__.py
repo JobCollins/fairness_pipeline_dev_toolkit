@@ -22,6 +22,7 @@ from .config import CounterfactualConfig, LLMEvalConfig, load_llm_eval_config
 from .dry_run import DryRunEstimate, estimate_dry_run
 from .evaluators import (
     CounterfactualFairnessEvaluator,
+    DemographicSwapEvaluator,
     RefusalRateEvaluator,
     StereotypeAssociationEvaluator,
     ToxicitySentimentEvaluator,
@@ -54,6 +55,17 @@ from .gating import (
     evaluate_llm_eval_gate,
 )
 from .guards import DEFAULT_LLM_MIN_GROUP_SIZE, apply_min_group_size
+from .names import (
+    ACCEPTED_EVALUATORS,
+    DEMOGRAPHIC_SWAP_CONTRAST,
+    DEMOGRAPHIC_SWAP_DIVERGENCE,
+    EVALUATOR_ALIASES,
+    VALID_EVALUATORS,
+    alias_deprecation_message,
+    canonicalize_evaluator_name,
+    canonicalize_evaluators,
+    collect_alias_deprecations,
+)
 from .production import (
     ingest_sampled_production_llm,
     make_production_llm_tracker,
@@ -87,6 +99,7 @@ __all__ = [
     "CounterfactualConfig",
     "LLMEvalConfig",
     "load_llm_eval_config",
+    "DemographicSwapEvaluator",
     "CounterfactualFairnessEvaluator",
     "RefusalRateEvaluator",
     "ToxicitySentimentEvaluator",
@@ -99,6 +112,15 @@ __all__ = [
     "write_transcripts",
     "DEFAULT_LLM_MIN_GROUP_SIZE",
     "apply_min_group_size",
+    "VALID_EVALUATORS",
+    "ACCEPTED_EVALUATORS",
+    "EVALUATOR_ALIASES",
+    "DEMOGRAPHIC_SWAP_DIVERGENCE",
+    "DEMOGRAPHIC_SWAP_CONTRAST",
+    "canonicalize_evaluator_name",
+    "canonicalize_evaluators",
+    "alias_deprecation_message",
+    "collect_alias_deprecations",
     "sample_production_llm_records",
     "production_llm_column_map",
     "make_production_llm_tracker",

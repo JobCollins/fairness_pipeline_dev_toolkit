@@ -1,4 +1,4 @@
-"""Tests for counterfactual_fairness_contrast (BL-012 Phase 2)."""
+"""Tests for demographic_swap_contrast (BL-012 Phase 2)."""
 
 from __future__ import annotations
 
@@ -15,8 +15,8 @@ from fairness_pipeline_dev_toolkit.llm_evals.config import (
     LLMEvalConfig,
     load_llm_eval_config,
 )
-from fairness_pipeline_dev_toolkit.llm_evals.evaluators.counterfactual_fairness import (
-    CounterfactualFairnessEvaluator,
+from fairness_pipeline_dev_toolkit.llm_evals.evaluators.demographic_swap import (
+    DemographicSwapEvaluator,
 )
 from fairness_pipeline_dev_toolkit.llm_evals.fixtures import (
     expanded_recorded_counterfactual_config,
@@ -45,7 +45,7 @@ def _contrast_config(
     return LLMEvalConfig(
         provider="local",
         model="test",
-        evaluators=["counterfactual_fairness_contrast"],
+        evaluators=["demographic_swap_contrast"],
         counterfactual=CounterfactualConfig(
             template=templates,
             dimensions={
@@ -100,7 +100,7 @@ def _responder_negative_contrast(prompt: str, *, params=None) -> str:
 
 def test_contrast_positive_engineered_local():
     client = LocalLLMClient("test", responder=_responder_engineered)
-    evaluator = CounterfactualFairnessEvaluator(_contrast_config(), client)
+    evaluator = DemographicSwapEvaluator(_contrast_config(), client)
     result, _ = asyncio.run(
         evaluator.run_contrast_async(
             allow_small_samples=True,
@@ -109,7 +109,7 @@ def test_contrast_positive_engineered_local():
             random_state=42,
         )
     )
-    assert result.metric == "counterfactual_fairness_contrast"
+    assert result.metric == "demographic_swap_contrast"
     assert result.value > 0.05
     assert result.ci is not None
     assert result.ci[0] < result.ci[1]
@@ -117,7 +117,7 @@ def test_contrast_positive_engineered_local():
 
 def test_contrast_negative_sign_survives():
     client = LocalLLMClient("test", responder=_responder_negative_contrast)
-    evaluator = CounterfactualFairnessEvaluator(_contrast_config(), client)
+    evaluator = DemographicSwapEvaluator(_contrast_config(), client)
     result, _ = asyncio.run(
         evaluator.run_contrast_async(
             allow_small_samples=True,
@@ -160,14 +160,14 @@ def test_contrast_guard_nan_when_either_dimension_below_threshold():
     # One template → n=1 per group; default min_group_size=5 → nan.
     config = _contrast_config(templates=["Recommend {control}, coded as {gender}."])
     client = LocalLLMClient("test", responder=_responder_engineered)
-    evaluator = CounterfactualFairnessEvaluator(config, client)
+    evaluator = DemographicSwapEvaluator(config, client)
     result, _ = asyncio.run(evaluator.run_contrast_async(with_ci=False))
     assert math.isnan(result.value)
 
 
 def test_contrast_difference_of_means_ci_sane():
     client = LocalLLMClient("test", responder=_responder_engineered)
-    evaluator = CounterfactualFairnessEvaluator(_contrast_config(), client)
+    evaluator = DemographicSwapEvaluator(_contrast_config(), client)
     result, _ = asyncio.run(
         evaluator.run_contrast_async(
             allow_small_samples=True,
@@ -197,7 +197,7 @@ def _contrast_yaml(**counterfactual_extra):
     return {
         "provider": "local",
         "model": "stub",
-        "evaluators": ["counterfactual_fairness_contrast"],
+        "evaluators": ["demographic_swap_contrast"],
         "counterfactual": block,
     }
 
@@ -221,7 +221,7 @@ def test_rejects_control_dimension_names_gated_sole_dimension():
             obj={
                 "provider": "local",
                 "model": "stub",
-                "evaluators": ["counterfactual_fairness_contrast"],
+                "evaluators": ["demographic_swap_contrast"],
                 "counterfactual": {
                     "template": [
                         "Recommend {gender}.",
@@ -250,7 +250,7 @@ def test_divergence_hiring_regression_unchanged(assert_no_live_llm_calls):
     """Sibling metric must not change the published divergence contract."""
     config = expanded_recorded_counterfactual_config()
     result = run_llm_eval(config, with_ci=True, bootstrap_B=200, random_state=42)
-    metric = result.metrics["counterfactual_fairness_divergence"]
+    metric = result.metrics["demographic_swap_divergence"]
     assert math.isfinite(metric.value)
     assert metric.value == pytest.approx(0.196, abs=5e-4)
     assert metric.ci is not None
@@ -266,5 +266,5 @@ def test_stub_protocol_includes_contrast():
 
     adapter = StubLLMEvalAdapter()
     assert isinstance(adapter, LLMEvalAdapter)
-    result = adapter.counterfactual_fairness_contrast(min_group_size=5)
-    assert result.metric == "counterfactual_fairness_contrast"
+    result = adapter.demographic_swap_contrast(min_group_size=5)
+    assert result.metric == "demographic_swap_contrast"

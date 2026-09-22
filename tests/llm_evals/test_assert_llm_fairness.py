@@ -36,7 +36,7 @@ def test_assert_llm_fairness_raises_on_magnitude_violation():
     # Signed contrast: magnitude-based (matches CLI), not signed <= .
     with pytest.raises(AssertionError, match="magnitude-based|CLI exit 1"):
         assert_llm_fairness(
-            _metric("counterfactual_fairness_contrast", -0.05629),
+            _metric("demographic_swap_contrast", -0.05629),
             0.05,
         )
 
@@ -59,7 +59,7 @@ def test_assert_llm_fairness_nan_raises_as_undefined():
         assert_llm_fairness(float("nan"), 0.10)
     with pytest.raises(AssertionError, match="undefined|CLI exit 4|min_group_size"):
         assert_llm_fairness(
-            _metric("counterfactual_fairness_divergence", float("nan")),
+            _metric("demographic_swap_divergence", float("nan")),
             0.10,
         )
     status, passed = evaluate_llm_eval_gate(
@@ -75,7 +75,7 @@ def test_assert_llm_fairness_allow_nan_skips_undefined_raise():
     """allow_nan=True is a plugin-only opt-in to tolerate insufficient evidence."""
     assert_llm_fairness(float("nan"), 0.10, allow_nan=True)
     assert_llm_fairness(
-        _metric("counterfactual_fairness_divergence", float("nan")),
+        _metric("demographic_swap_divergence", float("nan")),
         0.10,
         allow_nan=True,
     )
@@ -98,9 +98,9 @@ def test_assert_llm_fairness_caveated_nan_raises_illustrative():
     "result,threshold,expected_status",
     [
         (_metric("toxicity_sentiment_disparity", 0.0, caveat="demo"), 0.05, GATE_ILLUSTRATIVE),
-        (_metric("counterfactual_fairness_contrast", -0.05629), 0.05, GATE_FAIL),
+        (_metric("demographic_swap_contrast", -0.05629), 0.05, GATE_FAIL),
         (_metric("refusal_rate_disparity", 0.01), 0.05, GATE_PASS),
-        (_metric("counterfactual_fairness_divergence", float("nan")), 0.05, GATE_UNDEFINED),
+        (_metric("demographic_swap_divergence", float("nan")), 0.05, GATE_UNDEFINED),
         (
             _metric(
                 "toxicity_sentiment_disparity",

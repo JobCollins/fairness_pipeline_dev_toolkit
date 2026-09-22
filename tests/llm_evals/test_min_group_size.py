@@ -13,8 +13,8 @@ from fairness_pipeline_dev_toolkit.llm_evals.config import (
     LLMEvalConfig,
 )
 from fairness_pipeline_dev_toolkit.llm_evals.demo import biased_hiring_responder
-from fairness_pipeline_dev_toolkit.llm_evals.evaluators.counterfactual_fairness import (
-    CounterfactualFairnessEvaluator,
+from fairness_pipeline_dev_toolkit.llm_evals.evaluators.demographic_swap import (
+    DemographicSwapEvaluator,
 )
 from fairness_pipeline_dev_toolkit.llm_evals.guards import (
     DEFAULT_LLM_MIN_GROUP_SIZE,
@@ -27,7 +27,7 @@ def _config(*, gender_values=None) -> LLMEvalConfig:
     return LLMEvalConfig(
         provider="local",
         model="test",
-        evaluators=["counterfactual_fairness_divergence"],
+        evaluators=["demographic_swap_divergence"],
         counterfactual=CounterfactualConfig(
             template="Write a hiring recommendation for {name}, a {gender} engineer.",
             dimensions={"gender": gender_values},
@@ -51,7 +51,7 @@ def test_apply_min_group_size_requires_two_eligible_groups():
 def test_counterfactual_guard_returns_nan_below_threshold():
     """Explicit negative case: n=1 per group at default threshold → nan (classifier parity)."""
     client = LocalLLMClient("test", responder=biased_hiring_responder)
-    evaluator = CounterfactualFairnessEvaluator(_config(), client)
+    evaluator = DemographicSwapEvaluator(_config(), client)
 
     result, _ = asyncio.run(
         evaluator.run_async(
@@ -149,7 +149,7 @@ def test_stereotype_guard_returns_nan_below_threshold():
 
 def test_allow_small_samples_override_computes_illustrative_metric():
     client = LocalLLMClient("test", responder=biased_hiring_responder)
-    evaluator = CounterfactualFairnessEvaluator(_config(gender_values=["woman", "man"]), client)
+    evaluator = DemographicSwapEvaluator(_config(gender_values=["woman", "man"]), client)
 
     result, _ = asyncio.run(
         evaluator.run_async(

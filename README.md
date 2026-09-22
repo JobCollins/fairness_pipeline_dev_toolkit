@@ -68,7 +68,7 @@ When using the CLI, run `fairpipe llm-eval --dry-run` to estimate request volume
 ```bash
 fairpipe llm-eval --config llm_eval.yml --dry-run
 fairpipe llm-eval --config llm_eval.yml --report-md artifacts/llm_report.md --with-ci
-fairpipe llm-eval --config llm_eval.yml --metric counterfactual_fairness_divergence --threshold 0.25
+fairpipe llm-eval --config llm_eval.yml --metric demographic_swap_divergence --threshold 0.25
 ```
 
 See **[docs/llm_evals_intro.md](https://github.com/SvrusIO/fAIr/blob/main/docs/llm_evals_intro.md)** for configuration, REST `POST /llm-eval`, and sampling production logs into the existing tracker.
@@ -238,7 +238,7 @@ See **[CONTRIBUTING.md](https://github.com/SvrusIO/fAIr/blob/main/CONTRIBUTING.m
 Real-world bias audits demonstrating fairpipe's full pipeline — from
 measurement and detection through mitigation and CI/CD integration.
 
-### [What goes wrong when measuring LLM fairness](https://github.com/SvrusIO/fAIr/blob/main/case_studies/llm_counterfactual_fairness.ipynb)
+### [What goes wrong when measuring LLM fairness](https://github.com/SvrusIO/fAIr/blob/main/case_studies/llm_fairness_measurement_pitfalls.ipynb)
 
 Two measurement failures on **committed live-recorded Anthropic responses** replayed from
 cache (no API key required). Select kernel **Python (fairpipe .venv)** if imports fail.
@@ -246,11 +246,11 @@ cache (no API key required). Select kernel **Python (fairpipe .venv)** if import
 - **§1** — A single-name-per-group counterfactual manufactured a clean 0.333 gender
   disparity that was a David vs Tariq name effect. Rotation (`name_pools`) is the default
   because of that.
-- **§2** — `counterfactual_fairness_divergence` is a lexical-divergence
+- **§2** — `demographic_swap_divergence` is a lexical-divergence
   perturbation test (not Kusner et al. causal CF). It has a no-effect baseline
   of ~0.19, not 0 (token overlap ~90% of the score). A CI excluding 0 is not a
   group effect; hiring is 0.196 − 0.190 ≈ 0.006
-  ([BL-012](https://github.com/SvrusIO/fAIr/blob/main/docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
+  ([BL-012](https://github.com/SvrusIO/fAIr/blob/main/docs/fairpipe-technical-backlog.md#bl-012--demographic_swap_divergence-has-no-no-effect-baseline)).
 - **§3** — Pipeline demonstration on real output, not a fairness finding: n=1/group
   (third arm **`nonbinary`**) → **`nan`** at `min_group_size=5`; n=9/group → finite
   lexical divergence **≈ 0.196** (95% CI ≈ 0.185–0.205).

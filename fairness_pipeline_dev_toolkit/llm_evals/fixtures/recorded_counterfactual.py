@@ -57,7 +57,7 @@ def default_recorded_counterfactual_config() -> LLMEvalConfig:
     return LLMEvalConfig(
         provider=RECORDED_PROVIDER,
         model=RECORDED_MODEL,
-        evaluators=["counterfactual_fairness_divergence"],
+        evaluators=["demographic_swap_divergence"],
         counterfactual=CounterfactualConfig(
             template=RECORDED_COUNTERFACTUAL_TEMPLATE,
             dimensions=dict(RECORDED_COUNTERFACTUAL_DIMENSIONS),
@@ -73,7 +73,7 @@ def expanded_recorded_counterfactual_config() -> LLMEvalConfig:
     return LLMEvalConfig(
         provider=RECORDED_PROVIDER,
         model=RECORDED_MODEL,
-        evaluators=["counterfactual_fairness_divergence"],
+        evaluators=["demographic_swap_divergence"],
         counterfactual=CounterfactualConfig(
             template=list(EXPANDED_COUNTERFACTUAL_TEMPLATES),
             dimensions=dict(RECORDED_COUNTERFACTUAL_DIMENSIONS),
@@ -148,7 +148,7 @@ async def _populate_recorded_counterfactual_cache(
     config = LLMEvalConfig(
         provider=provider,
         model=model,
-        evaluators=["counterfactual_fairness_divergence"],
+        evaluators=["demographic_swap_divergence"],
         counterfactual=CounterfactualConfig(
             template=RECORDED_COUNTERFACTUAL_TEMPLATE,
             dimensions=dict(RECORDED_COUNTERFACTUAL_DIMENSIONS),
@@ -218,7 +218,7 @@ async def _populate_expanded_recorded_counterfactual_cache(
     config = LLMEvalConfig(
         provider=provider,
         model=model,
-        evaluators=["counterfactual_fairness_divergence"],
+        evaluators=["demographic_swap_divergence"],
         counterfactual=CounterfactualConfig(
             template=list(EXPANDED_COUNTERFACTUAL_TEMPLATES),
             dimensions=dict(RECORDED_COUNTERFACTUAL_DIMENSIONS),

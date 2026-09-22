@@ -103,7 +103,7 @@ def assert_llm_fairness(
       means ``min_group_size`` excluded every eligible group. With ``allow_nan=True``,
       undefined is tolerated (plugin-only opt-in; CLI / REST still report undefined).
     - Otherwise fail when ``abs(value) > threshold`` (magnitude-based; signed metrics such
-      as ``counterfactual_fairness_contrast`` are gated on absolute size).
+      as ``demographic_swap_contrast`` are gated on absolute size).
 
     ``comparator`` is retained for call-site compatibility with :func:`assert_fairness`
     but is **not** applied. Classifier checks still go through :func:`assert_fairness`.

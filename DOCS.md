@@ -1116,7 +1116,7 @@ At this stage, you should have:
 ### Objectives
 
 - Measure disparate LLM behavior across demographic groups.
-  `counterfactual_fairness_divergence` is a **lexical-divergence perturbation /
+  `demographic_swap_divergence` is a **lexical-divergence perturbation /
   invariance test** on name-/group-swapped prompts — **not** counterfactual
   fairness in the causal sense of Kusner et al. (2017). It reports lexical
   feature distance (token overlap dominates). The expanded hiring replay is
@@ -1124,7 +1124,7 @@ At this stage, you should have:
   finding or a causal-CF demonstration.** A within-group control puts the
   no-effect baseline at ~0.19, not 0; a CI excluding 0 does not indicate a
   group effect
-  ([BL-012](docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline);
+  ([BL-012](docs/fairpipe-technical-backlog.md#bl-012--demographic_swap_divergence-has-no-no-effect-baseline);
   [BL-023](docs/fairpipe-technical-backlog.md#bl-023--counterfactual-fairness-is-a-lexical-perturbation-diagnostic-not-a-causal-fairness-measure)).
   `refusal_rate_disparity` detects phrase-level refusal
   signals and does not distinguish a genuine refusal from a scope disclaimer on an
@@ -1146,7 +1146,7 @@ llm_eval:
   provider: local
   model: bias-simulator
   evaluators:
-    - counterfactual_fairness_divergence
+    - demographic_swap_divergence
     - refusal_rate_disparity
     - toxicity_sentiment_disparity
     - stereotype_association_score
@@ -1182,7 +1182,7 @@ fairpipe llm-eval \
 
 Reports include:
 
-- `counterfactual_fairness_divergence` — matched-template pairwise divergence + bootstrap CI
+- `demographic_swap_divergence` — matched-template pairwise divergence + bootstrap CI
   (expanded hiring fixture is a real recorded signal)
 - `refusal_rate_disparity` — max−min of group refusal rates; bootstrap resamples **within
   group**. Detects phrase-level refusal signals; does not distinguish a genuine refusal
@@ -1204,9 +1204,9 @@ tracker / drift engine (see [docs/integration_guide.md](docs/integration_guide.m
 Live provider HTTP is forbidden by default (`FAIRPIPE_LLM_ALLOW_LIVE=1` to opt in).
 
 See **[docs/llm_evals_intro.md](docs/llm_evals_intro.md)** and
-**`case_studies/llm_counterfactual_fairness.ipynb`** (four sections: single-name designs
+**`case_studies/llm_fairness_measurement_pitfalls.ipynb`** (four sections: single-name designs
 manufacture group effects; lexical-distance metrics have a ~0.19 no-effect baseline, not 0
-— [BL-012](docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline);
+— [BL-012](docs/fairpipe-technical-backlog.md#bl-012--demographic_swap_divergence-has-no-no-effect-baseline);
 n=1/`nonbinary` → `nan` guard and n=9 pipeline replay on the expanded Haiku fixture,
 **not** a group effect; limitations). Prefer kernel **Python (fairpipe .venv)**.
 

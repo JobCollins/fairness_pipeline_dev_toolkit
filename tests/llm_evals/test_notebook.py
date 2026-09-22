@@ -1,4 +1,4 @@
-"""Execute the LLM counterfactual fairness case study notebook without live network calls."""
+"""Execute the LLM fairness measurement-pitfalls case study without live network calls."""
 
 from __future__ import annotations
 
@@ -10,9 +10,9 @@ from pathlib import Path
 import nbformat
 
 
-def test_llm_counterfactual_notebook_executes(assert_no_live_llm_calls):
+def test_llm_fairness_measurement_pitfalls_notebook_executes(assert_no_live_llm_calls):
     repo_root = Path(__file__).resolve().parents[2]
-    notebook_path = repo_root / "case_studies" / "llm_counterfactual_fairness.ipynb"
+    notebook_path = repo_root / "case_studies" / "llm_fairness_measurement_pitfalls.ipynb"
     nb = nbformat.read(notebook_path, as_version=4)
 
     # In-process exec, not nbclient. GitHub CI installs nbclient/nbformat but not
@@ -39,5 +39,16 @@ def test_llm_counterfactual_notebook_executes(assert_no_live_llm_calls):
     rendered = captured.getvalue()
     assert "Guard correctly blocked below-threshold fixture" in rendered
     assert "Part B — expanded fixture at default min_group_size" in rendered
-    assert "Counterfactual fairness divergence:" in rendered
+    assert "Demographic swap divergence:" in rendered
     assert "Notebook threshold-clearing check passed." in rendered
+
+
+def test_legacy_notebook_path_is_stub_only():
+    """Old path must remain as a non-executable stub (exclude from live exec)."""
+    repo_root = Path(__file__).resolve().parents[2]
+    stub = repo_root / "case_studies" / "llm_counterfactual_fairness.ipynb"
+    nb = nbformat.read(stub, as_version=4)
+    assert len(nb.cells) == 1
+    assert nb.cells[0].cell_type == "markdown"
+    assert "llm_fairness_measurement_pitfalls.ipynb" in "".join(nb.cells[0].source)
+    assert not any(c.cell_type == "code" for c in nb.cells)

@@ -27,16 +27,14 @@ def _metric(name: str, value: float, caveat: str | None = None) -> MetricResult:
 
 
 def test_gate_pass_when_no_threshold_and_no_caveat():
-    status, passed = evaluate_llm_eval_gate(
-        {"counterfactual_fairness_divergence": _metric("cf", 0.19)}
-    )
+    status, passed = evaluate_llm_eval_gate({"demographic_swap_divergence": _metric("cf", 0.19)})
     assert status == GATE_PASS
     assert passed is True
 
 
 def test_gate_fail_on_threshold_miss_non_caveated():
     status, passed = evaluate_llm_eval_gate(
-        {"counterfactual_fairness_divergence": _metric("cf", 0.19)},
+        {"demographic_swap_divergence": _metric("cf", 0.19)},
         threshold=0.01,
     )
     assert status == GATE_FAIL
@@ -75,7 +73,7 @@ def test_gate_illustrative_even_if_number_would_fail_threshold():
 
 def test_gate_undefined_on_nonfinite_value():
     status, passed = evaluate_llm_eval_gate(
-        {"counterfactual_fairness_divergence": _metric("cf", float("nan"))},
+        {"demographic_swap_divergence": _metric("cf", float("nan"))},
         threshold=0.10,
     )
     assert status == GATE_UNDEFINED
@@ -86,7 +84,7 @@ def test_gate_undefined_on_nonfinite_value():
 def test_gate_undefined_without_threshold():
     """Non-finite is never a silent pass, even when no threshold is set."""
     status, passed = evaluate_llm_eval_gate(
-        {"counterfactual_fairness_divergence": _metric("cf", float("nan"))}
+        {"demographic_swap_divergence": _metric("cf", float("nan"))}
     )
     assert status == GATE_UNDEFINED
     assert passed is None
@@ -111,7 +109,7 @@ def test_gate_illustrative_wins_over_undefined():
 def test_gate_unknown_metric_raises_key_error():
     with pytest.raises(KeyError):
         evaluate_llm_eval_gate(
-            {"counterfactual_fairness_divergence": _metric("cf", 0.1)},
+            {"demographic_swap_divergence": _metric("cf", 0.1)},
             metric="refusal_rate_disparity",
         )
 

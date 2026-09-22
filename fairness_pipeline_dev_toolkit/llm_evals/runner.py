@@ -14,11 +14,12 @@ from .cache import ResponseCache
 from .client import LLMClient, get_llm_client
 from .config import LLMEvalConfig, load_llm_eval_config
 from .dry_run import DryRunEstimate, estimate_dry_run
-from .evaluators.counterfactual_fairness import CounterfactualFairnessEvaluator
+from .evaluators.demographic_swap import DemographicSwapEvaluator
 from .evaluators.refusal import RefusalRateEvaluator
 from .evaluators.stereotype import StereotypeAssociationEvaluator
 from .evaluators.toxicity import ToxicitySentimentEvaluator
 from .guards import DEFAULT_LLM_MIN_GROUP_SIZE
+from .names import DEMOGRAPHIC_SWAP_CONTRAST, DEMOGRAPHIC_SWAP_DIVERGENCE
 from .probes.counterfactual import as_template_list
 
 
@@ -86,10 +87,10 @@ async def run_llm_eval_async(
     metrics: Dict[str, MetricResult] = {}
     transcripts: Dict[str, Any] = {}
 
-    need_divergence = "counterfactual_fairness_divergence" in config.evaluators
-    need_contrast = "counterfactual_fairness_contrast" in config.evaluators
+    need_divergence = DEMOGRAPHIC_SWAP_DIVERGENCE in config.evaluators
+    need_contrast = DEMOGRAPHIC_SWAP_CONTRAST in config.evaluators
     if need_divergence or need_contrast:
-        evaluator = CounterfactualFairnessEvaluator(config, llm_client)
+        evaluator = DemographicSwapEvaluator(config, llm_client)
         kwargs = dict(
             min_group_size=min_group_size,
             allow_small_samples=allow_small,
@@ -100,20 +101,20 @@ async def run_llm_eval_async(
         )
         if need_divergence and need_contrast:
             prompts, responses, rows = await evaluator.prepare_async()
-            metrics["counterfactual_fairness_divergence"] = evaluator._compute_divergence(
+            metrics[DEMOGRAPHIC_SWAP_DIVERGENCE] = evaluator._compute_divergence(
                 prompts, responses, **kwargs
             )
-            metrics["counterfactual_fairness_contrast"] = evaluator._compute_contrast(
+            metrics[DEMOGRAPHIC_SWAP_CONTRAST] = evaluator._compute_contrast(
                 prompts, responses, **kwargs
             )
             transcripts["counterfactual"] = rows
         elif need_divergence:
             metric, rows = await evaluator.run_async(**kwargs)
-            metrics["counterfactual_fairness_divergence"] = metric
+            metrics[DEMOGRAPHIC_SWAP_DIVERGENCE] = metric
             transcripts["counterfactual"] = rows
         else:
             metric, rows = await evaluator.run_contrast_async(**kwargs)
-            metrics["counterfactual_fairness_contrast"] = metric
+            metrics[DEMOGRAPHIC_SWAP_CONTRAST] = metric
             transcripts["counterfactual"] = rows
 
     if "refusal_rate_disparity" in config.evaluators:

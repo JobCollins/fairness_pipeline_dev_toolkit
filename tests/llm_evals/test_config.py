@@ -20,7 +20,7 @@ def test_load_valid_llm_eval_block():
                 "llm_eval": {
                     "provider": "openai",
                     "model": "gpt-4o-mini",
-                    "evaluators": ["counterfactual_fairness_divergence"],
+                    "evaluators": ["demographic_swap_divergence"],
                     "counterfactual": {
                         "template": "Describe a {role} named {name}.",
                         "dimensions": {
@@ -36,7 +36,7 @@ def test_load_valid_llm_eval_block():
 
     assert cfg.provider == "openai"
     assert cfg.model == "gpt-4o-mini"
-    assert cfg.evaluators == ["counterfactual_fairness_divergence"]
+    assert cfg.evaluators == ["demographic_swap_divergence"]
     assert cfg.counterfactual is not None
     assert cfg.counterfactual.template.startswith("Describe")
     assert cfg.params == {"temperature": 0.0}
@@ -59,7 +59,7 @@ def test_rejects_missing_model():
         load_llm_eval_config(
             obj={
                 "provider": "openai",
-                "evaluators": ["counterfactual_fairness_divergence"],
+                "evaluators": ["demographic_swap_divergence"],
             }
         )
 
@@ -70,7 +70,7 @@ def test_rejects_api_key_in_yaml():
             obj={
                 "provider": "openai",
                 "model": "gpt-4o-mini",
-                "evaluators": ["counterfactual_fairness_divergence"],
+                "evaluators": ["demographic_swap_divergence"],
                 "api_key": "sk-secret",
             }
         )
@@ -81,7 +81,7 @@ def test_load_list_of_counterfactual_templates():
         obj={
             "provider": "anthropic",
             "model": "claude-haiku-4-5",
-            "evaluators": ["counterfactual_fairness_divergence"],
+            "evaluators": ["demographic_swap_divergence"],
             "counterfactual": {
                 "template": [
                     "Recommend {name}, a {gender} engineer.",
@@ -122,7 +122,7 @@ def _name_pool_base(**counterfactual_extra):
     return {
         "provider": "local",
         "model": "stub-model",
-        "evaluators": ["counterfactual_fairness_divergence"],
+        "evaluators": ["demographic_swap_divergence"],
         "counterfactual": block,
     }
 

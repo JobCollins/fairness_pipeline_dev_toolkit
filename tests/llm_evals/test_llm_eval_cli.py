@@ -46,7 +46,7 @@ def _write_config(tmp_path):
                 "llm_eval": {
                     "provider": RECORDED_PROVIDER,
                     "model": RECORDED_MODEL,
-                    "evaluators": ["counterfactual_fairness_divergence"],
+                    "evaluators": ["demographic_swap_divergence"],
                     "counterfactual": {
                         "template": RECORDED_COUNTERFACTUAL_TEMPLATE,
                         "dimensions": RECORDED_COUNTERFACTUAL_DIMENSIONS,
@@ -81,7 +81,7 @@ def test_llm_eval_cli_writes_markdown_report(tmp_path, capsys, assert_no_live_ll
     assert report.exists()
     content = report.read_text(encoding="utf-8")
     assert "# LLM Fairness Evaluation Report" in content
-    assert "counterfactual_fairness_divergence" in content
+    assert "demographic_swap_divergence" in content
     assert "0." in content
 
 
@@ -102,7 +102,7 @@ def test_llm_eval_cli_threshold_pass_exit_zero(tmp_path, capsys, assert_no_live_
             "--config",
             str(cfg),
             "--metric",
-            "counterfactual_fairness_divergence",
+            "demographic_swap_divergence",
             "--threshold",
             "0.50",
         ]
@@ -135,7 +135,7 @@ def test_llm_eval_cli_threshold_fail_exit_one(tmp_path, capsys, assert_no_live_l
             "--config",
             str(cfg),
             "--metric",
-            "counterfactual_fairness_divergence",
+            "demographic_swap_divergence",
             "--threshold",
             "0.01",
         ]
@@ -181,7 +181,7 @@ def test_llm_eval_cli_undefined_exit_four_when_min_group_size_excludes_all(
             "--config",
             str(cfg),
             "--metric",
-            "counterfactual_fairness_divergence",
+            "demographic_swap_divergence",
             "--threshold",
             "0.50",
             "--min-group-size",
@@ -232,7 +232,7 @@ def test_llm_eval_cli_cache_miss_nonzero_instant(tmp_path, capsys, assert_no_liv
     config = LLMEvalConfig(
         provider=RECORDED_PROVIDER,
         model=RECORDED_MODEL,
-        evaluators=["counterfactual_fairness_divergence"],
+        evaluators=["demographic_swap_divergence"],
         counterfactual=CounterfactualConfig(
             template=RECORDED_COUNTERFACTUAL_TEMPLATE,
             dimensions={"gender": ["woman", "man"]},
@@ -256,7 +256,7 @@ def test_llm_eval_cli_missing_cache_dir_nonzero_instant(tmp_path, capsys):
     config = LLMEvalConfig(
         provider=RECORDED_PROVIDER,
         model=RECORDED_MODEL,
-        evaluators=["counterfactual_fairness_divergence"],
+        evaluators=["demographic_swap_divergence"],
         counterfactual=CounterfactualConfig(
             template=RECORDED_COUNTERFACTUAL_TEMPLATE,
             dimensions={"gender": ["woman", "man"]},

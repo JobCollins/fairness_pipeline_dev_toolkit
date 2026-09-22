@@ -94,7 +94,7 @@ def test_llm_eval_expanded_counterfactual_pass(client, assert_no_live_llm_calls)
     assert body["gate_status"] == "pass"
     assert body["passed"] is True
     assert "transcripts" not in body
-    metric = body["metrics"]["counterfactual_fairness_divergence"]
+    metric = body["metrics"]["demographic_swap_divergence"]
     _assert_metric_envelope(metric)
     assert metric["caveat"] is None
     assert metric["value"] is not None
@@ -135,14 +135,14 @@ def test_llm_eval_threshold_fail_non_caveated(client, assert_no_live_llm_calls):
     payload = _payload_from_config(
         expanded_recorded_counterfactual_config(),
         threshold=0.01,
-        metric="counterfactual_fairness_divergence",
+        metric="demographic_swap_divergence",
     )
     r = client.post("/llm-eval", json=payload)
     assert r.status_code == 200
     body = r.json()
     assert body["gate_status"] == "fail"
     assert body["passed"] is False
-    metric = body["metrics"]["counterfactual_fairness_divergence"]
+    metric = body["metrics"]["demographic_swap_divergence"]
     assert metric["caveat"] is None
     assert abs(metric["value"]) > 0.01
 
@@ -152,7 +152,7 @@ def test_llm_eval_undefined_when_min_group_size_excludes_all(client, assert_no_l
     payload = _payload_from_config(
         expanded_recorded_counterfactual_config(),
         threshold=0.50,
-        metric="counterfactual_fairness_divergence",
+        metric="demographic_swap_divergence",
         min_group_size=999,
     )
     r = client.post("/llm-eval", json=payload)
@@ -160,7 +160,7 @@ def test_llm_eval_undefined_when_min_group_size_excludes_all(client, assert_no_l
     body = r.json()
     assert body["gate_status"] == "undefined"
     assert body["passed"] is None
-    metric = body["metrics"]["counterfactual_fairness_divergence"]
+    metric = body["metrics"]["demographic_swap_divergence"]
     assert metric["caveat"] is None
     assert metric["value"] is None or (
         isinstance(metric["value"], float) and metric["value"] != metric["value"]
@@ -195,7 +195,7 @@ def test_llm_eval_bad_config(client):
     payload = {
         "provider": "anthropic",
         "model": "claude-haiku-4-5",
-        "evaluators": ["counterfactual_fairness_divergence"],
+        "evaluators": ["demographic_swap_divergence"],
     }
     r = client.post("/llm-eval", json=payload)
     assert r.status_code == 422
@@ -213,7 +213,7 @@ def _name_pool_payload(**counterfactual_extra: Any) -> Dict[str, Any]:
     return {
         "provider": "local",
         "model": "demo",
-        "evaluators": ["counterfactual_fairness_divergence"],
+        "evaluators": ["demographic_swap_divergence"],
         "counterfactual": counterfactual,
         "allow_small_samples": True,
         "with_ci": False,
@@ -231,7 +231,7 @@ def test_llm_eval_accepts_name_pools_and_reports_semantic_groups(client):
     )
     r = client.post("/llm-eval", json=payload)
     assert r.status_code == 200
-    metric = r.json()["metrics"]["counterfactual_fairness_divergence"]
+    metric = r.json()["metrics"]["demographic_swap_divergence"]
     _assert_metric_envelope(metric)
     # Substituted names must not become the group keys.
     assert metric["n_per_group"] == {"woman": 2, "man": 2}
@@ -266,7 +266,7 @@ def test_llm_eval_cache_miss(client, assert_no_live_llm_calls, tmp_path):
     payload = {
         "provider": "anthropic",
         "model": "claude-haiku-4-5",
-        "evaluators": ["counterfactual_fairness_divergence"],
+        "evaluators": ["demographic_swap_divergence"],
         "counterfactual": {
             "template": "Write a hiring recommendation for {name}, a {gender} engineer.",
             "dimensions": {"gender": ["woman", "man"]},

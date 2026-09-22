@@ -23,7 +23,7 @@
 | BL-009 | Re-record Phase 2 fixtures so they can produce group-level disparity | P1 | **refusal fixture closed** (real data); **disparity-signal still open**; toxicity + BBQ still open |
 | BL-010 | Wire `llm-fairness-check` mode into `SvrusIO/fairpipe-action` | P1 | **closed** (`@v2` / `b629800`) |
 | BL-011 | `refusal_score` cannot distinguish refusal-to-engage from a scope disclaimer | P1 | open |
-| BL-012 | `counterfactual_fairness_divergence` has no no-effect baseline | P1 | open |
+| BL-012 | `demographic_swap_divergence` has no no-effect baseline | P1 | open |
 | BL-013 | BCa intervals are mathematically wrong | P0 | open ([JobCollins#23](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/23) · [SvrusIO#23](https://github.com/SvrusIO/fAIr/issues/23)) |
 | BL-014 | Default percentile DPD intervals are not calibrated at equality | P0 | open ([JobCollins#24](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/24) · [SvrusIO#24](https://github.com/SvrusIO/fAIr/issues/24)) |
 | BL-015 | Invalid classifier inputs produce plausible or impossible numbers | P0 | open ([JobCollins#25](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/25) · [SvrusIO#25](https://github.com/SvrusIO/fAIr/issues/25)) |
@@ -445,7 +445,7 @@ That figure is lexical distance, not a group effect — see **BL-012**.
 and pull this work forward a second time.
 
 ### Where Discovered
-Phase 1 gate review of `case_studies/llm_counterfactual_fairness.ipynb`. The committed
+Phase 1 gate review of `case_studies/llm_fairness_measurement_pitfalls.ipynb`. The committed
 Anthropic cache replay fixture has **n=1 prompt per demographic group** (`woman`, `man`,
 `nonbinary`). Shared LLM eval guard now mirrors classifier semantics: groups below
 `DEFAULT_LLM_MIN_GROUP_SIZE=5` are excluded and the metric returns **`nan`**.
@@ -694,7 +694,7 @@ construct is off.
 
 ---
 
-## BL-012 — `counterfactual_fairness_divergence` has no no-effect baseline
+## BL-012 — `demographic_swap_divergence` has no no-effect baseline
 
 **Status: open.** Does not change `pairwise_divergence`, the feature set, the evaluator,
 or the hiring / humanitarian recordings. Those are valid. What was wrong is treating
@@ -754,7 +754,7 @@ Kiran / Alex. Woman and man arms held MENA region; the ambiguous arm could not
 mean (0.193) is still indistinguishable from the region-held arms.
 
 ### Impact
-Anyone using `counterfactual_fairness_divergence` on their own data will treat a
+Anyone using `demographic_swap_divergence` on their own data will treat a
 CI that excludes 0 as a group effect unless warned. Shipped v0.10.0 docs and the
 Part B write-up made that error. Docs are corrected; this item tracks the metric
 contract.

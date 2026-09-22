@@ -126,7 +126,7 @@ def default_recorded_refusal_config() -> LLMEvalConfig:
 
 
 def humanitarian_divergence_config() -> LLMEvalConfig:
-    """Replay the humanitarian cache under ``counterfactual_fairness_divergence``.
+    """Replay the humanitarian cache under ``demographic_swap_divergence``.
 
     Same templates, ``name_pools``, params, and ``cache_dir`` as
     ``default_recorded_refusal_config()`` so cache keys stay byte-identical.
@@ -134,7 +134,7 @@ def humanitarian_divergence_config() -> LLMEvalConfig:
     return LLMEvalConfig(
         provider=RECORDED_PROVIDER,
         model=RECORDED_MODEL,
-        evaluators=["counterfactual_fairness_divergence"],
+        evaluators=["demographic_swap_divergence"],
         counterfactual=_humanitarian_counterfactual(),
         cache_dir=str(RECORDED_REFUSAL_CACHE_DIR),
         params=dict(HUMANITARIAN_REFUSAL_PARAMS),
@@ -142,7 +142,7 @@ def humanitarian_divergence_config() -> LLMEvalConfig:
 
 
 def humanitarian_contrast_config() -> LLMEvalConfig:
-    """Replay gated + control arms under ``counterfactual_fairness_contrast``.
+    """Replay gated + control arms under ``demographic_swap_contrast``.
 
     Uses ``recorded_humanitarian_contrast/`` (not ``recorded_refusal/``) so the
     control-arm files cannot mutate the refusal fixture. Gender-arm texts are
@@ -153,7 +153,7 @@ def humanitarian_contrast_config() -> LLMEvalConfig:
     return LLMEvalConfig(
         provider=RECORDED_PROVIDER,
         model=RECORDED_MODEL,
-        evaluators=["counterfactual_fairness_contrast"],
+        evaluators=["demographic_swap_contrast"],
         counterfactual=_humanitarian_contrast_counterfactual(),
         cache_dir=str(RECORDED_HUMANITARIAN_CONTRAST_CACHE_DIR),
         params=dict(HUMANITARIAN_REFUSAL_PARAMS),
@@ -329,7 +329,7 @@ async def _populate_humanitarian_contrast_cache(
     config = LLMEvalConfig(
         provider=provider,
         model=model,
-        evaluators=["counterfactual_fairness_contrast"],
+        evaluators=["demographic_swap_contrast"],
         counterfactual=_humanitarian_contrast_counterfactual(),
         params=params,
     )
@@ -381,7 +381,7 @@ async def _populate_humanitarian_contrast_cache(
         "provider": provider,
         "model": model,
         "params": params,
-        "evaluator": "counterfactual_fairness_contrast",
+        "evaluator": "demographic_swap_contrast",
         "purpose": (
             "BL-012 Phase 3: humanitarian gated gender arm (copied from "
             "recorded_refusal/) plus same-coded control arm (Fatima/Amina/Leyla). "

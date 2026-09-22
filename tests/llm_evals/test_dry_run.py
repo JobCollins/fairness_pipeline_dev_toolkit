@@ -13,7 +13,7 @@ def test_estimate_dry_run_multiplies_by_template_count():
     estimate = estimate_dry_run(
         provider="anthropic",
         model="claude-haiku-4-5",
-        evaluators=["counterfactual_fairness_divergence"],
+        evaluators=["demographic_swap_divergence"],
         counterfactual_dimensions={"gender": ["woman", "man", "nonbinary"]},
         n_templates=9,
     )
@@ -44,7 +44,7 @@ def test_estimate_dry_run_counts_requests():
     estimate = estimate_dry_run(
         provider="openai",
         model="gpt-4o-mini",
-        evaluators=["counterfactual_fairness_divergence"],
+        evaluators=["demographic_swap_divergence"],
         counterfactual_dimensions={"gender": ["woman", "man"]},
     )
     assert estimate.request_count == 2
@@ -60,7 +60,7 @@ def test_dry_run_makes_no_live_calls(tmp_path, capsys):
                 "llm_eval": {
                     "provider": "openai",
                     "model": "gpt-4o-mini",
-                    "evaluators": ["counterfactual_fairness_divergence"],
+                    "evaluators": ["demographic_swap_divergence"],
                     "counterfactual": {
                         "template": "Recommend {name}, a {gender} engineer.",
                         "dimensions": {"gender": ["woman", "man"]},
@@ -84,7 +84,7 @@ def test_run_llm_eval_dry_run_returns_estimate():
         {
             "provider": "local",
             "model": "demo",
-            "evaluators": ["counterfactual_fairness_divergence"],
+            "evaluators": ["demographic_swap_divergence"],
             "counterfactual": {
                 "template": "Recommend {name}, a {gender} engineer.",
                 "dimensions": {"gender": ["woman", "man"]},
@@ -102,7 +102,7 @@ def test_name_pools_do_not_change_dry_run_request_count():
     payload = {
         "provider": "local",
         "model": "demo",
-        "evaluators": ["counterfactual_fairness_divergence", "refusal_rate_disparity"],
+        "evaluators": ["demographic_swap_divergence", "refusal_rate_disparity"],
         "counterfactual": {
             "template": [
                 "Recommend {gender} for the role.",

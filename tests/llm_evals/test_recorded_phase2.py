@@ -39,7 +39,7 @@ def test_humanitarian_divergence_shares_refusal_counterfactual_block():
     """Divergence and refusal configs must stay on the same prompts/params/cache."""
     refusal = default_recorded_refusal_config()
     divergence = humanitarian_divergence_config()
-    assert divergence.evaluators == ["counterfactual_fairness_divergence"]
+    assert divergence.evaluators == ["demographic_swap_divergence"]
     assert divergence.cache_dir == refusal.cache_dir
     assert divergence.params == refusal.params
     assert divergence.provider == refusal.provider
@@ -55,7 +55,7 @@ def test_humanitarian_divergence_shares_refusal_counterfactual_block():
 def test_humanitarian_divergence_replays_at_default_threshold(assert_no_live_llm_calls):
     """Humanitarian cache under divergence: finite at n=5/group, no caveat, CI present."""
     result = run_llm_eval(humanitarian_divergence_config(), with_ci=True, bootstrap_B=200)
-    metric = result.metrics["counterfactual_fairness_divergence"]
+    metric = result.metrics["demographic_swap_divergence"]
     assert math.isfinite(metric.value)
     assert 0.0 < metric.value < 1.0
     assert metric.n_per_group == {"woman": 5, "man": 5, "ambiguous": 5}
@@ -86,7 +86,7 @@ def test_humanitarian_divergence_below_threshold_returns_nan(assert_no_live_llm_
         ),
     )
     result = run_llm_eval(small, with_ci=False)
-    metric = result.metrics["counterfactual_fairness_divergence"]
+    metric = result.metrics["demographic_swap_divergence"]
     assert math.isnan(metric.value)
     assert metric.ci is None
     assert metric.n_per_group == {}

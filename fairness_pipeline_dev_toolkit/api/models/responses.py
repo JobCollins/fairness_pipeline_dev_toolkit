@@ -26,6 +26,7 @@ class LLMEvalResponse(BaseModel):
     passed: Optional[bool]
     metrics: Dict[str, Any]
     timestamp: str
+    deprecations: Optional[List[str]] = None
 
 
 class PipelineResponse(BaseModel):

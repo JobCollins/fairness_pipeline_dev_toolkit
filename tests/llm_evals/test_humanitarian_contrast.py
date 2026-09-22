@@ -25,7 +25,7 @@ def test_humanitarian_contrast_manifest_is_real_data():
 
     manifest = json.loads(RECORDED_HUMANITARIAN_CONTRAST_MANIFEST_PATH.read_text(encoding="utf-8"))
     assert manifest.get("illustrative") is not True
-    assert manifest["evaluator"] == "counterfactual_fairness_contrast"
+    assert manifest["evaluator"] == "demographic_swap_contrast"
     assert manifest["counterfactual"]["control_dimension"] == "control"
     assert len(manifest["prompts"]) == 30
     assert caveat_for_cache_dir(str(RECORDED_HUMANITARIAN_CONTRAST_CACHE_DIR)) is None
@@ -39,7 +39,7 @@ def test_humanitarian_contrast_replays(assert_no_live_llm_calls):
         bootstrap_B=200,
         random_state=42,
     )
-    metric = result.metrics["counterfactual_fairness_contrast"]
+    metric = result.metrics["demographic_swap_contrast"]
     assert math.isfinite(metric.value)
     # Near-zero / negative is the expected null — only a loose sanity bound.
     assert -0.5 < metric.value < 0.5

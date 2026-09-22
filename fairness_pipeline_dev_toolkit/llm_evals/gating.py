@@ -23,6 +23,8 @@ from __future__ import annotations
 import math
 from typing import Any, Dict, Literal, Mapping, Optional, Tuple
 
+from fairness_pipeline_dev_toolkit.llm_evals.names import canonicalize_evaluator_name
+
 GateStatus = Literal["pass", "fail", "illustrative", "undefined"]
 
 GATE_PASS: GateStatus = "pass"
@@ -113,6 +115,7 @@ def evaluate_llm_eval_gate(
     4. Otherwise → ``pass``.
     """
     if metric is not None:
+        metric = canonicalize_evaluator_name(metric, warn=True)
         if metric not in metrics:
             raise KeyError(metric)
         selected_items = [metrics[metric]]

@@ -51,7 +51,7 @@ def test_forbid_live_missing_cache_dir_fails_instantly():
     config = LLMEvalConfig(
         provider="anthropic",
         model="claude-haiku-4-5",
-        evaluators=["counterfactual_fairness_divergence"],
+        evaluators=["demographic_swap_divergence"],
         counterfactual=CounterfactualConfig(
             template="Write a hiring recommendation for {name}, a {gender} engineer.",
             dimensions={"gender": ["woman", "man"]},
