@@ -151,8 +151,9 @@ def bca_ci(
 
     q1 = bca_quantile(alpha1)
     q2 = bca_quantile(alpha2)
-    lower = np.percentile(boot_stats, q1)
-    upper = np.percentile(boot_stats, q2)
+    # bca_quantile returns probabilities in (0, 1); np.percentile expects percent in [0, 100].
+    lower = np.percentile(boot_stats, q1 * 100)
+    upper = np.percentile(boot_stats, q2 * 100)
     return float(lower), float(upper)
 
 
