@@ -9,37 +9,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+Wave 1 trustworthy-measurement + train-once transforms (BL-013, BL-015, BL-017,
+BL-020, BL-025). Behaviour-changing; intended next release is a **minor**
+(0.12.0), not a patch. No version bump in this commit.
 
-- **`assert_llm_fairness()` (BL-017):** routes through `evaluate_llm_eval_gate()` so
-  pytest matches CLI / REST. Caveated (`MetricResult.caveat`) results now **fail** as
-  illustrative (CLI exit 3) even when the number would pass the threshold; non-caveated
-  results use **magnitude** gating (`abs(value) > threshold`). Tests that previously
-  passed on a caveated demo fixture, or that treated a negative signed contrast as a
-  pass under `comparator="<="`, will now fail — that is intentional alignment with the
-  CLI. `comparator` remains an unused kwarg for call-site compatibility; classifier
-  `assert_fairness()` is unchanged.
-- **`undefined` gate status (Wave 1c extended):** non-finite gated metrics (typically
-  `min_group_size` excluded every eligible group) are no longer a silent pass. New
-  status `undefined` with CLI exit **4**; REST `gate_status: "undefined"` /
-  `passed: null`. Precedence: **illustrative > undefined > fail > pass** — a caveated
-  demo fixture below `min_group_size` stays illustrative. `assert_llm_fairness` raises
-  on undefined (names `min_group_size`); `allow_nan=True` is again a meaningful
-  plugin-only opt-in to skip that raise. **Breaking** for callers that treated NaN /
-  undersized-group results as a green gate.
-- **Classifier input validation (BL-015 / Wave 1d):** shared
-  `metrics/input_validation.py` (used by `FairnessAnalyzer` and all adapters) rejects
-  multiclass and non-{0,1} encodings, drops non-finite `y_true`/`y_pred` with a
-  reported `n_dropped_nonfinite` + caveat (consistent with protected-attribute
-  `nan_policy="exclude"`), and raises `LengthMismatchError` instead of NumPy
-  `IndexError`. Positive class is documented as **1**. **Breaking** for callers that
-  previously got a plausible DPD/EOD from NaN or multiclass inputs.
-- **Pandas index alignment (BL-020 / Wave 1e):** when two or more of `y_true` /
-  `y_pred` / `sensitive` / `attrs_df` are pandas objects, unequal indices (labels
-  or order) raise `IndexMismatchError` with guidance to `.reindex()` / `.loc` /
-  `.reset_index(drop=True)`. No silent positional zip and no auto-align. Mixed
-  Series+array stays positional. **Breaking** for callers that passed Series with
-  mismatched indices and relied on positional conversion.
+### Upgrade notes (breaking)
+
+Read this before upgrading from ≤0.11.0.
+
+- **Undersized groups / non-finite LLM metrics** no longer pass the gate silently.
+  They produce `gate_status: "undefined"`, CLI exit **4**, and
+  `assert_llm_fairness` raises (unless `allow_nan=True` on the plugin). Precedence:
+  illustrative > undefined > fail > pass.
+- **Probability scores as `y_pred` raise.** Passing `predict_proba(X)[:, 1]` (or any
+  non-{0,1} encoding with more than two distinct values) raises
+  `MulticlassNotSupportedError` / `NonBinaryEncodingError`. Threshold first, e.g.
+  `(proba >= 0.5).astype(int)`. The error message says so.
+- **Multiclass and non-`{0,1}` binary encodings raise** (`MulticlassNotSupportedError`,
+  `NonBinaryEncodingError`). Positive class is **1**.
+- **NaN/inf in `y_true` / `y_pred`** are dropped; the result reports
+  `n_dropped_nonfinite` and a caveat (same idea as protected-attribute
+  `nan_policy="exclude"`).
+- **Mismatched pandas indices** among `y_true` / `y_pred` / `sensitive` /
+  `attrs_df` raise `IndexMismatchError` instead of silently zipping by position.
+  Fix with `.reindex()` / `.loc` / `.reset_index(drop=True)`. Mixed Series+array
+  stays positional.
+- **Transforms fit on training data only.** `execute_workflow` /
+  `apply_pipeline(..., fit=False)` apply the train-fitted mapping to test.
+  `DisparateImpactRemover` uses fitted train group CDFs, so single-row and batch
+  transforms agree. Workflows that refit on test or relied on within-batch ranks
+  get **different numbers**.
+- **LLM / pytest gates use magnitude.** `assert_llm_fairness` matches CLI/REST:
+  caveated results fail as illustrative; non-caveated use `abs(value) > threshold`.
+  A large **negative** signed contrast therefore fails — documented, not changed.
+  `comparator` is unused (call-site compatibility only).
+
+### Fixed
+
+- **Analyzer bootstrap stats were non-deterministic (Wave 1a / BL-013).** Classifier
+  CI stats ignored the bootstrap resample and redrew via global `np.random`,
+  invalidating BCa and distorting percentile intervals. Index-based stats now drive
+  DPD/EOD/MAE CIs.
+- **BCa percentile units were wrong in every release from v0.2.0 through v0.11.0
+  (Wave 1b / BL-013).** Accel/bias-corrected probabilities were passed to
+  `np.percentile` unscaled (fraction vs percent). BCa is **opt-in**; the **default
+  percentile CI path was unaffected** — published figures that used the default are
+  not automatically suspect. Only callers who set BCa need to recompute.
+
+### Changed (detail)
+
+- Shared `metrics/input_validation.py` for analyzer + adapters (BL-015);
+  `LengthMismatchError` replaces raw NumPy `IndexError` on length mismatch.
+- `apply_pipeline(..., fit=True|False)`; reweighing steps keep train-sized
+  `sample_weight_` without refitting on transform (BL-025). Persistence remains
+  pickle/joblib of the sklearn `Pipeline` — no first-class fairpipe serialize API.
+  REST `/pipeline` still fit-transforms the uploaded frame once.
+
+### Not fixed in this batch (still open)
+
+- **BL-014** — percentile CI coverage at true DPD equality remains ~0/100; the
+  determinism fix did not resolve it. Wave 3.
+- **BL-031** — BCa has no policy for NaN bootstrap replicates from analyzer stats.
+- **Signed-metric gate** — `abs(value) > threshold` means a large negative contrast
+  fails; intentional alignment with CLI, not changed here.
+- **Deploy follow-ons** — REST `/pipeline` cannot apply a previously fitted
+  pipeline; no first-class transform serialization beyond pickle/joblib.
 
 ## [v0.11.0] — 2026-09-21
 

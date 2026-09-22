@@ -439,8 +439,9 @@ def run_transform_and_train(
             X_train_pipe[col] = df.loc[X_train.index, col]
             X_test_pipe[col] = df.loc[X_test.index, col]
 
-        train_pr = apply_pipeline(pipe, X_train_pipe)
-        test_pr = apply_pipeline(pipe, X_test_pipe)
+        # Fit on train only; apply the same fitted transform to test (no leakage).
+        train_pr = apply_pipeline(pipe, X_train_pipe, fit=True)
+        test_pr = apply_pipeline(pipe, X_test_pipe, fit=False)
         X_train_transformed = train_pr.data
         X_test_transformed = test_pr.data
         meta_train = train_pr.metadata

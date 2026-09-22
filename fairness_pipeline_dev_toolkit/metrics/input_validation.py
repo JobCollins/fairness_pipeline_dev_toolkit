@@ -162,17 +162,20 @@ def _coerce_binary_01(arr: np.ndarray, name: str) -> np.ndarray:
     allowed = {float(NEGATIVE_LABEL), float(POSITIVE_LABEL)}
     if len(uniq) > 2:
         raise MulticlassNotSupportedError(
-            f"{name} has {len(uniq)} distinct values {sorted(uniq.tolist())}; "
-            "multiclass labels are not supported for this metric. Encode a binary "
-            f"outcome as 0/1 with positive class {POSITIVE_LABEL}, or use a "
-            "multiclass-aware metric when one is available."
+            f"{name} has {len(uniq)} distinct values {sorted(uniq.tolist())[:8]}"
+            f"{'…' if len(uniq) > 8 else ''}; "
+            "classifier metrics require hard binary labels in {0, 1} with positive "
+            f"class {POSITIVE_LABEL}. If you passed probabilities (e.g. "
+            "`predict_proba(X)[:, 1]`), threshold them first: "
+            "`(proba >= 0.5).astype(int)`. Multiclass outcomes are not supported."
         )
     if not set(uniq.tolist()) <= allowed:
         raise NonBinaryEncodingError(
             f"{name} has distinct values {sorted(uniq.tolist())}, but classifier "
             f"metrics require labels in {{{NEGATIVE_LABEL}, {POSITIVE_LABEL}}} "
-            f"with positive class {POSITIVE_LABEL}. Remap your labels before calling "
-            "the metric (e.g. (y == positive_class).astype(int))."
+            f"with positive class {POSITIVE_LABEL}. Remap encodings "
+            f"(e.g. `(y == positive_class).astype(int)`), or if these are "
+            "probabilities, threshold first: `(proba >= 0.5).astype(int)`."
         )
     return num.astype(int)
 

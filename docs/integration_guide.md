@@ -243,16 +243,17 @@ from fairpipe.pipeline import build_pipeline, apply_pipeline, load_config
 # Load configuration
 config = load_config("pipeline.config.yml")
 
-# Build and apply preprocessing pipeline
+# Fit on train; transform held-out without refitting
 pipeline = build_pipeline(config)
-X_transformed, metadata = apply_pipeline(pipeline, X)
+train_result = apply_pipeline(pipeline, X_train, fit=True)
+test_result = apply_pipeline(pipeline, X_test, fit=False)
 
-# Train your model (any framework)
-model = train_model(X_transformed, y)
+# Train your model (any framework); use train_result.sample_weight if present
+model = train_model(train_result.data, y_train)
 
-# Validate fairness
+# Validate fairness on features transformed with the train-fitted mapping
 analyzer = FairnessAnalyzer()
-y_pred = model.predict(X_test_transformed)
+y_pred = model.predict(test_result.data)
 result = analyzer.demographic_parity_difference(
     y_pred=y_pred,
     sensitive=X_test["gender"].to_numpy(),

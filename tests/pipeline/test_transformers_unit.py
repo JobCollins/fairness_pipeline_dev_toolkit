@@ -146,15 +146,16 @@ class TestInstanceReweighting:
             transformer.transform(df)
 
     def test_transform_size_mismatch(self):
-        """Test transform raises error if size doesn't match."""
+        """Held-out frames may differ in length; weights stay train-sized."""
         df_train = pd.DataFrame({"feature1": [1, 2, 3, 4], "group": ["A", "A", "B", "B"]})
         df_test = pd.DataFrame({"feature1": [1, 2], "group": ["A", "B"]})
 
         transformer = InstanceReweighting(sensitive=["group"])
         transformer.fit(df_train)
+        result = transformer.transform(df_test)
 
-        with pytest.raises(RuntimeError, match="sizes must match"):
-            transformer.transform(df_test)
+        pd.testing.assert_frame_equal(result, df_test)
+        assert len(transformer.sample_weight_) == len(df_train)
 
     def test_fit_invalid_input_type(self):
         """Test fit raises error with non-DataFrame input."""
@@ -470,8 +471,8 @@ class TestReweighingTransformer:
         # Normalized weights should have mean close to 1.0
         assert abs(transformer.sample_weight_.mean() - 1.0) < 0.1, "Weights should be normalized"
 
-    def test_transform_recomputes_if_not_fitted(self):
-        """Test that transform calls fit if not fitted."""
+    def test_transform_requires_fit(self):
+        """Transform raises if not fitted (no silent refit)."""
         df = pd.DataFrame(
             {
                 "feature1": [1, 2, 3, 4, 5, 6],
@@ -480,12 +481,8 @@ class TestReweighingTransformer:
         )
 
         transformer = ReweighingTransformer(sensitive=["group"])
-        # Don't call fit explicitly
-        result = transformer.transform(df)
-
-        # Should work and compute weights
-        assert transformer.sample_weight_ is not None
-        pd.testing.assert_frame_equal(result, df)
+        with pytest.raises(RuntimeError, match="must be fitted"):
+            transformer.transform(df)
 
     def test_multiple_sensitive_attributes(self):
         """Test with multiple sensitive attributes."""

@@ -104,6 +104,19 @@ def test_multiclass_raises_with_distinct_values():
         )
 
 
+def test_probability_scores_as_y_pred_point_to_threshold():
+    """Upgrade break: predict_proba[:, 1] must be thresholded before metrics."""
+    adapter = NativeAdapter()
+    proba = np.array([0.1, 0.9, 0.2, 0.8, 0.3, 0.7])
+    with pytest.raises(MulticlassNotSupportedError, match=r"predict_proba|threshold"):
+        adapter.demographic_parity_difference(
+            None,
+            proba,
+            np.array(["A", "A", "A", "B", "B", "B"]),
+            min_group_size=1,
+        )
+
+
 def test_multiclass_eod_raises():
     adapter = NativeAdapter()
     with pytest.raises(MulticlassNotSupportedError):

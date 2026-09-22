@@ -384,11 +384,13 @@ pipeline:
    - No parameters required
 
 2. **DisparateImpactRemover**
-   - Repairs features to reduce disparate impact
+   - Repairs features to reduce disparate impact (fit on train; transform maps
+     via fitted group CDFs — batch-stable; `min_group_size` gated at fit)
    - Parameters:
      - `features`: List of feature columns to repair
      - `sensitive`: Sensitive attribute to use
      - `repair_level`: Strength of repair (0.0 to 1.0)
+     - `min_group_size`: Skip groups smaller than this at fit (default 20)
 
 3. **ReweighingTransformer**
    - Advanced reweighing with custom strategies

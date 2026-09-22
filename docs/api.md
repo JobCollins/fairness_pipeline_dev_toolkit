@@ -457,24 +457,35 @@ Apply a transformation pipeline to a DataFrame.
 def apply_pipeline(
     pipeline: sklearn.pipeline.Pipeline,
     df: pd.DataFrame,
+    *,
+    fit: bool = True,
 ) -> PipelineResult
 ```
 
 **Parameters:**
 - `pipeline`: An sklearn `Pipeline` built with `build_pipeline(config)`.
 - `df` (pd.DataFrame): Input DataFrame (must include columns required by the steps).
+- `fit` (bool, keyword-only): If `True` (default), `fit_transform` on `df` (training).
+  If `False`, `transform` only — the same pipeline instance must already be fitted
+  on training data. `execute_workflow` fits on train then applies with `fit=False` on test.
 
 **Returns:** `PipelineResult` with `data` (transformed DataFrame), `metadata` (step artifacts or
-`None`), `sample_weight` (optional array from instance reweighting), and `transformers_applied`
+`None`), `sample_weight` (optional array from instance/reweighing steps — sized to the
+**fit** frame, not to a held-out `df` when `fit=False`), and `transformers_applied`
 (step names). Tuple unpacking `(df, meta)` is deprecated and warns; use attributes instead.
+
+**Deployment:** Fit once on training data, then `transform` (or `apply_pipeline(..., fit=False)`)
+for held-out / per-request / per-batch inference. Transformers are sklearn estimators and can
+be pickled with the surrounding `Pipeline` (`pickle` / `joblib`); fairpipe does not ship a
+separate save/load API. If you cannot persist the fitted pipeline, you cannot deploy the
+same mapping.
 
 **Example:**
 ```python
 from fairpipe.pipeline import apply_pipeline
 
-result = apply_pipeline(pipeline, df)
-transformed_df = result.data
-metadata = result.metadata
+train_result = apply_pipeline(pipeline, X_train, fit=True)
+test_result = apply_pipeline(pipeline, X_test, fit=False)
 ```
 
 #### `run_detectors()`
@@ -507,7 +518,9 @@ print(report.body)
 
 #### `InstanceReweighting`
 
-Reweight instances to balance sensitive attribute distributions.
+Compute **training** sample weights to balance sensitive-attribute distributions.
+`transform` returns features unchanged; `sample_weight_` is sized to the fit frame
+and is not recomputed for held-out data.
 
 **Location:** `fairpipe.pipeline.InstanceReweighting`
 
@@ -515,13 +528,22 @@ Reweight instances to balance sensitive attribute distributions.
 ```python
 from fairpipe.pipeline import InstanceReweighting
 
-transformer = InstanceReweighting(sensitive="gender")
-transformed_df = transformer.fit_transform(df)
+transformer = InstanceReweighting(sensitive=["gender"])
+transformer.fit(X_train)
+weights = transformer.sample_weight_
+_ = transformer.transform(X_test)  # features unchanged; weights stay train-sized
 ```
 
 #### `DisparateImpactRemover`
 
-Remove disparate impact by repairing features.
+Quantile repair for continuous features. **Fit** stores the pooled empirical distribution
+and per-group reference CDFs from training. **Transform** maps each value through those
+fitted references (not through ranks of the current batch), so a single row and the same
+row inside a larger batch receive the same repaired value.
+
+Groups with fewer than `min_group_size` rows **at fit time** are not repaired (left
+unchanged). Unseen groups at transform time are also left unchanged. Default
+`min_group_size=20`.
 
 **Location:** `fairpipe.pipeline.DisparateImpactRemover`
 
@@ -534,12 +556,15 @@ transformer = DisparateImpactRemover(
     sensitive="gender",
     repair_level=0.8
 )
-transformed_df = transformer.fit_transform(df)
+transformer.fit(X_train)
+X_test_repaired = transformer.transform(X_test)
 ```
 
 #### `ReweighingTransformer`
 
-Reweigh instances based on sensitive attribute and target label.
+Compute per-row **training** sample weights from sensitive-attribute proportions.
+`transform` returns features unchanged and does **not** refit on held-out data;
+`sample_weight_` stays aligned to the fit frame.
 
 **Location:** `fairpipe.pipeline.ReweighingTransformer`
 
@@ -547,13 +572,15 @@ Reweigh instances based on sensitive attribute and target label.
 ```python
 from fairpipe.pipeline import ReweighingTransformer
 
-transformer = ReweighingTransformer(sensitive="gender", target="y")
-transformed_df = transformer.fit_transform(df)
+transformer = ReweighingTransformer(sensitive=["gender"])
+transformer.fit(X_train)
+# sample_weight_ for model.fit(..., sample_weight=...); transform(X_test) is a no-op on features
 ```
 
 #### `ProxyDropper`
 
 Drop proxy variables that are highly correlated with sensitive attributes.
+Columns to drop are chosen at **fit** and reused on transform.
 
 **Location:** `fairpipe.pipeline.ProxyDropper`
 
@@ -562,10 +589,11 @@ Drop proxy variables that are highly correlated with sensitive attributes.
 from fairpipe.pipeline import ProxyDropper
 
 transformer = ProxyDropper(
-    sensitive="gender",
+    sensitive=["gender"],
     threshold=0.30
 )
-transformed_df = transformer.fit_transform(df)
+transformer.fit(X_train)
+transformed_df = transformer.transform(X_test)
 ```
 
 ---

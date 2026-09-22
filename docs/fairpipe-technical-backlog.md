@@ -36,7 +36,7 @@
 | BL-022 | Lexical toxicity/sentiment/refusal is easy to defeat accidentally | P1 | open ([JobCollins#32](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/32) · [SvrusIO#32](https://github.com/SvrusIO/fAIr/issues/32)) |
 | BL-023 | “Counterfactual fairness” is a lexical perturbation diagnostic, not a causal fairness measure | P1 | open ([JobCollins#33](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/33) · [SvrusIO#33](https://github.com/SvrusIO/fAIr/issues/33)) |
 | BL-024 | Mitigation attribution is unsupported | P1 | open ([JobCollins#34](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/34) · [SvrusIO#34](https://github.com/SvrusIO/fAIr/issues/34)) |
-| BL-025 | Transformation semantics are unsuitable for ordinary held-out/deployment use | P1 | open ([JobCollins#35](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/35) · [SvrusIO#35](https://github.com/SvrusIO/fAIr/issues/35)) |
+| BL-025 | Transformation semantics are unsuitable for ordinary held-out/deployment use | P1 | **closed (Wave 1f)** ([JobCollins#35](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/35) · [SvrusIO#35](https://github.com/SvrusIO/fAIr/issues/35)) |
 | BL-026 | Statistical and compliance language overstates evidence | P1 | open ([JobCollins#36](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/36) · [SvrusIO#36](https://github.com/SvrusIO/fAIr/issues/36)) |
 | BL-027 | Default backend behavior changes with environment | P1 | open ([JobCollins#37](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/37) · [SvrusIO#37](https://github.com/SvrusIO/fAIr/issues/37)) |
 | BL-028 | Sensitive-label dtype breaks ancillary results | P2 | open ([JobCollins#38](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/38) · [SvrusIO#38](https://github.com/SvrusIO/fAIr/issues/38)) |
@@ -1230,7 +1230,7 @@ ablations, held-out utility, fixed/tuned thresholds, constraints and seeds.
 
 ## BL-025 — Transformation semantics are unsuitable for ordinary held-out/deployment use
 
-**Status: open.** GitHub: [JobCollins#35](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/35) · [SvrusIO#35](https://github.com/SvrusIO/fAIr/issues/35).
+**Status: closed (Wave 1f).** GitHub: [JobCollins#35](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/35) · [SvrusIO#35](https://github.com/SvrusIO/fAIr/issues/35).
 Review severity: Major — RUN + READ. P1.
 
 ### Where Discovered
@@ -1261,7 +1261,15 @@ batch and single-row deployment semantics.
 - Quantile-repair (and similar) deployment semantics are documented, including
   minimum group size effects
 
----
+### Resolution (Wave 1f)
+- Transformers already separated `fit`/`transform`; bug was plumbing plus
+  DIR within-batch ranks and reweighing auto-refit on transform.
+- `apply_pipeline(..., fit=True|False)`; orchestrator fits train, transforms test.
+- DIR uses fitted train group CDFs + pool (single-row == batch);
+  `min_group_size` gated at fit. Reweighing/`InstanceReweighting` keep
+  train-sized `sample_weight_` without refitting.
+- Persistence: pickle/joblib the sklearn `Pipeline`; no separate fairpipe API.
+
 
 ## BL-026 — Statistical and compliance language overstates evidence
 
