@@ -60,6 +60,7 @@ pythonpath = ["."]
 markers = [
     "live_llm: tests that make real calls to an LLM provider (opt-in, excluded by default)",
     "live_bbq: tests that fetch BBQ JSONL from the pinned upstream commit (opt-in, no LLM call)",
+    "calibration: bootstrap coverage / calibration simulations (included in default suite; keep small)",
 ]
 
 [project.optional-dependencies]

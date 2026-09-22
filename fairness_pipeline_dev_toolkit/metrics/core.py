@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -13,6 +13,90 @@ from ..utils.intersectional import build_intersectional_labels, min_group_mask
 from .aequitas_adapter import AequitasAdapter
 from .fairlearn_adapter import FairlearnAdapter
 from .native_adapter import NativeAdapter
+
+
+def _sens_keys(sens: np.ndarray) -> np.ndarray:
+    """Stable string group keys aligned with ``sens`` for bootstrap membership tests."""
+    return np.asarray(sens, dtype=str)
+
+
+def dpd_stat_from_indices(
+    sample_idx: np.ndarray,
+    y_pred: np.ndarray,
+    group_of: np.ndarray,
+    groups: Sequence[str],
+) -> float:
+    """Max−min of group means over a bootstrap sample of observation indices.
+
+    Deterministic in ``sample_idx``. Returns ``nan`` if any group in ``groups``
+    has zero members in the resample — the estimand is defined on that fixed
+    group set, so an incomplete resample does not estimate it.
+    """
+    idxs = np.asarray(sample_idx, dtype=int)
+    rates: List[float] = []
+    for g in groups:
+        sel = idxs[group_of[idxs] == g]
+        if sel.size == 0:
+            return float("nan")
+        rates.append(float(y_pred[sel].mean()))
+    return float(max(rates) - min(rates))
+
+
+def eod_stat_from_indices(
+    sample_idx: np.ndarray,
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    group_of: np.ndarray,
+    groups: Sequence[str],
+) -> float:
+    """Equalized-odds gap (max of TPR/FPR gaps) over a bootstrap index sample.
+
+    Deterministic in ``sample_idx``. Returns ``nan`` if any analysis group is
+    absent from the resample.
+    """
+    idxs = np.asarray(sample_idx, dtype=int)
+    tprs: List[float] = []
+    fprs: List[float] = []
+    for g in groups:
+        sel = idxs[group_of[idxs] == g]
+        if sel.size == 0:
+            return float("nan")
+        yt_g = y_true[sel]
+        yp_g = y_pred[sel]
+        pos = yt_g == 1
+        neg = yt_g == 0
+        tpr_g = np.nan if not np.any(pos) else float((yp_g[pos] == 1).mean())
+        fpr_g = np.nan if not np.any(neg) else float((yp_g[neg] == 1).mean())
+        if np.isfinite(tpr_g):
+            tprs.append(tpr_g)
+        if np.isfinite(fpr_g):
+            fprs.append(fpr_g)
+    tpr_gap = np.nan if len(tprs) < 2 else (max(tprs) - min(tprs))
+    fpr_gap = np.nan if len(fprs) < 2 else (max(fprs) - min(fprs))
+    if not np.isfinite(tpr_gap) and not np.isfinite(fpr_gap):
+        return float("nan")
+    return float(np.nanmax([tpr_gap, fpr_gap]))
+
+
+def mae_gap_stat_from_indices(
+    sample_idx: np.ndarray,
+    abs_err: np.ndarray,
+    group_of: np.ndarray,
+    groups: Sequence[str],
+) -> float:
+    """Max−min of per-group mean absolute error over a bootstrap index sample.
+
+    Deterministic in ``sample_idx``. Returns ``nan`` if any analysis group is
+    absent from the resample.
+    """
+    idxs = np.asarray(sample_idx, dtype=int)
+    maes: List[float] = []
+    for g in groups:
+        sel = idxs[group_of[idxs] == g]
+        if sel.size == 0:
+            return float("nan")
+        maes.append(float(abs_err[sel].mean()))
+    return float(max(maes) - min(maes))
 
 
 @dataclass
@@ -164,31 +248,20 @@ class FairnessAnalyzer:
                 m = sens == g
             rates_dict[str(g)] = float(yp[m].mean())
 
-        # CI via bootstrap: resample within each group
+        # CI via bootstrap over observation indices (statistic is deterministic in its sample).
         if with_ci and len(groups) >= 2 and np.isfinite(res.value):
             if ci_samples <= 0:
                 raise ValueError(
                     "ci_samples must be positive when requesting confidence intervals."
                 )
-            idx_by_group = {
-                g: np.where(
-                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
-                )[0]
-                for g in groups
-            }
+            group_keys = [str(g) for g in groups]
+            group_of = _sens_keys(sens)
+            obs_idx = np.arange(len(yp), dtype=int)
 
-            def stat_fn(_):
-                rates = []
-                for g in groups:
-                    idx = idx_by_group[g]
-                    if idx.size == 0:
-                        continue
-                    draw = idx[np.random.randint(0, idx.size, size=idx.size)]
-                    rates.append(float(yp[draw].mean()))
-                return np.nan if len(rates) < 2 else (max(rates) - min(rates))
+            def stat_fn(sample_idx):
+                return dpd_stat_from_indices(sample_idx, yp, group_of, group_keys)
 
-            dummy = np.arange(sum(len(v) for v in idx_by_group.values()))
-            res.ci = bootstrap_ci(dummy, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
+            res.ci = bootstrap_ci(obs_idx, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
 
         # Effect size: risk ratio of max-rate/min-rate
         if with_effect_size and len(rates_dict) >= 2:
@@ -263,38 +336,14 @@ class FairnessAnalyzer:
                 raise ValueError(
                     "ci_samples must be positive when requesting confidence intervals."
                 )
-            idx_by_group = {
-                g: np.where(
-                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
-                )[0]
-                for g in groups
-            }
+            group_keys = [str(g) for g in groups]
+            group_of = _sens_keys(sens)
+            obs_idx = np.arange(len(yp), dtype=int)
 
-            def stat_fn(_):
-                tprs, fprs = [], []
-                for g in groups:
-                    idx = idx_by_group[g]
-                    if idx.size == 0:
-                        continue
-                    draw = idx[np.random.randint(0, idx.size, size=idx.size)]
-                    yt_g = yt[draw]
-                    yp_g = yp[draw]
-                    pos = yt_g == 1
-                    neg = yt_g == 0
-                    tpr_g = np.nan if pos.sum() == 0 else float((yp_g[pos] == 1).mean())
-                    fpr_g = np.nan if neg.sum() == 0 else float((yp_g[neg] == 1).mean())
-                    if np.isfinite(tpr_g):
-                        tprs.append(tpr_g)
-                    if np.isfinite(fpr_g):
-                        fprs.append(fpr_g)
-                tpr_gap = np.nan if len(tprs) < 2 else (max(tprs) - min(tprs))
-                fpr_gap = np.nan if len(fprs) < 2 else (max(fprs) - min(fprs))
-                if not np.isfinite(tpr_gap) and not np.isfinite(fpr_gap):
-                    return np.nan
-                return np.nanmax([tpr_gap, fpr_gap])
+            def stat_fn(sample_idx):
+                return eod_stat_from_indices(sample_idx, yt, yp, group_of, group_keys)
 
-            dummy = np.arange(sum(len(v) for v in idx_by_group.values()))
-            res.ci = bootstrap_ci(dummy, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
+            res.ci = bootstrap_ci(obs_idx, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
 
         if with_effect_size:
             ratios: List[float] = []
@@ -364,25 +413,14 @@ class FairnessAnalyzer:
                 raise ValueError(
                     "ci_samples must be positive when requesting confidence intervals."
                 )
-            idx_by_group = {
-                g: np.where(
-                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
-                )[0]
-                for g in groups
-            }
+            group_keys = [str(g) for g in groups]
+            group_of = _sens_keys(sens)
+            obs_idx = np.arange(len(yp), dtype=int)
 
-            def stat_fn(_):
-                maes = []
-                for g in groups:
-                    idx = idx_by_group[g]
-                    if idx.size == 0:
-                        continue
-                    draw = idx[np.random.randint(0, idx.size, size=idx.size)]
-                    maes.append(float(abs_err[draw].mean()))
-                return np.nan if len(maes) < 2 else (max(maes) - min(maes))
+            def stat_fn(sample_idx):
+                return mae_gap_stat_from_indices(sample_idx, abs_err, group_of, group_keys)
 
-            dummy = np.arange(sum(len(v) for v in idx_by_group.values()))
-            res.ci = bootstrap_ci(dummy, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
+            res.ci = bootstrap_ci(obs_idx, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
 
         # (Optional) A continuous effect size could be Cohen's d between extreme groups' absolute errors.
         # We omit by default to avoid arbitrary group pair choices; set with_effect_size=True to compute:
