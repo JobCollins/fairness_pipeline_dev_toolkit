@@ -27,6 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   on undefined (names `min_group_size`); `allow_nan=True` is again a meaningful
   plugin-only opt-in to skip that raise. **Breaking** for callers that treated NaN /
   undersized-group results as a green gate.
+- **Classifier input validation (BL-015 / Wave 1d):** shared
+  `metrics/input_validation.py` (used by `FairnessAnalyzer` and all adapters) rejects
+  multiclass and non-{0,1} encodings, drops non-finite `y_true`/`y_pred` with a
+  reported `n_dropped_nonfinite` + caveat (consistent with protected-attribute
+  `nan_policy="exclude"`), and raises `LengthMismatchError` instead of NumPy
+  `IndexError`. Positive class is documented as **1**. **Breaking** for callers that
+  previously got a plausible DPD/EOD from NaN or multiclass inputs.
 
 ## [v0.11.0] — 2026-09-21
 

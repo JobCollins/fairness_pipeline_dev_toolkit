@@ -12,6 +12,12 @@ from ..utils.array_utils import to_numpy_1d
 from ..utils.intersectional import build_intersectional_labels, min_group_mask
 from .aequitas_adapter import AequitasAdapter
 from .fairlearn_adapter import FairlearnAdapter
+from .input_validation import (
+    LengthMismatchError,
+    nonfinite_drop_caveat,
+    prepare_binary_classifier_inputs,
+    prepare_regression_metric_inputs,
+)
 from .native_adapter import NativeAdapter
 
 
@@ -106,6 +112,8 @@ class Result:
     ci: Optional[tuple[float, float]] = None
     effect_size: Optional[float] = None
     n_per_group: Optional[Dict[str, int]] = None
+    caveat: Optional[str] = None
+    n_dropped_nonfinite: Optional[int] = None
 
 
 class FairnessAnalyzer:
@@ -220,6 +228,12 @@ class FairnessAnalyzer:
         if intersectional:
             if attrs_df is None:
                 raise ValueError("attrs_df is required when intersectional=True")
+            if len(yp) != len(attrs_df):
+                raise LengthMismatchError(
+                    f"y_pred and attrs_df must have the same length; "
+                    f"got y_pred={len(yp)}, attrs_df={len(attrs_df)}. "
+                    "Align or truncate before calling the metric."
+                )
             labels = self._intersectional_prep(attrs_df, columns)
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
@@ -232,11 +246,25 @@ class FairnessAnalyzer:
         else:
             sens = to_numpy_1d(sensitive, "sensitive")
 
+        prepared = prepare_binary_classifier_inputs(
+            y_pred=yp, sensitive=sens, y_true=None, require_y_true=False
+        )
+        yp, sens = prepared.y_pred, prepared.sensitive
+        drop_caveat = nonfinite_drop_caveat(prepared.n_dropped_nonfinite)
+
         # Core metric via adapter (native)
         mr = self._adapter.demographic_parity_difference(
             y_true=None, y_pred=yp, sensitive=sens, min_group_size=self.min_group_size
         )
-        res = Result(mr.metric, mr.value, ci=None, effect_size=None, n_per_group=mr.n_per_group)
+        res = Result(
+            mr.metric,
+            mr.value,
+            ci=None,
+            effect_size=None,
+            n_per_group=mr.n_per_group,
+            caveat=drop_caveat or mr.caveat,
+            n_dropped_nonfinite=prepared.n_dropped_nonfinite,
+        )
 
         # Precompute per-group rates (for CI / effect size)
         groups = [g for g, n in (res.n_per_group or {}).items() if n >= self.min_group_size]
@@ -294,6 +322,12 @@ class FairnessAnalyzer:
         if intersectional:
             if attrs_df is None:
                 raise ValueError("attrs_df is required when intersectional=True")
+            if len(yp) != len(attrs_df) or len(yt) != len(attrs_df):
+                raise LengthMismatchError(
+                    f"y_true, y_pred, and attrs_df must have the same length; "
+                    f"got y_true={len(yt)}, y_pred={len(yp)}, attrs_df={len(attrs_df)}. "
+                    "Align or truncate before calling the metric."
+                )
             labels = self._intersectional_prep(attrs_df, columns)
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
@@ -307,10 +341,24 @@ class FairnessAnalyzer:
         else:
             sens = to_numpy_1d(sensitive, "sensitive")
 
+        prepared = prepare_binary_classifier_inputs(
+            y_pred=yp, sensitive=sens, y_true=yt, require_y_true=True
+        )
+        yp, sens, yt = prepared.y_pred, prepared.sensitive, prepared.y_true
+        drop_caveat = nonfinite_drop_caveat(prepared.n_dropped_nonfinite)
+
         mr = self._adapter.equalized_odds_difference(
             y_true=yt, y_pred=yp, sensitive=sens, min_group_size=self.min_group_size
         )
-        res = Result(mr.metric, mr.value, ci=None, effect_size=None, n_per_group=mr.n_per_group)
+        res = Result(
+            mr.metric,
+            mr.value,
+            ci=None,
+            effect_size=None,
+            n_per_group=mr.n_per_group,
+            caveat=drop_caveat or mr.caveat,
+            n_dropped_nonfinite=prepared.n_dropped_nonfinite,
+        )
 
         # For CI, we need to recompute TPR/FPR per resample
         groups = [g for g, n in (res.n_per_group or {}).items() if n >= self.min_group_size]
@@ -387,6 +435,12 @@ class FairnessAnalyzer:
         if intersectional:
             if attrs_df is None:
                 raise ValueError("attrs_df is required when intersectional=True")
+            if len(yp) != len(attrs_df) or len(yt) != len(attrs_df):
+                raise LengthMismatchError(
+                    f"y_true, y_pred, and attrs_df must have the same length; "
+                    f"got y_true={len(yt)}, y_pred={len(yp)}, attrs_df={len(attrs_df)}. "
+                    "Align or truncate before calling the metric."
+                )
             labels = self._intersectional_prep(attrs_df, columns)
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
@@ -400,10 +454,22 @@ class FairnessAnalyzer:
         else:
             sens = to_numpy_1d(sensitive, "sensitive")
 
+        prepared = prepare_regression_metric_inputs(y_true=yt, y_pred=yp, sensitive=sens)
+        yp, sens, yt = prepared.y_pred, prepared.sensitive, prepared.y_true
+        drop_caveat = nonfinite_drop_caveat(prepared.n_dropped_nonfinite)
+
         mr = self._adapter.mae_parity_difference(
             y_true=yt, y_pred=yp, sensitive=sens, min_group_size=self.min_group_size
         )
-        res = Result(mr.metric, mr.value, ci=None, effect_size=None, n_per_group=mr.n_per_group)
+        res = Result(
+            mr.metric,
+            mr.value,
+            ci=None,
+            effect_size=None,
+            n_per_group=mr.n_per_group,
+            caveat=drop_caveat or mr.caveat,
+            n_dropped_nonfinite=prepared.n_dropped_nonfinite,
+        )
 
         groups = [g for g, n in (res.n_per_group or {}).items() if n >= self.min_group_size]
         abs_err = np.abs(yt - yp)
