@@ -105,13 +105,9 @@ class FairnessAnalyzer:
         labels = build_intersectional_labels(
             attrs_df, columns=columns, include_na=(self.nan_policy != "exclude")
         )
-        # Convert categorical Series to numpy array, handling NaN values properly
-        # If labels is categorical, convert to string first to avoid indexing issues
         if pd.api.types.is_categorical_dtype(labels):
             labels = labels.astype(str)
-        # Convert to numpy array, replacing NaN strings with actual NaN
         labels_array = np.asarray(labels, dtype=object)
-        # Replace 'nan' strings (from categorical conversion) with actual NaN
         labels_array = np.where(labels_array == "nan", np.nan, labels_array)
         return labels_array
 
@@ -140,57 +136,47 @@ class FairnessAnalyzer:
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
                 return Result("demographic_parity_difference", np.nan, n_per_group={})
-            # Ensure mask is boolean numpy array for proper indexing
             mask = np.asarray(mask, dtype=bool)
-            # Use boolean indexing - ensure labels is a proper array
             sens = np.asarray(labels)[mask]
             yp = yp[mask]
         else:
             sens = to_numpy_1d(sensitive, "sensitive")
 
-        # Core metric via adapter (native)
         mr = self._adapter.demographic_parity_difference(
             y_true=None, y_pred=yp, sensitive=sens, min_group_size=self.min_group_size
         )
         res = Result(mr.metric, mr.value, ci=None, effect_size=None, n_per_group=mr.n_per_group)
 
-        # Precompute per-group rates (for CI / effect size)
         groups = [g for g, n in (res.n_per_group or {}).items() if n >= self.min_group_size]
         rates_dict = {}
         for g in groups:
-            m = (sens == g) if not isinstance(g, str) else (sens.astype(str) == g)
-            # cast sens to str for consistent comparison when labels are categorical-like
-            if sens.dtype.kind not in {"U", "S", "O"}:
-                m = sens == g
+            m = (sens == g) if sens.dtype.kind not in {"U", "S", "O"} else (sens.astype(str) == str(g))
             rates_dict[str(g)] = float(yp[m].mean())
 
-        # CI via bootstrap: resample within each group
         if with_ci and len(groups) >= 2 and np.isfinite(res.value):
             if ci_samples <= 0:
                 raise ValueError(
                     "ci_samples must be positive when requesting confidence intervals."
                 )
-            idx_by_group = {
-                g: np.where(
-                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
-                )[0]
-                for g in groups
-            }
 
-            def stat_fn(_):
+            def stat_fn(sample_indices):
+                yp_boot = yp[sample_indices]
+                sens_boot = sens[sample_indices]
                 rates = []
                 for g in groups:
-                    idx = idx_by_group[g]
-                    if idx.size == 0:
+                    if sens_boot.dtype.kind not in {"U", "S", "O"}:
+                        m = (sens_boot == g)
+                    else:
+                        m = (sens_boot.astype(str) == str(g))
+                    group_vals = yp_boot[m]
+                    if group_vals.size == 0:
                         continue
-                    draw = idx[np.random.randint(0, idx.size, size=idx.size)]
-                    rates.append(float(yp[draw].mean()))
+                    rates.append(float(group_vals.mean()))
                 return np.nan if len(rates) < 2 else (max(rates) - min(rates))
 
-            dummy = np.arange(sum(len(v) for v in idx_by_group.values()))
+            dummy = np.arange(len(yp))
             res.ci = bootstrap_ci(dummy, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
 
-        # Effect size: risk ratio of max-rate/min-rate
         if with_effect_size and len(rates_dict) >= 2:
             rmax = max(rates_dict.values())
             rmin = min(rates_dict.values())
@@ -213,7 +199,7 @@ class FairnessAnalyzer:
         ci_level: float = 0.95,
         ci_method: str = "percentile",
         ci_samples: int = 1000,
-        with_effect_size: bool = True,  # note: effect size less canonical here; we omit or set None
+        with_effect_size: bool = True,
     ):
         yt = to_numpy_1d(y_true, "y_true")
         yp = to_numpy_1d(y_pred, "y_pred")
@@ -225,9 +211,7 @@ class FairnessAnalyzer:
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
                 return Result("equalized_odds_difference", np.nan, n_per_group={})
-            # Ensure mask is boolean numpy array for proper indexing
             mask = np.asarray(mask, dtype=bool)
-            # Use boolean indexing - ensure labels is a proper array
             sens = np.asarray(labels)[mask]
             yt = yt[mask]
             yp = yp[mask]
@@ -239,13 +223,12 @@ class FairnessAnalyzer:
         )
         res = Result(mr.metric, mr.value, ci=None, effect_size=None, n_per_group=mr.n_per_group)
 
-        # For CI, we need to recompute TPR/FPR per resample
         groups = [g for g, n in (res.n_per_group or {}).items() if n >= self.min_group_size]
         tprs: List[float] = []
         fprs: List[float] = []
         for g in groups:
             idx = np.where(
-                (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
+                (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == str(g)
             )[0]
             if idx.size == 0:
                 continue
@@ -263,37 +246,37 @@ class FairnessAnalyzer:
                 raise ValueError(
                     "ci_samples must be positive when requesting confidence intervals."
                 )
-            idx_by_group = {
-                g: np.where(
-                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
-                )[0]
-                for g in groups
-            }
 
-            def stat_fn(_):
-                tprs, fprs = [], []
+            def stat_fn(sample_indices):
+                yt_boot = yt[sample_indices]
+                yp_boot = yp[sample_indices]
+                sens_boot = sens[sample_indices]
+
+                tprs_b, fprs_b = [], []
                 for g in groups:
-                    idx = idx_by_group[g]
-                    if idx.size == 0:
+                    if sens_boot.dtype.kind not in {"U", "S", "O"}:
+                        m = (sens_boot == g)
+                    else:
+                        m = (sens_boot.astype(str) == str(g))
+                    yt_g = yt_boot[m]
+                    yp_g = yp_boot[m]
+                    if yt_g.size == 0:
                         continue
-                    draw = idx[np.random.randint(0, idx.size, size=idx.size)]
-                    yt_g = yt[draw]
-                    yp_g = yp[draw]
                     pos = yt_g == 1
                     neg = yt_g == 0
                     tpr_g = np.nan if pos.sum() == 0 else float((yp_g[pos] == 1).mean())
                     fpr_g = np.nan if neg.sum() == 0 else float((yp_g[neg] == 1).mean())
                     if np.isfinite(tpr_g):
-                        tprs.append(tpr_g)
+                        tprs_b.append(tpr_g)
                     if np.isfinite(fpr_g):
-                        fprs.append(fpr_g)
-                tpr_gap = np.nan if len(tprs) < 2 else (max(tprs) - min(tprs))
-                fpr_gap = np.nan if len(fprs) < 2 else (max(fprs) - min(fprs))
+                        fprs_b.append(fpr_g)
+                tpr_gap = np.nan if len(tprs_b) < 2 else (max(tprs_b) - min(tprs_b))
+                fpr_gap = np.nan if len(fprs_b) < 2 else (max(fprs_b) - min(fprs_b))
                 if not np.isfinite(tpr_gap) and not np.isfinite(fpr_gap):
                     return np.nan
                 return np.nanmax([tpr_gap, fpr_gap])
 
-            dummy = np.arange(sum(len(v) for v in idx_by_group.values()))
+            dummy = np.arange(len(yt))
             res.ci = bootstrap_ci(dummy, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
 
         if with_effect_size:
@@ -330,7 +313,7 @@ class FairnessAnalyzer:
         ci_level: float = 0.95,
         ci_method: str = "percentile",
         ci_samples: int = 1000,
-        with_effect_size: bool = True,  # If desired, Cohen's d on absolute errors pairwise is possible
+        with_effect_size: bool = True,
     ):
         yt = to_numpy_1d(y_true, "y_true")
         yp = to_numpy_1d(y_pred, "y_pred")
@@ -342,9 +325,7 @@ class FairnessAnalyzer:
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
                 return Result("mae_parity_difference", np.nan, n_per_group={})
-            # Ensure mask is boolean numpy array for proper indexing
             mask = np.asarray(mask, dtype=bool)
-            # Use boolean indexing - ensure labels is a proper array
             sens = np.asarray(labels)[mask]
             yt = yt[mask]
             yp = yp[mask]
@@ -364,46 +345,42 @@ class FairnessAnalyzer:
                 raise ValueError(
                     "ci_samples must be positive when requesting confidence intervals."
                 )
-            idx_by_group = {
-                g: np.where(
-                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
-                )[0]
-                for g in groups
-            }
 
-            def stat_fn(_):
+            def stat_fn(sample_indices):
+                abs_err_boot = abs_err[sample_indices]
+                sens_boot = sens[sample_indices]
                 maes = []
                 for g in groups:
-                    idx = idx_by_group[g]
-                    if idx.size == 0:
+                    if sens_boot.dtype.kind not in {"U", "S", "O"}:
+                        m = (sens_boot == g)
+                    else:
+                        m = (sens_boot.astype(str) == str(g))
+                    group_errs = abs_err_boot[m]
+                    if group_errs.size == 0:
                         continue
-                    draw = idx[np.random.randint(0, idx.size, size=idx.size)]
-                    maes.append(float(abs_err[draw].mean()))
+                    maes.append(float(group_errs.mean()))
                 return np.nan if len(maes) < 2 else (max(maes) - min(maes))
 
-            dummy = np.arange(sum(len(v) for v in idx_by_group.values()))
+            dummy = np.arange(len(yt))
             res.ci = bootstrap_ci(dummy, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
 
-        # (Optional) A continuous effect size could be Cohen's d between extreme groups' absolute errors.
-        # We omit by default to avoid arbitrary group pair choices; set with_effect_size=True to compute:
         if with_effect_size and len(groups) >= 2:
-            # choose extreme groups by MAE
             maes_by_group = {}
             for g in groups:
                 idx = np.where(
-                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
+                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == str(g)
                 )[0]
                 maes_by_group[g] = float(abs_err[idx].mean())
             g_max = max(maes_by_group, key=maes_by_group.get)
             g_min = min(maes_by_group, key=maes_by_group.get)
             x = abs_err[
                 np.where(
-                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g_max
+                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == str(g_max)
                 )[0]
             ]
             y = abs_err[
                 np.where(
-                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g_min
+                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == str(g_min)
                 )[0]
             ]
             res.effect_size = cohens_d(x, y)
