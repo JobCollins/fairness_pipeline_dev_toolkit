@@ -31,7 +31,14 @@ from ..provenance import with_fixture_caveat
 
 
 class CounterfactualFairnessEvaluator:
-    """Counterfactual fairness probe — Phase 1 flagship evaluator."""
+    """Lexical-divergence probe on name-/group-swapped prompts (Phase 1).
+
+    Despite the historic metric name, this is a **perturbation / invariance
+    test**: matched-template pairwise lexical feature distance between
+    group-swapped prompts. It is **not** counterfactual fairness in the
+    causal sense of Kusner et al. (2017), which is defined over a structural
+    causal model. See BL-012 (no-effect baseline) and BL-023 (name/construct).
+    """
 
     name = "counterfactual_fairness"
 

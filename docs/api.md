@@ -322,7 +322,8 @@ mae = proxy.mae_parity_difference()
 
 Load a tabular data file into a DataFrame with automatic format detection.
 
-**Location:** `fairpipe.io.load_data` (also `fairpipe.load_data`)
+**Location:** `fairpipe.load_data` (implemented in `fairness_pipeline_dev_toolkit.io`;
+there is no `fairpipe.io` submodule)
 
 ```python
 def load_data(path: str | Path) -> pd.DataFrame
@@ -341,7 +342,7 @@ def load_data(path: str | Path) -> pd.DataFrame
 
 **Example:**
 ```python
-from fairpipe.io import load_data
+from fairpipe import load_data
 
 df_csv     = load_data("data.csv")
 df_parquet = load_data("data.parquet")
@@ -518,9 +519,13 @@ print(report.body)
 
 #### `InstanceReweighting`
 
-Compute **training** sample weights to balance sensitive-attribute distributions.
-`transform` returns features unchanged; `sample_weight_` is sized to the fit frame
-and is not recomputed for held-out data.
+Compute **training** sample weights by **group-frequency balancing** (inverse
+frequency per sensitive attribute, or optional per-attribute benchmarks).
+`fit` ignores `y` entirely — this is **not** Kamiran & Calders / AIF360
+group-label reweighing, which weights each (group, label) cell so the label
+becomes independent of the protected attribute. `transform` returns features
+unchanged; `sample_weight_` is sized to the fit frame and is not recomputed for
+held-out data.
 
 **Location:** `fairpipe.pipeline.InstanceReweighting`
 
@@ -1323,14 +1328,20 @@ are dropped. See [Production Monitoring](integration_guide.md#production-monitor
 
 ### `CounterfactualFairnessEvaluator`
 
-Phase 1 flagship. Matched-by-template pairwise lexical divergence; bootstrap on those pair
-values. The expanded hiring replay is ≈0.196 (95% CI 0.185–0.205); the humanitarian
-replay is ≈0.202 (95% CI 0.188–0.220). Both measure lexical distance, dominated by
-token overlap. **They are not group-effect findings.** A within-group control
-establishes the no-effect baseline at ~0.19, not 0. A CI excluding 0 does not
-indicate a group effect for this metric
-([BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
+Phase 1 flagship. Matched-by-template pairwise **lexical divergence** between
+name-/group-swapped prompts — a **perturbation / invariance test**, not
+counterfactual fairness in the causal sense of Kusner et al. (2017) (SCM
+criterion). Bootstrap on those pair values. The expanded hiring replay is
+≈0.196 (95% CI 0.185–0.205); the humanitarian replay is ≈0.202 (95% CI
+0.188–0.220). Both measure lexical distance, dominated by token overlap.
+**They are not group-effect findings and not causal CF.** A within-group
+control establishes the no-effect baseline at ~0.19, not 0. A CI excluding 0
+does not indicate a group effect for this metric
+([BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline);
+[BL-023](fairpipe-technical-backlog.md#bl-023--counterfactual-fairness-is-a-lexical-perturbation-diagnostic-not-a-causal-fairness-measure)).
 The recorded caches demonstrate the pipeline on real model output.
+`counterfactual_fairness_contrast` is the same construct with a within-group
+control subtracted — same naming caveat.
 
 ### `RefusalRateEvaluator` / `ToxicitySentimentEvaluator` / `StereotypeAssociationEvaluator`
 

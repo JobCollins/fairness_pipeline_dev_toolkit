@@ -380,8 +380,10 @@ pipeline:
 ### Available Transformers
 
 1. **InstanceReweighting**
-   - Reweights samples to balance group distributions
-   - No parameters required
+   - Group-frequency balancing: inverse-frequency (or benchmark) weights per
+     sensitive attribute. Ignores `y` — **not** Kamiran & Calders / AIF360
+     group-label reweighing.
+   - Parameters: `sensitive`, optional `benchmarks`, `max_weight`, `min_count`
 
 2. **DisparateImpactRemover**
    - Repairs features to reduce disparate impact (fit on train; transform maps
@@ -1114,11 +1116,16 @@ At this stage, you should have:
 ### Objectives
 
 - Measure disparate LLM behavior across demographic groups.
-  `counterfactual_fairness_divergence` reports lexical feature distance (token overlap
-  dominates). The expanded hiring replay is ≈0.196 and the humanitarian replay is ≈0.202;
-  **neither is a group-effect finding.** A within-group control puts the no-effect
-  baseline at ~0.19, not 0; a CI excluding 0 does not indicate a group effect
-  ([BL-012](docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
+  `counterfactual_fairness_divergence` is a **lexical-divergence perturbation /
+  invariance test** on name-/group-swapped prompts — **not** counterfactual
+  fairness in the causal sense of Kusner et al. (2017). It reports lexical
+  feature distance (token overlap dominates). The expanded hiring replay is
+  ≈0.196 and the humanitarian replay is ≈0.202; **neither is a group-effect
+  finding or a causal-CF demonstration.** A within-group control puts the
+  no-effect baseline at ~0.19, not 0; a CI excluding 0 does not indicate a
+  group effect
+  ([BL-012](docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline);
+  [BL-023](docs/fairpipe-technical-backlog.md#bl-023--counterfactual-fairness-is-a-lexical-perturbation-diagnostic-not-a-causal-fairness-measure)).
   `refusal_rate_disparity` detects phrase-level refusal
   signals and does not distinguish a genuine refusal from a scope disclaimer on an
   otherwise complete answer, so it can saturate in advisory domains

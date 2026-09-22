@@ -216,9 +216,11 @@ Full validation rules: `fairness_pipeline_dev_toolkit/pipeline/config/loader.py`
 
 Map to sklearn-style components, including:
 
-- **`InstanceReweighting`**
+- **`InstanceReweighting`** — group-frequency balancing (ignores `y`; not
+  Kamiran & Calders / AIF360 group-label reweighing)
 - **`DisparateImpactRemover`**
-- **`ReweighingTransformer`**
+- **`ReweighingTransformer`** — also frequency / benchmark weights (not
+  group-label reweighing)
 - **`ProxyDropper`**
 
 ### Orchestration API

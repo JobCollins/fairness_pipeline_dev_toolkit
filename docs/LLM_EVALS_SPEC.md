@@ -19,7 +19,7 @@ classification-via-prompting, RAG answers).
 
 | | **A. LLM Fairness Evals (recommended)** | **B. General LLM Quality Evals** |
 |---|---|---|
-| What it measures | Disparate treatment/output-quality across demographic groups in LLM behavior: counterfactual fairness, stereotype association, refusal-rate and toxicity disparity | Faithfulness, hallucination, relevance, groundedness — general answer quality |
+| What it measures | Disparate treatment/output-quality across demographic groups in LLM behavior: lexical-divergence perturbation tests on name-swapped prompts (historically named "counterfactual fairness" — **not** Kusner et al. causal CF), stereotype association, refusal-rate and toxicity disparity | Faithfulness, hallucination, relevance, groundedness — general answer quality |
 | Fit with fairpipe identity | Direct extension of the existing "measurement, mitigation, monitoring" positioning and the Fairlearn/AIF360 comparison table | Overlaps with promptfoo, DeepEval, Ragas, OpenAI Evals — no differentiation, and it's a different product thesis |
 | Reuses existing machinery | Yes — bootstrap CI, effect sizes, `min_group_size`, `MetricResult` objects, monitoring/drift engine all apply directly | Partially — statistical rigor angle is weaker for single-answer quality scoring |
 

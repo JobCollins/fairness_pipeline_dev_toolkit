@@ -9,7 +9,15 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 class InstanceReweighting(BaseEstimator, TransformerMixin):
     """
-    Compute sample weights to align observed group proportions with provided benchmarks.
+    Group-frequency sample weights (not Kamiran & Calders / AIF360 reweighing).
+
+    Aligns observed group proportions with optional benchmarks, or uses
+    inverse-frequency balancing per sensitive attribute. ``fit`` ignores ``y`` —
+    weights depend only on group membership, not on (group, label) cells. That is
+    a different algorithm from Kamiran & Calders, which reweights each
+    (protected-attribute, label) cell so the label distribution is independent of
+    the protected attribute.
+
     - If multiple sensitive attributes, weights are multiplied (capped).
     - If no benchmarks given, use inverse-frequency balancing per attribute.
     Outputs:

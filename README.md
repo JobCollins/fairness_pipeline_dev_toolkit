@@ -98,33 +98,54 @@ Built from this repo’s Sphinx sources; includes getting started, user guide, A
 
 ## Quick start
 
-**CLI**
+**Python** (self-contained — each group clears the default `min_group_size=30`)
+
+```python
+import numpy as np
+from fairpipe.metrics import FairnessAnalyzer
+
+rng = np.random.default_rng(0)
+n = 40
+y_pred = np.concatenate([rng.integers(0, 2, n), rng.integers(0, 2, n)])
+sensitive = np.array(["F"] * n + ["M"] * n)
+
+analyzer = FairnessAnalyzer(min_group_size=30)
+result = analyzer.demographic_parity_difference(
+    y_pred=y_pred,
+    sensitive=sensitive,
+    with_ci=True,
+)
+print(result.value, result.ci, result.n_per_group)
+```
+
+Groups smaller than `min_group_size` are excluded and the metric is `nan` until
+they clear the guard — that is the intended behaviour, not a bug. See
+[getting started](https://github.com/SvrusIO/fAIr/blob/main/docs/getting_started.md).
+
+**CLI** (`--metric` is required whenever `--threshold` is set)
 
 ```bash
+# Write a small sample CSV, then validate
+python - <<'PY'
+import pandas as pd
+pd.DataFrame({
+    "y_true": [0, 1] * 40,
+    "y_pred": [0, 1, 1, 0] * 20,
+    "gender": ["F"] * 40 + ["M"] * 40,
+}).to_csv("data.csv", index=False)
+PY
+
 fairpipe validate \
   --csv data.csv \
   --y-true y_true \
   --y-pred y_pred \
   --sensitive gender \
+  --metric demographic_parity_difference \
+  --threshold 0.05 \
   --with-ci
 
-fairpipe run-pipeline --config config.yml --csv data.csv --output-dir artifacts/
-```
-
-**Python**
-
-```python
-from fairpipe import load_data
-from fairpipe.metrics import FairnessAnalyzer
-
-df = load_data("data.csv")
-analyzer = FairnessAnalyzer(min_group_size=30)
-result = analyzer.demographic_parity_difference(
-    y_pred=df["y_pred"],
-    sensitive=df["gender"],
-    with_ci=True,
-)
-print(result.value, result.ci)
+# Full workflow needs a pipeline YAML (see docs); not a one-liner:
+# fairpipe run-pipeline --config config.yml --csv data.csv --output-dir artifacts/
 ```
 
 CLI commands, YAML configuration, workflow orchestration, training, monitoring, and the optional REST API are documented on **[the docs site](https://SvrusIO.github.io/fAIr)** and in **[docs/api.md](https://github.com/SvrusIO/fAIr/blob/main/docs/api.md)**.
@@ -225,9 +246,10 @@ cache (no API key required). Select kernel **Python (fairpipe .venv)** if import
 - **§1** — A single-name-per-group counterfactual manufactured a clean 0.333 gender
   disparity that was a David vs Tariq name effect. Rotation (`name_pools`) is the default
   because of that.
-- **§2** — `counterfactual_fairness_divergence` has a no-effect baseline of ~0.19, not 0
-  (token overlap ~90% of the score). A CI excluding 0 is not a group effect; hiring is
-  0.196 − 0.190 ≈ 0.006
+- **§2** — `counterfactual_fairness_divergence` is a lexical-divergence
+  perturbation test (not Kusner et al. causal CF). It has a no-effect baseline
+  of ~0.19, not 0 (token overlap ~90% of the score). A CI excluding 0 is not a
+  group effect; hiring is 0.196 − 0.190 ≈ 0.006
   ([BL-012](https://github.com/SvrusIO/fAIr/blob/main/docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
 - **§3** — Pipeline demonstration on real output, not a fairness finding: n=1/group
   (third arm **`nonbinary`**) → **`nan`** at `min_group_size=5`; n=9/group → finite
@@ -250,7 +272,9 @@ recidivism algorithm used in US courtrooms.
 - **EOD = 0.2116** — among defendants who will not reoffend, Black
   defendants are 21 percentage points more likely to be incorrectly
   labelled high-risk
-- **53.9% reduction in EOD** via Instance Reweighting
+- **53.9% reduction in EOD** after a workflow that includes group-frequency
+  `InstanceReweighting` plus reductions training (not Kamiran–Calders
+  group-label reweighing — see docs)
 - 28 features with statistically significant racial disparities detected
 - 23 proxy variables identified — removing the race column alone would
   not fix this model
@@ -273,8 +297,9 @@ applicants by age, race, and disability.
   rejected vs 66.6% of white candidates
 - All 5 prediction features show statistically significant racial
   disparity — removing the race column alone would not fix this model
-- **47.6% reduction in EOD** via Instance Reweighting, closing to within
-  0.0036 of the 0.05 compliance threshold
+- **47.6% reduction in EOD** after a workflow that includes group-frequency
+  `InstanceReweighting` plus reductions training, closing to within 0.0036 of
+  a **0.05 analysis threshold chosen for this notebook** (not a legal cutoff)
 - Dataset: ACS 2018 1-Year California (196,604 individuals, folktables)
 
 [![Launch in Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/SvrusIO/fAIr/main?urlpath=%2Fdoc%2Ftree%2Fcase_studies%2Facs_employment.ipynb)

@@ -9,8 +9,8 @@ Four evaluators historically; five with the BL-012 contrast sibling — all retu
 
 | Metric | Statistic | Pairing |
 |---|---|---|
-| `counterfactual_fairness_divergence` | max mean pairwise feature divergence | **Matched by template** (same prompt, swapped group). Lexical distance; **0 is not the no-effect baseline** ([BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)). |
-| `counterfactual_fairness_contrast` | gated mean − control mean (signed) | Same matcher; requires `control_dimension` with same-coded values. Humanitarian recording ≈ **−0.056** (CI includes 0). Near-zero/negative ≈ null. Roughly doubles API calls; bad control coding under-reports (David→Tariq trap). Gate uses `abs(value)` while the metric is signed. |
+| `counterfactual_fairness_divergence` | max mean pairwise feature divergence | **Matched by template** (same prompt, swapped group). A **lexical-divergence perturbation / invariance test** — **not** counterfactual fairness in the causal / Kusner et al. (2017) SCM sense. Lexical distance; **0 is not the no-effect baseline** ([BL-012](fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline); [BL-023](fairpipe-technical-backlog.md#bl-023--counterfactual-fairness-is-a-lexical-perturbation-diagnostic-not-a-causal-fairness-measure)). |
+| `counterfactual_fairness_contrast` | gated mean − control mean (signed) | Same matcher and same construct caveat (lexical perturbation, not causal CF); requires `control_dimension` with same-coded values. Humanitarian recording ≈ **−0.056** (CI includes 0). Near-zero/negative ≈ null. Roughly doubles API calls; bad control coding under-reports (David→Tariq trap). Gate uses `abs(value)` while the metric is signed. |
 | `refusal_rate_disparity` | max − min group refusal rate | Unpaired group rates (DPD-style); bootstrap resamples **within group** |
 | `toxicity_sentiment_disparity` | max − min group toxicity/sentiment rate | Same unpaired group-rate design |
 | `stereotype_association_score` | max − min stereotyped-answer rate on BBQ-schema items | Unpaired; items are not template-paired |

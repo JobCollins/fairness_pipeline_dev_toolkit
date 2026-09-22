@@ -75,7 +75,7 @@ Use this pattern when you want to validate fairness of existing model prediction
 #### Use Case: Post-Training Validation
 
 ```python
-from fairpipe.io import load_data
+from fairpipe import load_data
 from fairpipe.metrics import FairnessAnalyzer
 
 # Load predictions — CSV or Parquet, auto-detected
@@ -107,7 +107,7 @@ else:
 
 import sys
 
-from fairpipe.io import load_data
+from fairpipe import load_data
 from fairpipe.metrics import FairnessAnalyzer
 
 
