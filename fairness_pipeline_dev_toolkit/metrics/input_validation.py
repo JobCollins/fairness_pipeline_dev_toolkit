@@ -12,12 +12,19 @@ Non-finite ``y_true`` / ``y_pred`` values are **dropped** (with a reported
 count), matching protected-attribute ``nan_policy="exclude"``: incomplete
 rows are omitted rather than inventing a rate. The drop count is returned on
 the prepared-inputs object and must be surfaced on ``MetricResult``.
+
+When **two or more** inputs are pandas ``Series`` / ``Index`` / ``DataFrame``,
+their ``.index`` values must be equal (same labels **and** order). Mismatched
+indices raise :class:`IndexMismatchError` — fairpipe does not silently zip by
+position (which can invert a disparity) and does not auto-align (a silent
+result change). A single pandas object mixed with arrays/lists is allowed and
+uses positional semantics, because arrays have no index to honor.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -34,6 +41,10 @@ class MetricInputError(ValueError):
 
 class LengthMismatchError(MetricInputError):
     """``y_true`` / ``y_pred`` / ``sensitive`` length mismatch."""
+
+
+class IndexMismatchError(MetricInputError):
+    """Pandas inputs have unequal indices (labels or order)."""
 
 
 class MulticlassNotSupportedError(MetricInputError):
@@ -53,6 +64,50 @@ class PreparedMetricInputs:
     y_true: Optional[np.ndarray]
     n_dropped_nonfinite: int
     positive_label: int = POSITIVE_LABEL
+
+
+def _pandas_index(obj: Any) -> Optional[pd.Index]:
+    if isinstance(obj, pd.Series):
+        return obj.index
+    if isinstance(obj, pd.DataFrame):
+        return obj.index
+    if isinstance(obj, pd.Index):
+        return obj
+    return None
+
+
+def check_pandas_indices_aligned(**named_inputs: Any) -> None:
+    """Reject mismatched pandas indices among metric inputs (Wave 1e / BL-020).
+
+    Only runs when two or more arguments are pandas objects with an index.
+    Non-pandas inputs (``list``, ``ndarray``) are ignored for this check so a
+    mixed Series+array call stays positional — there is no second index to
+    disagree with.
+    """
+    indexed: List[Tuple[str, pd.Index]] = []
+    for name, value in named_inputs.items():
+        if value is None:
+            continue
+        idx = _pandas_index(value)
+        if idx is not None:
+            indexed.append((name, idx))
+
+    if len(indexed) < 2:
+        return
+
+    first_name, first_index = indexed[0]
+    for name, idx in indexed[1:]:
+        if first_index.equals(idx):
+            continue
+        raise IndexMismatchError(
+            f"Pandas inputs {first_name!r} and {name!r} have unequal indices "
+            f"(labels or order differ). fairpipe does not zip Series by "
+            f"position — that can invert a fairness conclusion — and does not "
+            f"auto-align. Align explicitly with .reindex() / .loc / "
+            f".reset_index(drop=True) so every input shares one index, or pass "
+            f"plain arrays/lists for positional semantics. "
+            f"{first_name} index={list(first_index)!r}; {name} index={list(idx)!r}."
+        )
 
 
 def _length_of(name: str, arr: np.ndarray) -> Tuple[str, int]:
@@ -82,7 +137,6 @@ def _nonfinite_row_mask(arr: np.ndarray) -> np.ndarray:
     """True where a row is missing / non-finite for label or score purposes."""
     if arr.size == 0:
         return np.zeros(0, dtype=bool)
-    # object / None → numeric; non-numeric becomes NaN
     num = pd.to_numeric(pd.Series(arr), errors="coerce").to_numpy(dtype=float)
     return ~np.isfinite(num)
 
@@ -99,7 +153,6 @@ def _coerce_binary_01(arr: np.ndarray, name: str) -> np.ndarray:
 
     num = pd.to_numeric(pd.Series(arr), errors="coerce").to_numpy(dtype=float)
     if np.any(~np.isfinite(num)):
-        # Should have been dropped already; treat as encoding error if any remain.
         raise MetricInputError(
             f"{name} contains non-finite values after cleaning; remove or impute "
             "them before calling the metric."
@@ -149,11 +202,9 @@ def prepare_binary_classifier_inputs(
     y_true: Any = None,
     require_y_true: bool = False,
 ) -> PreparedMetricInputs:
-    """Validate and clean inputs for DPD / EOD (binary 0/1, positive=1).
+    """Validate and clean inputs for DPD / EOD (binary 0/1, positive=1)."""
+    check_pandas_indices_aligned(y_true=y_true, y_pred=y_pred, sensitive=sensitive)
 
-    Non-finite values in ``y_pred`` / ``y_true`` are dropped (count reported).
-    Multiclass (>2 distinct values) raises :class:`MulticlassNotSupportedError`.
-    """
     yp = to_numpy_1d(y_pred, "y_pred")
     sens = to_numpy_1d(sensitive, "sensitive")
     yt: Optional[np.ndarray]
@@ -187,12 +238,13 @@ def prepare_regression_metric_inputs(
     sensitive: Any,
 ) -> PreparedMetricInputs:
     """Validate and clean inputs for MAE parity (continuous; no binary check)."""
+    check_pandas_indices_aligned(y_true=y_true, y_pred=y_pred, sensitive=sensitive)
+
     yt = to_numpy_1d(y_true, "y_true")
     yp = to_numpy_1d(y_pred, "y_pred")
     sens = to_numpy_1d(sensitive, "sensitive")
     check_metric_lengths(y_pred=yp, sensitive=sens, y_true=yt)
     yp, sens, yt, n_dropped = _drop_nonfinite_rows(y_pred=yp, sensitive=sens, y_true=yt)
-    # Keep as float for regression
     yt_f = pd.to_numeric(pd.Series(yt), errors="coerce").to_numpy(dtype=float)
     yp_f = pd.to_numeric(pd.Series(yp), errors="coerce").to_numpy(dtype=float)
     return PreparedMetricInputs(

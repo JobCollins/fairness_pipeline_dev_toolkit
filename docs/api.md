@@ -122,7 +122,7 @@ def demographic_parity_difference(
 ```
 
 **Parameters:**
-- `y_pred` (np.ndarray | pd.Series | list): Binary predictions (0/1) or continuous scores
+- `y_pred` (np.ndarray | pd.Series | list): Binary predictions encoded as 0/1 (positive class **1**)
 - `sensitive` (np.ndarray | pd.Series | list): Sensitive attribute values
 - `intersectional` (bool): If True, compute intersectional fairness across multiple attributes
 - `attrs_df` (pd.DataFrame, optional): Required if `intersectional=True`. DataFrame containing all sensitive attributes
@@ -132,6 +132,14 @@ def demographic_parity_difference(
 - `ci_method` (str): Bootstrap method. Options: `"percentile"` (default), `"bca"`
 - `ci_samples` (int): Number of bootstrap samples (default: 1000)
 - `with_effect_size` (bool): Compute effect size (risk ratio) (default: True)
+
+**Input contract (Wave 1d / 1e):** Labels must be binary `{0, 1}`. Non-finite `y_true` /
+`y_pred` rows are dropped with a reported count. Lengths must match
+(`LengthMismatchError`). When **two or more** of `y_true`, `y_pred`, `sensitive`, or
+`attrs_df` are pandas objects, their `.index` must be equal (same labels and order) or
+fairpipe raises `IndexMismatchError` — it does not zip Series by position and does not
+auto-align. A single Series mixed with arrays/lists is positional. Prefer
+`from_dataframe` or `.reset_index(drop=True)` / `.reindex()` after merges.
 
 **Returns:** `Result` object with:
 - `metric` (str): Metric name

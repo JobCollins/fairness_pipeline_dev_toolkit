@@ -14,6 +14,7 @@ from .aequitas_adapter import AequitasAdapter
 from .fairlearn_adapter import FairlearnAdapter
 from .input_validation import (
     LengthMismatchError,
+    check_pandas_indices_aligned,
     nonfinite_drop_caveat,
     prepare_binary_classifier_inputs,
     prepare_regression_metric_inputs,
@@ -223,11 +224,16 @@ class FairnessAnalyzer:
         ci_samples: int = 1000,
         with_effect_size: bool = True,
     ):
-        yp = to_numpy_1d(y_pred, "y_pred")
-
         if intersectional:
             if attrs_df is None:
                 raise ValueError("attrs_df is required when intersectional=True")
+            check_pandas_indices_aligned(y_pred=y_pred, attrs_df=attrs_df)
+        else:
+            check_pandas_indices_aligned(y_pred=y_pred, sensitive=sensitive)
+
+        yp = to_numpy_1d(y_pred, "y_pred")
+
+        if intersectional:
             if len(yp) != len(attrs_df):
                 raise LengthMismatchError(
                     f"y_pred and attrs_df must have the same length; "
@@ -316,12 +322,17 @@ class FairnessAnalyzer:
         ci_samples: int = 1000,
         with_effect_size: bool = True,  # note: effect size less canonical here; we omit or set None
     ):
+        if intersectional:
+            if attrs_df is None:
+                raise ValueError("attrs_df is required when intersectional=True")
+            check_pandas_indices_aligned(y_true=y_true, y_pred=y_pred, attrs_df=attrs_df)
+        else:
+            check_pandas_indices_aligned(y_true=y_true, y_pred=y_pred, sensitive=sensitive)
+
         yt = to_numpy_1d(y_true, "y_true")
         yp = to_numpy_1d(y_pred, "y_pred")
 
         if intersectional:
-            if attrs_df is None:
-                raise ValueError("attrs_df is required when intersectional=True")
             if len(yp) != len(attrs_df) or len(yt) != len(attrs_df):
                 raise LengthMismatchError(
                     f"y_true, y_pred, and attrs_df must have the same length; "
@@ -429,12 +440,17 @@ class FairnessAnalyzer:
         ci_samples: int = 1000,
         with_effect_size: bool = True,  # If desired, Cohen's d on absolute errors pairwise is possible
     ):
+        if intersectional:
+            if attrs_df is None:
+                raise ValueError("attrs_df is required when intersectional=True")
+            check_pandas_indices_aligned(y_true=y_true, y_pred=y_pred, attrs_df=attrs_df)
+        else:
+            check_pandas_indices_aligned(y_true=y_true, y_pred=y_pred, sensitive=sensitive)
+
         yt = to_numpy_1d(y_true, "y_true")
         yp = to_numpy_1d(y_pred, "y_pred")
 
         if intersectional:
-            if attrs_df is None:
-                raise ValueError("attrs_df is required when intersectional=True")
             if len(yp) != len(attrs_df) or len(yt) != len(attrs_df):
                 raise LengthMismatchError(
                     f"y_true, y_pred, and attrs_df must have the same length; "

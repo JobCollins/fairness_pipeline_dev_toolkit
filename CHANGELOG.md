@@ -34,6 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `nan_policy="exclude"`), and raises `LengthMismatchError` instead of NumPy
   `IndexError`. Positive class is documented as **1**. **Breaking** for callers that
   previously got a plausible DPD/EOD from NaN or multiclass inputs.
+- **Pandas index alignment (BL-020 / Wave 1e):** when two or more of `y_true` /
+  `y_pred` / `sensitive` / `attrs_df` are pandas objects, unequal indices (labels
+  or order) raise `IndexMismatchError` with guidance to `.reindex()` / `.loc` /
+  `.reset_index(drop=True)`. No silent positional zip and no auto-align. Mixed
+  Series+array stays positional. **Breaking** for callers that passed Series with
+  mismatched indices and relied on positional conversion.
 
 ## [v0.11.0] — 2026-09-21
 

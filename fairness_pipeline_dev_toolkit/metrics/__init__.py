@@ -17,6 +17,7 @@ from .core import FairnessAnalyzer as FairnessAnalyzer
 from .core import FairnessAnalyzerDataFrameProxy as FairnessAnalyzerDataFrameProxy
 from .input_validation import (
     POSITIVE_LABEL,
+    IndexMismatchError,
     LengthMismatchError,
     MetricInputError,
     MulticlassNotSupportedError,
@@ -29,6 +30,7 @@ __all__ = [
     "MetricResult",
     "MetricInputError",
     "LengthMismatchError",
+    "IndexMismatchError",
     "MulticlassNotSupportedError",
     "NonBinaryEncodingError",
     "POSITIVE_LABEL",
