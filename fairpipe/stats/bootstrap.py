@@ -1,6 +1,3 @@
-"""Compatibility shim for `fairpipe.stats.bootstrap`."""
+from __future__ import annotations
 
-import fairness_pipeline_dev_toolkit.stats.bootstrap as _src
-from fairness_pipeline_dev_toolkit.stats.bootstrap import *  # noqa: F403
-
-__all__ = [x for x in dir(_src) if not x.startswith("_")]
+from fairness_pipeline_dev_toolkit.stats.bootstrap import bootstrap_ci

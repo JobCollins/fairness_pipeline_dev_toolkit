@@ -35,23 +35,18 @@ def _pearson_abs(x: pd.Series, y: pd.Series) -> float:
     mask = (~x_.isna()) & (~y_.isna())
     if mask.sum() < 3:
         return 0.0
-    r, _ = pearsonr(x_[mask].to_numpy(), y_[mask].to_numpy())
-    return float(abs(r))
+    try:
+        r, _ = pearsonr(x_[mask].to_numpy(), y_[mask].to_numpy())
+        if np.isnan(r):
+            return 0.0
+        return float(abs(r))
+    except Exception:
+        return 0.0
 
 
 class ProxyDropper(BaseEstimator, TransformerMixin):
     """
     Drop feature columns that are too strongly associated with sensitive attributes.
-
-    Parameters:
-      - sensitive: list of sensitive column names present in X
-      - features: list of candidate feature columns to test/drop (default = all non-sensitive)
-      - threshold: association threshold; columns with max association >= threshold are dropped
-      - max_drop: optional cap on how many columns to drop to avoid excessive pruning
-
-    Learned attributes:
-      - dropped_columns_: list[str] of columns removed by transform()
-      - assoc_scores_: dict[col] -> max association across sensitive attrs
     """
 
     def __init__(
@@ -69,29 +64,34 @@ class ProxyDropper(BaseEstimator, TransformerMixin):
         self.dropped_columns_: List[str] = []
         self.assoc_scores_: Dict[str, float] = {}
 
+    def _is_cat(self, s: pd.Series) -> bool:
+        if (
+            pd.api.types.is_categorical_dtype(s)
+            or pd.api.types.is_object_dtype(s)
+            or pd.api.types.is_string_dtype(s)
+            or pd.api.types.is_bool_dtype(s)
+        ):
+            return True
+        return pd.api.types.is_integer_dtype(s) and s.nunique(dropna=True) <= 20
+
     def _assoc(self, feat: pd.Series, sens: pd.Series) -> float:
-        # decide association metric by variable types
-        feat_cat = feat.dtype == "object" or str(feat.dtype).startswith(("category", "string"))
-        sens_cat = sens.dtype == "object" or str(sens.dtype).startswith(("category", "string"))
+        feat_cat = self._is_cat(feat)
+        sens_cat = self._is_cat(sens)
 
         if feat_cat and sens_cat:
-            return _cramers_v(feat, sens)
+            return _cramers_v(feat.astype(str), sens.astype(str))
 
-        # numeric ↔ numeric OR numeric ↔ binary-categorical
         if not feat_cat and not sens_cat:
             return _pearson_abs(feat, sens)
 
-        # If one is binary categorical and the other numeric, use abs Pearson (point-biserial)
-        if feat_cat and not sens_cat and _is_binary_series(feat):
-            # encode binary to {0,1}
+        if feat_cat and not sens_cat:
             _, inv = np.unique(feat.astype(str), return_inverse=True)
             return _pearson_abs(pd.Series(inv, index=feat.index), sens)
 
-        if not feat_cat and sens_cat and _is_binary_series(sens):
+        if not feat_cat and sens_cat:
             _, inv = np.unique(sens.astype(str), return_inverse=True)
             return _pearson_abs(feat, pd.Series(inv, index=sens.index))
 
-        # Fallback: treat as categorical↔categorical
         return _cramers_v(feat.astype(str), sens.astype(str))
 
     def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None):
@@ -110,19 +110,13 @@ class ProxyDropper(BaseEstimator, TransformerMixin):
         for col in cand_feats:
             max_assoc = 0.0
             for s in self.sensitive:
-                try:
-                    a = self._assoc(X[col], X[s])
-                    if a > max_assoc:
-                        max_assoc = a
-                except Exception:
-                    # robust fallback if a metric fails
-                    continue
+                a = self._assoc(X[col], X[s])
+                if a > max_assoc:
+                    max_assoc = a
             scores[col] = float(max_assoc)
 
-        # Select columns to drop
         to_drop = [c for c, a in scores.items() if a >= self.threshold]
         if self.max_drop is not None and len(to_drop) > self.max_drop:
-            # drop the worst offenders first
             to_drop = [c for c, _ in sorted(scores.items(), key=lambda kv: kv[1], reverse=True)]
             to_drop = to_drop[: self.max_drop]
 

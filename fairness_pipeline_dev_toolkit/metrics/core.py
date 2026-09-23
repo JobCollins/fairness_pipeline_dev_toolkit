@@ -198,13 +198,9 @@ class FairnessAnalyzer:
         labels = build_intersectional_labels(
             attrs_df, columns=columns, include_na=(self.nan_policy != "exclude")
         )
-        # Convert categorical Series to numpy array, handling NaN values properly
-        # If labels is categorical, convert to string first to avoid indexing issues
         if pd.api.types.is_categorical_dtype(labels):
             labels = labels.astype(str)
-        # Convert to numpy array, replacing NaN strings with actual NaN
         labels_array = np.asarray(labels, dtype=object)
-        # Replace 'nan' strings (from categorical conversion) with actual NaN
         labels_array = np.where(labels_array == "nan", np.nan, labels_array)
         return labels_array
 
@@ -244,9 +240,7 @@ class FairnessAnalyzer:
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
                 return Result("demographic_parity_difference", np.nan, n_per_group={})
-            # Ensure mask is boolean numpy array for proper indexing
             mask = np.asarray(mask, dtype=bool)
-            # Use boolean indexing - ensure labels is a proper array
             sens = np.asarray(labels)[mask]
             yp = yp[mask]
         else:
@@ -272,14 +266,10 @@ class FairnessAnalyzer:
             n_dropped_nonfinite=prepared.n_dropped_nonfinite,
         )
 
-        # Precompute per-group rates (for CI / effect size)
         groups = [g for g, n in (res.n_per_group or {}).items() if n >= self.min_group_size]
         rates_dict = {}
         for g in groups:
-            m = (sens == g) if not isinstance(g, str) else (sens.astype(str) == g)
-            # cast sens to str for consistent comparison when labels are categorical-like
-            if sens.dtype.kind not in {"U", "S", "O"}:
-                m = sens == g
+            m = (sens == g) if sens.dtype.kind not in {"U", "S", "O"} else (sens.astype(str) == str(g))
             rates_dict[str(g)] = float(yp[m].mean())
 
         # CI via bootstrap over observation indices (statistic is deterministic in its sample).
@@ -297,7 +287,6 @@ class FairnessAnalyzer:
 
             res.ci = bootstrap_ci(obs_idx, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
 
-        # Effect size: risk ratio of max-rate/min-rate
         if with_effect_size and len(rates_dict) >= 2:
             rmax = max(rates_dict.values())
             rmin = min(rates_dict.values())
@@ -320,7 +309,7 @@ class FairnessAnalyzer:
         ci_level: float = 0.95,
         ci_method: str = "percentile",
         ci_samples: int = 1000,
-        with_effect_size: bool = True,  # note: effect size less canonical here; we omit or set None
+        with_effect_size: bool = True,
     ):
         if intersectional:
             if attrs_df is None:
@@ -343,9 +332,7 @@ class FairnessAnalyzer:
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
                 return Result("equalized_odds_difference", np.nan, n_per_group={})
-            # Ensure mask is boolean numpy array for proper indexing
             mask = np.asarray(mask, dtype=bool)
-            # Use boolean indexing - ensure labels is a proper array
             sens = np.asarray(labels)[mask]
             yt = yt[mask]
             yp = yp[mask]
@@ -371,13 +358,12 @@ class FairnessAnalyzer:
             n_dropped_nonfinite=prepared.n_dropped_nonfinite,
         )
 
-        # For CI, we need to recompute TPR/FPR per resample
         groups = [g for g, n in (res.n_per_group or {}).items() if n >= self.min_group_size]
         tprs: List[float] = []
         fprs: List[float] = []
         for g in groups:
             idx = np.where(
-                (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
+                (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == str(g)
             )[0]
             if idx.size == 0:
                 continue
@@ -438,7 +424,7 @@ class FairnessAnalyzer:
         ci_level: float = 0.95,
         ci_method: str = "percentile",
         ci_samples: int = 1000,
-        with_effect_size: bool = True,  # If desired, Cohen's d on absolute errors pairwise is possible
+        with_effect_size: bool = True,
     ):
         if intersectional:
             if attrs_df is None:
@@ -461,9 +447,7 @@ class FairnessAnalyzer:
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
                 return Result("mae_parity_difference", np.nan, n_per_group={})
-            # Ensure mask is boolean numpy array for proper indexing
             mask = np.asarray(mask, dtype=bool)
-            # Use boolean indexing - ensure labels is a proper array
             sens = np.asarray(labels)[mask]
             yt = yt[mask]
             yp = yp[mask]
@@ -504,26 +488,23 @@ class FairnessAnalyzer:
 
             res.ci = bootstrap_ci(obs_idx, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
 
-        # (Optional) A continuous effect size could be Cohen's d between extreme groups' absolute errors.
-        # We omit by default to avoid arbitrary group pair choices; set with_effect_size=True to compute:
         if with_effect_size and len(groups) >= 2:
-            # choose extreme groups by MAE
             maes_by_group = {}
             for g in groups:
                 idx = np.where(
-                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
+                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == str(g)
                 )[0]
                 maes_by_group[g] = float(abs_err[idx].mean())
             g_max = max(maes_by_group, key=maes_by_group.get)
             g_min = min(maes_by_group, key=maes_by_group.get)
             x = abs_err[
                 np.where(
-                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g_max
+                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == str(g_max)
                 )[0]
             ]
             y = abs_err[
                 np.where(
-                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g_min
+                    (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == str(g_min)
                 )[0]
             ]
             res.effect_size = cohens_d(x, y)
