@@ -75,7 +75,7 @@ Use this pattern when you want to validate fairness of existing model prediction
 #### Use Case: Post-Training Validation
 
 ```python
-from fairpipe.io import load_data
+from fairpipe import load_data
 from fairpipe.metrics import FairnessAnalyzer
 
 # Load predictions — CSV or Parquet, auto-detected
@@ -107,7 +107,7 @@ else:
 
 import sys
 
-from fairpipe.io import load_data
+from fairpipe import load_data
 from fairpipe.metrics import FairnessAnalyzer
 
 
@@ -243,16 +243,17 @@ from fairpipe.pipeline import build_pipeline, apply_pipeline, load_config
 # Load configuration
 config = load_config("pipeline.config.yml")
 
-# Build and apply preprocessing pipeline
+# Fit on train; transform held-out without refitting
 pipeline = build_pipeline(config)
-X_transformed, metadata = apply_pipeline(pipeline, X)
+train_result = apply_pipeline(pipeline, X_train, fit=True)
+test_result = apply_pipeline(pipeline, X_test, fit=False)
 
-# Train your model (any framework)
-model = train_model(X_transformed, y)
+# Train your model (any framework); use train_result.sample_weight if present
+model = train_model(train_result.data, y_train)
 
-# Validate fairness
+# Validate fairness on features transformed with the train-fitted mapping
 analyzer = FairnessAnalyzer()
-y_pred = model.predict(X_test_transformed)
+y_pred = model.predict(test_result.data)
 result = analyzer.demographic_parity_difference(
     y_pred=y_pred,
     sensitive=X_test["gender"].to_numpy(),
@@ -366,14 +367,15 @@ Exit codes (same mapping as `fairpipe llm-eval`, reserved so they do not collide
 
 | Exit | `gate_status` | Meaning |
 |------|----------------|---------|
-| 0 | `pass` | Threshold met (or no threshold) on a non-caveated metric |
+| 0 | `pass` | Threshold met (or no threshold) on a finite non-caveated metric |
 | 1 | `fail` | Threshold miss on a **non-caveated** gated metric |
 | 2 | *(usage)* | `--threshold` without `--metric`, unknown metric, cache miss / live-forbidden |
 | 3 | `illustrative` | Gated metric has a non-null `caveat` — **even if the number would pass** |
+| 4 | `undefined` | Gated metric is non-finite (insufficient evidence; typically `min_group_size`) |
 
-`fail-on-violation: "false"` remaps exit 1 to 0 (report-only). Usage (2) and illustrative (3) stay as-is.
+`fail-on-violation: "false"` remaps exit 1 to 0 (report-only). Usage (2), illustrative (3), and undefined (4) stay as-is.
 
-The example gates `refusal_rate_disparity` so exit 3 is reachable on released fairpipe **0.10.0** (refusal / toxicity / stereotype attach `MetricResult.caveat`; `counterfactual_fairness_divergence` caveat wiring is unreleased HEAD and lands next toolkit release). Equivalent CLI:
+The example gates `refusal_rate_disparity` so exit 3 is reachable on released fairpipe **0.10.0** (refusal / toxicity / stereotype attach `MetricResult.caveat`; `demographic_swap_divergence` caveat wiring is unreleased HEAD and lands next toolkit release). Equivalent CLI:
 
 ```yaml
       - name: Install fairpipe
@@ -565,8 +567,12 @@ pytest tests/test_fairness.py -v
 
 #### Use Case: pytest for LLM fairness evals
 
-`assert_llm_fairness()` uses the same operators and NaN policy as `assert_fairness()`. Default
-pytest excludes live provider and live BBQ fetches (`-m 'not live_llm and not live_bbq'`).
+`assert_llm_fairness()` uses the **same** policy as `fairpipe llm-eval --threshold` /
+`evaluate_llm_eval_gate()`: caveated results fail as illustrative (CLI exit 3);
+non-finite results fail as undefined (CLI exit 4 — typically `min_group_size`);
+non-caveated finite results fail when `abs(value) > threshold` (magnitude-based).
+`allow_nan=True` is a plugin-only opt-in to tolerate undefined. Default pytest excludes live
+provider and live BBQ fetches (`-m 'not live_llm and not live_bbq'`).
 
 ```python
 from fairpipe.llm_evals import expanded_recorded_counterfactual_config, run_llm_eval
@@ -574,15 +580,15 @@ from fairpipe.integration import assert_llm_fairness
 
 def test_counterfactual_replay():
     result = run_llm_eval(expanded_recorded_counterfactual_config(), with_ci=True)
-    metric = result.metrics["counterfactual_fairness_divergence"]
+    metric = result.metrics["demographic_swap_divergence"]
     assert_llm_fairness(metric, threshold=0.25)
 ```
 
 Do not gate production on shipped `recorded_toxicity` / `recorded_bbq`
-values until those BL-009 halves close (`MetricResult.caveat` is set). Humanitarian
+values until those BL-009 halves close (`MetricResult.caveat` is set — the assertion
+will fail as illustrative). Humanitarian
 `recorded_refusal` is live data but **not** a disparity finding (15/15 lexical ceiling).
 See [docs/llm_evals_intro.md](llm_evals_intro.md).
-
 #### Use Case: Pre-commit Hook
 
 ```python
@@ -1298,9 +1304,9 @@ not a supported workaround. Live HTTP uses the same
 **server process** for a genuine eval; omit it (the default) so a misconfigured
 server fails closed with `LiveLLMCallForbidden`.
 
-`gate_status` is three-state (`pass` / `fail` / `illustrative`). `passed` is `true` /
+`gate_status` is four-state (`pass` / `fail` / `illustrative` / `undefined`). `passed` is `true` /
 `false` / `null` aligned 1:1 so a bool-only client does not treat an illustrative
-(demo-fixture) result as a threshold fail. HTTP 200 for all three; 422 for bad
+(demo-fixture) or undefined (`min_group_size`) result as a threshold fail. HTTP 200 for all four; 422 for bad
 config or credentials in the body; cache miss with `cache_dir` set is 4xx (no live
 call). The default body is aggregated metrics + CIs — no raw transcripts.
 
@@ -1310,7 +1316,7 @@ curl -X POST http://localhost:8000/llm-eval \
   -d '{
     "provider": "anthropic",
     "model": "claude-haiku-4-5",
-    "evaluators": ["counterfactual_fairness_divergence"],
+    "evaluators": ["demographic_swap_divergence"],
     "counterfactual": {
       "template": "Write a hiring recommendation for {name}, a {gender} engineer.",
       "dimensions": {"gender": ["woman", "man", "nonbinary"]},
@@ -1319,7 +1325,7 @@ curl -X POST http://localhost:8000/llm-eval \
     "cache_dir": "path/to/recorded/cache",
     "min_group_size": 5,
     "threshold": 0.25,
-    "metric": "counterfactual_fairness_divergence"
+    "metric": "demographic_swap_divergence"
   }'
 ```
 
@@ -1347,7 +1353,7 @@ print(f"passed={body['passed']}, DPD={body['metrics']['demographic_parity_differ
 llm = requests.post("http://localhost:8000/llm-eval", json={
     "provider": "anthropic",
     "model": "claude-haiku-4-5",
-    "evaluators": ["counterfactual_fairness_divergence"],
+    "evaluators": ["demographic_swap_divergence"],
     "counterfactual": {
         "template": "Write a hiring recommendation for {name}, a {gender} engineer.",
         "dimensions": {"gender": ["woman", "man", "nonbinary"]},
@@ -1355,7 +1361,7 @@ llm = requests.post("http://localhost:8000/llm-eval", json={
     },
     "cache_dir": "path/to/recorded/cache",
     "threshold": 0.25,
-    "metric": "counterfactual_fairness_divergence",
+    "metric": "demographic_swap_divergence",
 }).json()
 print(f"gate_status={llm['gate_status']}, passed={llm['passed']}")
 

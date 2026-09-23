@@ -15,8 +15,8 @@ from fairness_pipeline_dev_toolkit.llm_evals.config import (
     LLMEvalConfig,
 )
 from fairness_pipeline_dev_toolkit.llm_evals.demo import biased_hiring_responder
-from fairness_pipeline_dev_toolkit.llm_evals.evaluators.counterfactual_fairness import (
-    CounterfactualFairnessEvaluator,
+from fairness_pipeline_dev_toolkit.llm_evals.evaluators.demographic_swap import (
+    DemographicSwapEvaluator,
 )
 from fairness_pipeline_dev_toolkit.llm_evals.fixtures import (
     RECORDED_WITHIN_GROUP_CONTROL_CACHE_DIR,
@@ -134,7 +134,7 @@ def _local_divergence_config(cache_dir: str) -> LLMEvalConfig:
     return LLMEvalConfig(
         provider="local",
         model="test",
-        evaluators=["counterfactual_fairness_divergence"],
+        evaluators=["demographic_swap_divergence"],
         counterfactual=CounterfactualConfig(
             template="Write a hiring recommendation for {name}, a {gender} engineer.",
             dimensions={"gender": ["woman", "man"]},
@@ -153,7 +153,7 @@ def test_divergence_evaluator_sets_caveat_when_manifest_illustrative(tmp_path):
         encoding="utf-8",
     )
     client = LocalLLMClient("test", responder=biased_hiring_responder)
-    evaluator = CounterfactualFairnessEvaluator(_local_divergence_config(str(cache)), client)
+    evaluator = DemographicSwapEvaluator(_local_divergence_config(str(cache)), client)
     metric, _ = asyncio.run(evaluator.run_async(with_ci=False, allow_small_samples=True))
     assert metric.caveat == "Demo fixture (BL-009): divergence flag."
 
@@ -166,7 +166,7 @@ def test_divergence_evaluator_nan_path_sets_caveat_when_illustrative(tmp_path):
         encoding="utf-8",
     )
     client = LocalLLMClient("test", responder=biased_hiring_responder)
-    evaluator = CounterfactualFairnessEvaluator(_local_divergence_config(str(cache)), client)
+    evaluator = DemographicSwapEvaluator(_local_divergence_config(str(cache)), client)
     metric, _ = asyncio.run(evaluator.run_async(with_ci=False, allow_small_samples=False))
     assert math.isnan(metric.value)
     assert metric.caveat == "Demo fixture (BL-009): divergence flag."
@@ -176,6 +176,6 @@ def test_divergence_evaluator_user_cache_has_no_caveat(tmp_path):
     cache = tmp_path / "cache"
     cache.mkdir()
     client = LocalLLMClient("test", responder=biased_hiring_responder)
-    evaluator = CounterfactualFairnessEvaluator(_local_divergence_config(str(cache)), client)
+    evaluator = DemographicSwapEvaluator(_local_divergence_config(str(cache)), client)
     metric, _ = asyncio.run(evaluator.run_async(with_ci=False, allow_small_samples=True))
     assert metric.caveat is None

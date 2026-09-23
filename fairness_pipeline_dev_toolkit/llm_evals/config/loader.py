@@ -6,17 +6,15 @@ from typing import Any, Dict, List, Optional, Sequence
 import yaml
 
 from fairness_pipeline_dev_toolkit.exceptions import ConfigValidationError
+from fairness_pipeline_dev_toolkit.llm_evals.names import (
+    ACCEPTED_EVALUATORS,
+    DEMOGRAPHIC_SWAP_CONTRAST,
+    NEEDS_COUNTERFACTUAL_BLOCK,
+    VALID_EVALUATORS,
+    canonicalize_evaluators,
+)
 
 VALID_PROVIDERS = frozenset({"openai", "anthropic", "local"})
-VALID_EVALUATORS = frozenset(
-    {
-        "counterfactual_fairness_divergence",
-        "counterfactual_fairness_contrast",
-        "refusal_rate_disparity",
-        "toxicity_sentiment_disparity",
-        "stereotype_association_score",
-    }
-)
 CREDENTIAL_FIELD_NAMES = frozenset(
     {
         "api_key",
@@ -257,12 +255,14 @@ def _validate_llm_eval_block(raw: Dict[str, Any]) -> LLMEvalConfig:
         raise ConfigValidationError("Config field 'model' must be a non-empty string.")
     model = model.strip()
 
-    evaluators = _ensure_list_of_strings(raw.get("evaluators"), "evaluators")
-    unknown = [e for e in evaluators if e not in VALID_EVALUATORS]
+    evaluators_raw = _ensure_list_of_strings(raw.get("evaluators"), "evaluators")
+    unknown = [e for e in evaluators_raw if e not in ACCEPTED_EVALUATORS]
     if unknown:
         raise ConfigValidationError(
             f"Unknown evaluator(s): {unknown}. Valid evaluators: {sorted(VALID_EVALUATORS)}."
         )
+    # Store canonical names only — output keys never use deprecated aliases.
+    evaluators = canonicalize_evaluators(evaluators_raw, warn=True)
 
     params = raw.get("params")
     if params is not None and not isinstance(params, dict):
@@ -284,22 +284,16 @@ def _validate_llm_eval_block(raw: Dict[str, Any]) -> LLMEvalConfig:
             ) from None
 
     counterfactual = _validate_counterfactual_block(raw.get("counterfactual"))
-    needs_counterfactual = {
-        "counterfactual_fairness_divergence",
-        "counterfactual_fairness_contrast",
-        "refusal_rate_disparity",
-        "toxicity_sentiment_disparity",
-    }
-    if needs_counterfactual.intersection(evaluators) and counterfactual is None:
+    if NEEDS_COUNTERFACTUAL_BLOCK.intersection(evaluators) and counterfactual is None:
         raise ConfigValidationError(
             "Config field 'counterfactual' is required when "
-            f"{sorted(needs_counterfactual)} is listed in evaluators."
+            f"{sorted(NEEDS_COUNTERFACTUAL_BLOCK)} is listed in evaluators."
         )
-    if "counterfactual_fairness_contrast" in evaluators:
+    if DEMOGRAPHIC_SWAP_CONTRAST in evaluators:
         if counterfactual is None or not counterfactual.control_dimension:
             raise ConfigValidationError(
                 "Config field 'counterfactual.control_dimension' is required when "
-                "'counterfactual_fairness_contrast' is listed in evaluators."
+                f"'{DEMOGRAPHIC_SWAP_CONTRAST}' is listed in evaluators."
             )
 
     bbq_path = raw.get("bbq_path")

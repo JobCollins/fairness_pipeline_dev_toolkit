@@ -43,7 +43,7 @@ def run_llm_fairness_check(inputs: Mapping[str, Any]) -> int:
     * ``metric`` — metric key to gate
     * ``threshold`` — acceptance band (string or float, as Action inputs are strings)
     * ``fail-on-violation`` — when false, a threshold *fail* (exit 1) becomes 0;
-      usage (2) and illustrative (3) are unchanged
+      usage (2), illustrative (3), and undefined (4) are unchanged
     """
     from fairness_pipeline_dev_toolkit.cli.main import main
 

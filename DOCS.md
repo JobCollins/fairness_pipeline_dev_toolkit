@@ -380,15 +380,19 @@ pipeline:
 ### Available Transformers
 
 1. **InstanceReweighting**
-   - Reweights samples to balance group distributions
-   - No parameters required
+   - Group-frequency balancing: inverse-frequency (or benchmark) weights per
+     sensitive attribute. Ignores `y` — **not** Kamiran & Calders / AIF360
+     group-label reweighing.
+   - Parameters: `sensitive`, optional `benchmarks`, `max_weight`, `min_count`
 
 2. **DisparateImpactRemover**
-   - Repairs features to reduce disparate impact
+   - Repairs features to reduce disparate impact (fit on train; transform maps
+     via fitted group CDFs — batch-stable; `min_group_size` gated at fit)
    - Parameters:
      - `features`: List of feature columns to repair
      - `sensitive`: Sensitive attribute to use
      - `repair_level`: Strength of repair (0.0 to 1.0)
+     - `min_group_size`: Skip groups smaller than this at fit (default 20)
 
 3. **ReweighingTransformer**
    - Advanced reweighing with custom strategies
@@ -1112,11 +1116,16 @@ At this stage, you should have:
 ### Objectives
 
 - Measure disparate LLM behavior across demographic groups.
-  `counterfactual_fairness_divergence` reports lexical feature distance (token overlap
-  dominates). The expanded hiring replay is ≈0.196 and the humanitarian replay is ≈0.202;
-  **neither is a group-effect finding.** A within-group control puts the no-effect
-  baseline at ~0.19, not 0; a CI excluding 0 does not indicate a group effect
-  ([BL-012](docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline)).
+  `demographic_swap_divergence` is a **lexical-divergence perturbation /
+  invariance test** on name-/group-swapped prompts — **not** counterfactual
+  fairness in the causal sense of Kusner et al. (2017). It reports lexical
+  feature distance (token overlap dominates). The expanded hiring replay is
+  ≈0.196 and the humanitarian replay is ≈0.202; **neither is a group-effect
+  finding or a causal-CF demonstration.** A within-group control puts the
+  no-effect baseline at ~0.19, not 0; a CI excluding 0 does not indicate a
+  group effect
+  ([BL-012](docs/fairpipe-technical-backlog.md#bl-012--demographic_swap_divergence-has-no-no-effect-baseline);
+  [BL-023](docs/fairpipe-technical-backlog.md#bl-023--counterfactual-fairness-is-a-lexical-perturbation-diagnostic-not-a-causal-fairness-measure)).
   `refusal_rate_disparity` detects phrase-level refusal
   signals and does not distinguish a genuine refusal from a scope disclaimer on an
   otherwise complete answer, so it can saturate in advisory domains
@@ -1137,7 +1146,7 @@ llm_eval:
   provider: local
   model: bias-simulator
   evaluators:
-    - counterfactual_fairness_divergence
+    - demographic_swap_divergence
     - refusal_rate_disparity
     - toxicity_sentiment_disparity
     - stereotype_association_score
@@ -1173,7 +1182,7 @@ fairpipe llm-eval \
 
 Reports include:
 
-- `counterfactual_fairness_divergence` — matched-template pairwise divergence + bootstrap CI
+- `demographic_swap_divergence` — matched-template pairwise divergence + bootstrap CI
   (expanded hiring fixture is a real recorded signal)
 - `refusal_rate_disparity` — max−min of group refusal rates; bootstrap resamples **within
   group**. Detects phrase-level refusal signals; does not distinguish a genuine refusal
@@ -1186,16 +1195,18 @@ Reports include:
 - `stereotype_association_score` — BBQ-schema stereotyped-answer rate (U.S.-context caveat;
   shipped subset is all-ambiguous and similarly labeled until BL-009)
 
-Gate in tests with `assert_llm_fairness(metric, threshold=...)`. Log with `log_llm_eval_results`
+Gate in tests with `assert_llm_fairness(metric, threshold=...)` — same policy as
+`evaluate_llm_eval_gate()` / CLI (caveats → illustrative fail; magnitude threshold).
+Log with `log_llm_eval_results`
 (caveats become MLflow tags). CLI: `fairpipe llm-eval --metric ... --threshold ...` (exit 0/1/2/3).
 REST: `POST /llm-eval`. Production logs: `sample_production_llm_records()` into the existing
 tracker / drift engine (see [docs/integration_guide.md](docs/integration_guide.md#production-monitoring)).
 Live provider HTTP is forbidden by default (`FAIRPIPE_LLM_ALLOW_LIVE=1` to opt in).
 
 See **[docs/llm_evals_intro.md](docs/llm_evals_intro.md)** and
-**`case_studies/llm_counterfactual_fairness.ipynb`** (four sections: single-name designs
+**`case_studies/llm_fairness_measurement_pitfalls.ipynb`** (four sections: single-name designs
 manufacture group effects; lexical-distance metrics have a ~0.19 no-effect baseline, not 0
-— [BL-012](docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline);
+— [BL-012](docs/fairpipe-technical-backlog.md#bl-012--demographic_swap_divergence-has-no-no-effect-baseline);
 n=1/`nonbinary` → `nan` guard and n=9 pipeline replay on the expanded Haiku fixture,
 **not** a group effect; limitations). Prefer kernel **Python (fairpipe .venv)**.
 

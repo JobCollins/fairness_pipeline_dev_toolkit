@@ -31,6 +31,7 @@ from fairness_pipeline_dev_toolkit.llm_evals.gating import (
     EXIT_FAIL,
     EXIT_ILLUSTRATIVE,
     EXIT_PASS,
+    EXIT_UNDEFINED,
     EXIT_USAGE,
 )
 
@@ -45,7 +46,7 @@ def _write_config(tmp_path):
                 "llm_eval": {
                     "provider": RECORDED_PROVIDER,
                     "model": RECORDED_MODEL,
-                    "evaluators": ["counterfactual_fairness_divergence"],
+                    "evaluators": ["demographic_swap_divergence"],
                     "counterfactual": {
                         "template": RECORDED_COUNTERFACTUAL_TEMPLATE,
                         "dimensions": RECORDED_COUNTERFACTUAL_DIMENSIONS,
@@ -80,7 +81,7 @@ def test_llm_eval_cli_writes_markdown_report(tmp_path, capsys, assert_no_live_ll
     assert report.exists()
     content = report.read_text(encoding="utf-8")
     assert "# LLM Fairness Evaluation Report" in content
-    assert "counterfactual_fairness_divergence" in content
+    assert "demographic_swap_divergence" in content
     assert "0." in content
 
 
@@ -101,7 +102,7 @@ def test_llm_eval_cli_threshold_pass_exit_zero(tmp_path, capsys, assert_no_live_
             "--config",
             str(cfg),
             "--metric",
-            "counterfactual_fairness_divergence",
+            "demographic_swap_divergence",
             "--threshold",
             "0.50",
         ]
@@ -134,7 +135,7 @@ def test_llm_eval_cli_threshold_fail_exit_one(tmp_path, capsys, assert_no_live_l
             "--config",
             str(cfg),
             "--metric",
-            "counterfactual_fairness_divergence",
+            "demographic_swap_divergence",
             "--threshold",
             "0.01",
         ]
@@ -167,6 +168,30 @@ def test_llm_eval_cli_recorded_illustrative_exit_three_even_if_threshold_would_p
         ]
     )
     assert exit_code == EXIT_ILLUSTRATIVE
+
+
+def test_llm_eval_cli_undefined_exit_four_when_min_group_size_excludes_all(
+    tmp_path, capsys, assert_no_live_llm_calls
+):
+    """Raised min_group_size → nan metric → exit 4 (not a silent pass)."""
+    cfg = write_llm_eval_yaml(tmp_path / "llm_eval.yml", expanded_recorded_counterfactual_config())
+    exit_code = main(
+        [
+            "llm-eval",
+            "--config",
+            str(cfg),
+            "--metric",
+            "demographic_swap_divergence",
+            "--threshold",
+            "0.50",
+            "--min-group-size",
+            "999",
+        ]
+    )
+    assert exit_code == EXIT_UNDEFINED
+    captured = capsys.readouterr()
+    assert "undefined" in captured.err.lower() or "insufficient evidence" in captured.err.lower()
+    assert "min_group_size" in captured.err
 
 
 def test_llm_eval_cli_threshold_without_metric_exit_two(tmp_path, capsys):
@@ -207,7 +232,7 @@ def test_llm_eval_cli_cache_miss_nonzero_instant(tmp_path, capsys, assert_no_liv
     config = LLMEvalConfig(
         provider=RECORDED_PROVIDER,
         model=RECORDED_MODEL,
-        evaluators=["counterfactual_fairness_divergence"],
+        evaluators=["demographic_swap_divergence"],
         counterfactual=CounterfactualConfig(
             template=RECORDED_COUNTERFACTUAL_TEMPLATE,
             dimensions={"gender": ["woman", "man"]},
@@ -231,7 +256,7 @@ def test_llm_eval_cli_missing_cache_dir_nonzero_instant(tmp_path, capsys):
     config = LLMEvalConfig(
         provider=RECORDED_PROVIDER,
         model=RECORDED_MODEL,
-        evaluators=["counterfactual_fairness_divergence"],
+        evaluators=["demographic_swap_divergence"],
         counterfactual=CounterfactualConfig(
             template=RECORDED_COUNTERFACTUAL_TEMPLATE,
             dimensions={"gender": ["woman", "man"]},

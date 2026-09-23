@@ -9,12 +9,22 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 class InstanceReweighting(BaseEstimator, TransformerMixin):
     """
-    Compute sample weights to align observed group proportions with provided benchmarks.
+    Group-frequency sample weights (not Kamiran & Calders / AIF360 reweighing).
+
+    Aligns observed group proportions with optional benchmarks, or uses
+    inverse-frequency balancing per sensitive attribute. ``fit`` ignores ``y`` —
+    weights depend only on group membership, not on (group, label) cells. That is
+    a different algorithm from Kamiran & Calders, which reweights each
+    (protected-attribute, label) cell so the label distribution is independent of
+    the protected attribute.
+
     - If multiple sensitive attributes, weights are multiplied (capped).
     - If no benchmarks given, use inverse-frequency balancing per attribute.
     Outputs:
-      - transform(X) returns X unchanged
-      - stores `sample_weight_` aligned to input rows
+      - transform(X) returns X unchanged (features are not modified)
+      - stores `sample_weight_` aligned to the *fit* rows only — a training artifact.
+        Held-out / inference frames may have a different length; transform does not
+        recompute weights for them.
     """
 
     def __init__(
@@ -82,9 +92,7 @@ class InstanceReweighting(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        if self.sample_weight_ is None or len(self.sample_weight_) != len(X):
-            # Not fatal in sklearn patterns, but warn by raising to keep behavior explicit
-            raise RuntimeError(
-                "InstanceReweighting must be fitted before transform; sizes must match."
-            )
+        if self.sample_weight_ is None:
+            raise RuntimeError("InstanceReweighting must be fitted before transform.")
+        # Features unchanged; sample_weight_ remains train-sized from fit.
         return X

@@ -6,7 +6,7 @@
     "temperature": 0.0,
     "max_tokens": 512
   },
-  "evaluator": "counterfactual_fairness_contrast",
+  "evaluator": "demographic_swap_contrast",
   "purpose": "BL-012 Phase 3: humanitarian gated gender arm (copied from recorded_refusal/) plus same-coded control arm (Fatima/Amina/Leyla). Not a group-effect claim.",
   "source_gender_cache": "/Users/jobdulo/Documents/Turing/Sprint 4/fairness_pipeline_dev_toolkit/fairness_pipeline_dev_toolkit/llm_evals/fixtures/recorded_refusal/cache",
   "live_control_calls": 13,

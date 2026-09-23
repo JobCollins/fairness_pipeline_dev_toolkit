@@ -22,10 +22,11 @@ class ValidateResponse(BaseModel):
 class LLMEvalResponse(BaseModel):
     run_id: str
     status: str = "success"
-    gate_status: Literal["pass", "fail", "illustrative"]
+    gate_status: Literal["pass", "fail", "illustrative", "undefined"]
     passed: Optional[bool]
     metrics: Dict[str, Any]
     timestamp: str
+    deprecations: Optional[List[str]] = None
 
 
 class PipelineResponse(BaseModel):

@@ -50,7 +50,7 @@ pipeline:
     assert meta is result.metadata
 
 
-def test_no_instance_reweighting_metadata_none():
+def test_reweighing_transformer_exposes_sample_weight():
     cfg = load_config(
         text="""
 sensitive: ["g"]
@@ -62,6 +62,26 @@ pipeline:
   - name: r
     transformer: ReweighingTransformer
     params: {}
+"""
+    )
+    df = pd.DataFrame({"g": ["A", "B", "A", "B"], "x": [1.0, 2.0, 3.0, 4.0]})
+    pipe = build_pipeline(cfg)
+    result = apply_pipeline(pipe, df)
+    assert result.metadata is not None
+    assert "sample_weight" in result.metadata
+    assert result.sample_weight is not None
+    assert len(result.sample_weight) == len(df)
+
+
+def test_proxy_dropper_metadata_none():
+    cfg = load_config(
+        text="""
+sensitive: ["g"]
+pipeline:
+  - name: drop
+    transformer: ProxyDropper
+    params:
+      threshold: 0.99
 """
     )
     df = pd.DataFrame({"g": ["A", "B", "A", "B"], "x": [1.0, 2.0, 3.0, 4.0]})

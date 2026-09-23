@@ -126,18 +126,35 @@ def build_pipeline(cfg: PipelineConfig) -> Pipeline:
     return Pipeline(steps=steps)
 
 
-def apply_pipeline(pipe: Pipeline, X: pd.DataFrame) -> PipelineResult:
+def apply_pipeline(pipe: Pipeline, X: pd.DataFrame, *, fit: bool = True) -> PipelineResult:
     """
-    Fit/transform convenience that also returns auxiliary artifacts from steps.
+    Apply a pipeline to ``X``, optionally fitting first.
+
+    Parameters
+    ----------
+    pipe :
+        An sklearn :class:`~sklearn.pipeline.Pipeline` from :func:`build_pipeline`.
+    X :
+        Input DataFrame (must include columns required by the steps).
+    fit :
+        If ``True`` (default), call ``fit_transform`` — use for training data.
+        If ``False``, call ``transform`` only — use for held-out / inference data
+        after the same ``pipe`` instance was fitted on train. Never refit on test.
 
     Returns a :class:`~fairness_pipeline_dev_toolkit.pipeline.results.PipelineResult`.
-    For :class:`InstanceReweighting`, ``metadata`` and ``sample_weight`` carry weights.
+    For :class:`InstanceReweighting` / :class:`ReweighingTransformer`, ``sample_weight``
+    is taken from the fitted step (aligned to the training fit, not to ``X`` when
+    ``fit=False``).
     """
-    Xt = pipe.fit_transform(X)
+    if fit:
+        Xt = pipe.fit_transform(X)
+    else:
+        Xt = pipe.transform(X)
     artifacts: Dict[str, Any] = {}
     for _name, step in pipe.steps:
-        if isinstance(step, InstanceReweighting):
-            artifacts["sample_weight"] = step.sample_weight_
+        if isinstance(step, (InstanceReweighting, ReweighingTransformer)):
+            if getattr(step, "sample_weight_", None) is not None:
+                artifacts["sample_weight"] = step.sample_weight_
     meta = artifacts or None
     sw = artifacts.get("sample_weight") if artifacts else None
     names = tuple(name for name, _ in pipe.steps)

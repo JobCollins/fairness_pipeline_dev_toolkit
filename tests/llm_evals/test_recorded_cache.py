@@ -37,7 +37,7 @@ def test_recorded_fixture_blocked_at_default_min_group_size(assert_no_live_llm_c
     config = default_recorded_counterfactual_config()
     result = run_llm_eval(config, with_ci=False)
 
-    metric = result.metrics["counterfactual_fairness_divergence"]
+    metric = result.metrics["demographic_swap_divergence"]
     assert math.isnan(metric.value)
     assert metric.n_per_group == {}
     assert metric.caveat is None
@@ -51,7 +51,7 @@ def test_recorded_cache_replay_allow_small_samples(assert_no_live_llm_calls):
         allow_small_samples=True,
         with_ci=False,
     )
-    metric = result.metrics["counterfactual_fairness_divergence"]
+    metric = result.metrics["demographic_swap_divergence"]
     assert metric.value == pytest.approx(RECORDED_DIVERGENCE, rel=1e-6)
     assert metric.n_per_group == {"woman": 1, "man": 1, "nonbinary": 1}
     assert metric.caveat is None
@@ -63,7 +63,7 @@ def test_expanded_recorded_fixture_finite_at_default_threshold(assert_no_live_ll
     """BL-007: expanded fixture clears min_group_size=5 without allow_small_samples."""
     config = expanded_recorded_counterfactual_config()
     result = run_llm_eval(config, with_ci=True, bootstrap_B=200, random_state=42)
-    metric = result.metrics["counterfactual_fairness_divergence"]
+    metric = result.metrics["demographic_swap_divergence"]
 
     assert math.isfinite(metric.value)
     assert metric.n_per_group == {"woman": 9, "man": 9, "nonbinary": 9}

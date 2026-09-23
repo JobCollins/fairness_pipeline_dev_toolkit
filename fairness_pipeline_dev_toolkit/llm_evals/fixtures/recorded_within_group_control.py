@@ -1,4 +1,4 @@
-"""Within-group lexical baseline for ``counterfactual_fairness_divergence`` (BL-012).
+"""Within-group lexical baseline for ``demographic_swap_divergence`` (BL-012).
 
 Nine live Haiku responses: one asylum template × three same-coded names per group.
 This is the no-effect baseline, not a group-effect measurement. Do not cite the

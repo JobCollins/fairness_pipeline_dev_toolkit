@@ -6,9 +6,10 @@ import numpy as np
 
 
 def _percentile_ci(samples: np.ndarray, level: float) -> Tuple[float, float]:
+    """Percentile CI; non-finite bootstrap replicates are ignored (e.g. empty group)."""
     alpha = (1 - level) / 2
-    lower = np.percentile(samples, alpha * 100)
-    upper = np.percentile(samples, (1 - alpha) * 100)
+    lower = np.nanpercentile(samples, alpha * 100)
+    upper = np.nanpercentile(samples, (1 - alpha) * 100)
     return float(lower), float(upper)
 
 
@@ -150,8 +151,9 @@ def bca_ci(
 
     q1 = bca_quantile(alpha1)
     q2 = bca_quantile(alpha2)
-    lower = np.percentile(boot_stats, q1)
-    upper = np.percentile(boot_stats, q2)
+    # bca_quantile returns probabilities in (0, 1); np.percentile expects percent in [0, 100].
+    lower = np.percentile(boot_stats, q1 * 100)
+    upper = np.percentile(boot_stats, q2 * 100)
     return float(lower), float(upper)
 
 

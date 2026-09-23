@@ -20,9 +20,9 @@ def test_stub_available_returns_true():
 
 def test_stub_counterfactual_returns_metric_result():
     adapter = StubLLMEvalAdapter()
-    result = adapter.counterfactual_fairness_divergence(min_group_size=10)
+    result = adapter.demographic_swap_divergence(min_group_size=10)
 
-    assert result.metric == "counterfactual_fairness_divergence"
+    assert result.metric == "demographic_swap_divergence"
     assert isinstance(result.value, float)
     assert hasattr(result, "ci")
     assert hasattr(result, "effect_size")

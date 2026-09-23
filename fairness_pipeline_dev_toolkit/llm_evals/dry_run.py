@@ -4,6 +4,10 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 from fairness_pipeline_dev_toolkit.exceptions import ConfigValidationError
+from fairness_pipeline_dev_toolkit.llm_evals.names import (
+    DEMOGRAPHIC_SWAP_PROBE_EVALS,
+    canonicalize_evaluators,
+)
 
 # Approximate USD per 1K tokens (input, output) for dry-run estimates only.
 MODEL_COST_PER_1K: Dict[str, tuple[float, float]] = {
@@ -86,18 +90,15 @@ def estimate_dry_run(
     input_tokens_per_prompt: int = DEFAULT_INPUT_TOKENS_PER_PROMPT,
     output_tokens_per_response: int = DEFAULT_OUTPUT_TOKENS_PER_RESPONSE,
 ) -> DryRunEstimate:
+    evaluators = canonicalize_evaluators(evaluators, warn=False)
     breakdown: Dict[str, int] = {}
     request_count = 0
 
-    cf_probe_evals = (
-        "counterfactual_fairness_divergence",
-        "counterfactual_fairness_contrast",
-    )
-    if any(name in evaluators for name in cf_probe_evals):
+    if any(name in evaluators for name in DEMOGRAPHIC_SWAP_PROBE_EVALS):
         if not counterfactual_dimensions:
             raise ConfigValidationError(
                 "counterfactual.dimensions is required when running "
-                "counterfactual_fairness_divergence or counterfactual_fairness_contrast."
+                "demographic_swap_divergence or demographic_swap_contrast."
             )
         # Both metrics share one prompt set; count once even if both are listed.
         cf_count, cf_breakdown = estimate_counterfactual_requests(

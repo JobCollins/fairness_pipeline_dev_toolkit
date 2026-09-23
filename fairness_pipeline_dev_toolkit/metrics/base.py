@@ -23,6 +23,7 @@ class MetricResult:
     effect_size: Optional[float] = None  # risk ratio, Cohen's d, etc. (Phase 3 fills this)
     n_per_group: Optional[Dict[str, int]] = None  # sample sizes by group
     caveat: Optional[str] = None  # provenance warning; None for ordinary user data
+    n_dropped_nonfinite: Optional[int] = None  # rows dropped for NaN/inf in y_true/y_pred
 
 
 # ---------------------------------------

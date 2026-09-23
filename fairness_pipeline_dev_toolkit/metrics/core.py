@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -12,7 +12,98 @@ from ..utils.array_utils import to_numpy_1d
 from ..utils.intersectional import build_intersectional_labels, min_group_mask
 from .aequitas_adapter import AequitasAdapter
 from .fairlearn_adapter import FairlearnAdapter
+from .input_validation import (
+    LengthMismatchError,
+    check_pandas_indices_aligned,
+    nonfinite_drop_caveat,
+    prepare_binary_classifier_inputs,
+    prepare_regression_metric_inputs,
+)
 from .native_adapter import NativeAdapter
+
+
+def _sens_keys(sens: np.ndarray) -> np.ndarray:
+    """Stable string group keys aligned with ``sens`` for bootstrap membership tests."""
+    return np.asarray(sens, dtype=str)
+
+
+def dpd_stat_from_indices(
+    sample_idx: np.ndarray,
+    y_pred: np.ndarray,
+    group_of: np.ndarray,
+    groups: Sequence[str],
+) -> float:
+    """Max−min of group means over a bootstrap sample of observation indices.
+
+    Deterministic in ``sample_idx``. Returns ``nan`` if any group in ``groups``
+    has zero members in the resample — the estimand is defined on that fixed
+    group set, so an incomplete resample does not estimate it.
+    """
+    idxs = np.asarray(sample_idx, dtype=int)
+    rates: List[float] = []
+    for g in groups:
+        sel = idxs[group_of[idxs] == g]
+        if sel.size == 0:
+            return float("nan")
+        rates.append(float(y_pred[sel].mean()))
+    return float(max(rates) - min(rates))
+
+
+def eod_stat_from_indices(
+    sample_idx: np.ndarray,
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    group_of: np.ndarray,
+    groups: Sequence[str],
+) -> float:
+    """Equalized-odds gap (max of TPR/FPR gaps) over a bootstrap index sample.
+
+    Deterministic in ``sample_idx``. Returns ``nan`` if any analysis group is
+    absent from the resample.
+    """
+    idxs = np.asarray(sample_idx, dtype=int)
+    tprs: List[float] = []
+    fprs: List[float] = []
+    for g in groups:
+        sel = idxs[group_of[idxs] == g]
+        if sel.size == 0:
+            return float("nan")
+        yt_g = y_true[sel]
+        yp_g = y_pred[sel]
+        pos = yt_g == 1
+        neg = yt_g == 0
+        tpr_g = np.nan if not np.any(pos) else float((yp_g[pos] == 1).mean())
+        fpr_g = np.nan if not np.any(neg) else float((yp_g[neg] == 1).mean())
+        if np.isfinite(tpr_g):
+            tprs.append(tpr_g)
+        if np.isfinite(fpr_g):
+            fprs.append(fpr_g)
+    tpr_gap = np.nan if len(tprs) < 2 else (max(tprs) - min(tprs))
+    fpr_gap = np.nan if len(fprs) < 2 else (max(fprs) - min(fprs))
+    if not np.isfinite(tpr_gap) and not np.isfinite(fpr_gap):
+        return float("nan")
+    return float(np.nanmax([tpr_gap, fpr_gap]))
+
+
+def mae_gap_stat_from_indices(
+    sample_idx: np.ndarray,
+    abs_err: np.ndarray,
+    group_of: np.ndarray,
+    groups: Sequence[str],
+) -> float:
+    """Max−min of per-group mean absolute error over a bootstrap index sample.
+
+    Deterministic in ``sample_idx``. Returns ``nan`` if any analysis group is
+    absent from the resample.
+    """
+    idxs = np.asarray(sample_idx, dtype=int)
+    maes: List[float] = []
+    for g in groups:
+        sel = idxs[group_of[idxs] == g]
+        if sel.size == 0:
+            return float("nan")
+        maes.append(float(abs_err[sel].mean()))
+    return float(max(maes) - min(maes))
 
 
 @dataclass
@@ -22,6 +113,8 @@ class Result:
     ci: Optional[tuple[float, float]] = None
     effect_size: Optional[float] = None
     n_per_group: Optional[Dict[str, int]] = None
+    caveat: Optional[str] = None
+    n_dropped_nonfinite: Optional[int] = None
 
 
 class FairnessAnalyzer:
@@ -127,11 +220,22 @@ class FairnessAnalyzer:
         ci_samples: int = 1000,
         with_effect_size: bool = True,
     ):
-        yp = to_numpy_1d(y_pred, "y_pred")
-
         if intersectional:
             if attrs_df is None:
                 raise ValueError("attrs_df is required when intersectional=True")
+            check_pandas_indices_aligned(y_pred=y_pred, attrs_df=attrs_df)
+        else:
+            check_pandas_indices_aligned(y_pred=y_pred, sensitive=sensitive)
+
+        yp = to_numpy_1d(y_pred, "y_pred")
+
+        if intersectional:
+            if len(yp) != len(attrs_df):
+                raise LengthMismatchError(
+                    f"y_pred and attrs_df must have the same length; "
+                    f"got y_pred={len(yp)}, attrs_df={len(attrs_df)}. "
+                    "Align or truncate before calling the metric."
+                )
             labels = self._intersectional_prep(attrs_df, columns)
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
@@ -142,10 +246,25 @@ class FairnessAnalyzer:
         else:
             sens = to_numpy_1d(sensitive, "sensitive")
 
+        prepared = prepare_binary_classifier_inputs(
+            y_pred=yp, sensitive=sens, y_true=None, require_y_true=False
+        )
+        yp, sens = prepared.y_pred, prepared.sensitive
+        drop_caveat = nonfinite_drop_caveat(prepared.n_dropped_nonfinite)
+
+        # Core metric via adapter (native)
         mr = self._adapter.demographic_parity_difference(
             y_true=None, y_pred=yp, sensitive=sens, min_group_size=self.min_group_size
         )
-        res = Result(mr.metric, mr.value, ci=None, effect_size=None, n_per_group=mr.n_per_group)
+        res = Result(
+            mr.metric,
+            mr.value,
+            ci=None,
+            effect_size=None,
+            n_per_group=mr.n_per_group,
+            caveat=drop_caveat or mr.caveat,
+            n_dropped_nonfinite=prepared.n_dropped_nonfinite,
+        )
 
         groups = [g for g, n in (res.n_per_group or {}).items() if n >= self.min_group_size]
         rates_dict = {}
@@ -153,29 +272,20 @@ class FairnessAnalyzer:
             m = (sens == g) if sens.dtype.kind not in {"U", "S", "O"} else (sens.astype(str) == str(g))
             rates_dict[str(g)] = float(yp[m].mean())
 
+        # CI via bootstrap over observation indices (statistic is deterministic in its sample).
         if with_ci and len(groups) >= 2 and np.isfinite(res.value):
             if ci_samples <= 0:
                 raise ValueError(
                     "ci_samples must be positive when requesting confidence intervals."
                 )
+            group_keys = [str(g) for g in groups]
+            group_of = _sens_keys(sens)
+            obs_idx = np.arange(len(yp), dtype=int)
 
-            def stat_fn(sample_indices):
-                yp_boot = yp[sample_indices]
-                sens_boot = sens[sample_indices]
-                rates = []
-                for g in groups:
-                    if sens_boot.dtype.kind not in {"U", "S", "O"}:
-                        m = (sens_boot == g)
-                    else:
-                        m = (sens_boot.astype(str) == str(g))
-                    group_vals = yp_boot[m]
-                    if group_vals.size == 0:
-                        continue
-                    rates.append(float(group_vals.mean()))
-                return np.nan if len(rates) < 2 else (max(rates) - min(rates))
+            def stat_fn(sample_idx):
+                return dpd_stat_from_indices(sample_idx, yp, group_of, group_keys)
 
-            dummy = np.arange(len(yp))
-            res.ci = bootstrap_ci(dummy, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
+            res.ci = bootstrap_ci(obs_idx, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
 
         if with_effect_size and len(rates_dict) >= 2:
             rmax = max(rates_dict.values())
@@ -201,12 +311,23 @@ class FairnessAnalyzer:
         ci_samples: int = 1000,
         with_effect_size: bool = True,
     ):
+        if intersectional:
+            if attrs_df is None:
+                raise ValueError("attrs_df is required when intersectional=True")
+            check_pandas_indices_aligned(y_true=y_true, y_pred=y_pred, attrs_df=attrs_df)
+        else:
+            check_pandas_indices_aligned(y_true=y_true, y_pred=y_pred, sensitive=sensitive)
+
         yt = to_numpy_1d(y_true, "y_true")
         yp = to_numpy_1d(y_pred, "y_pred")
 
         if intersectional:
-            if attrs_df is None:
-                raise ValueError("attrs_df is required when intersectional=True")
+            if len(yp) != len(attrs_df) or len(yt) != len(attrs_df):
+                raise LengthMismatchError(
+                    f"y_true, y_pred, and attrs_df must have the same length; "
+                    f"got y_true={len(yt)}, y_pred={len(yp)}, attrs_df={len(attrs_df)}. "
+                    "Align or truncate before calling the metric."
+                )
             labels = self._intersectional_prep(attrs_df, columns)
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
@@ -218,10 +339,24 @@ class FairnessAnalyzer:
         else:
             sens = to_numpy_1d(sensitive, "sensitive")
 
+        prepared = prepare_binary_classifier_inputs(
+            y_pred=yp, sensitive=sens, y_true=yt, require_y_true=True
+        )
+        yp, sens, yt = prepared.y_pred, prepared.sensitive, prepared.y_true
+        drop_caveat = nonfinite_drop_caveat(prepared.n_dropped_nonfinite)
+
         mr = self._adapter.equalized_odds_difference(
             y_true=yt, y_pred=yp, sensitive=sens, min_group_size=self.min_group_size
         )
-        res = Result(mr.metric, mr.value, ci=None, effect_size=None, n_per_group=mr.n_per_group)
+        res = Result(
+            mr.metric,
+            mr.value,
+            ci=None,
+            effect_size=None,
+            n_per_group=mr.n_per_group,
+            caveat=drop_caveat or mr.caveat,
+            n_dropped_nonfinite=prepared.n_dropped_nonfinite,
+        )
 
         groups = [g for g, n in (res.n_per_group or {}).items() if n >= self.min_group_size]
         tprs: List[float] = []
@@ -246,38 +381,14 @@ class FairnessAnalyzer:
                 raise ValueError(
                     "ci_samples must be positive when requesting confidence intervals."
                 )
+            group_keys = [str(g) for g in groups]
+            group_of = _sens_keys(sens)
+            obs_idx = np.arange(len(yp), dtype=int)
 
-            def stat_fn(sample_indices):
-                yt_boot = yt[sample_indices]
-                yp_boot = yp[sample_indices]
-                sens_boot = sens[sample_indices]
+            def stat_fn(sample_idx):
+                return eod_stat_from_indices(sample_idx, yt, yp, group_of, group_keys)
 
-                tprs_b, fprs_b = [], []
-                for g in groups:
-                    if sens_boot.dtype.kind not in {"U", "S", "O"}:
-                        m = (sens_boot == g)
-                    else:
-                        m = (sens_boot.astype(str) == str(g))
-                    yt_g = yt_boot[m]
-                    yp_g = yp_boot[m]
-                    if yt_g.size == 0:
-                        continue
-                    pos = yt_g == 1
-                    neg = yt_g == 0
-                    tpr_g = np.nan if pos.sum() == 0 else float((yp_g[pos] == 1).mean())
-                    fpr_g = np.nan if neg.sum() == 0 else float((yp_g[neg] == 1).mean())
-                    if np.isfinite(tpr_g):
-                        tprs_b.append(tpr_g)
-                    if np.isfinite(fpr_g):
-                        fprs_b.append(fpr_g)
-                tpr_gap = np.nan if len(tprs_b) < 2 else (max(tprs_b) - min(tprs_b))
-                fpr_gap = np.nan if len(fprs_b) < 2 else (max(fprs_b) - min(fprs_b))
-                if not np.isfinite(tpr_gap) and not np.isfinite(fpr_gap):
-                    return np.nan
-                return np.nanmax([tpr_gap, fpr_gap])
-
-            dummy = np.arange(len(yt))
-            res.ci = bootstrap_ci(dummy, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
+            res.ci = bootstrap_ci(obs_idx, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
 
         if with_effect_size:
             ratios: List[float] = []
@@ -315,12 +426,23 @@ class FairnessAnalyzer:
         ci_samples: int = 1000,
         with_effect_size: bool = True,
     ):
+        if intersectional:
+            if attrs_df is None:
+                raise ValueError("attrs_df is required when intersectional=True")
+            check_pandas_indices_aligned(y_true=y_true, y_pred=y_pred, attrs_df=attrs_df)
+        else:
+            check_pandas_indices_aligned(y_true=y_true, y_pred=y_pred, sensitive=sensitive)
+
         yt = to_numpy_1d(y_true, "y_true")
         yp = to_numpy_1d(y_pred, "y_pred")
 
         if intersectional:
-            if attrs_df is None:
-                raise ValueError("attrs_df is required when intersectional=True")
+            if len(yp) != len(attrs_df) or len(yt) != len(attrs_df):
+                raise LengthMismatchError(
+                    f"y_true, y_pred, and attrs_df must have the same length; "
+                    f"got y_true={len(yt)}, y_pred={len(yp)}, attrs_df={len(attrs_df)}. "
+                    "Align or truncate before calling the metric."
+                )
             labels = self._intersectional_prep(attrs_df, columns)
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
@@ -332,10 +454,22 @@ class FairnessAnalyzer:
         else:
             sens = to_numpy_1d(sensitive, "sensitive")
 
+        prepared = prepare_regression_metric_inputs(y_true=yt, y_pred=yp, sensitive=sens)
+        yp, sens, yt = prepared.y_pred, prepared.sensitive, prepared.y_true
+        drop_caveat = nonfinite_drop_caveat(prepared.n_dropped_nonfinite)
+
         mr = self._adapter.mae_parity_difference(
             y_true=yt, y_pred=yp, sensitive=sens, min_group_size=self.min_group_size
         )
-        res = Result(mr.metric, mr.value, ci=None, effect_size=None, n_per_group=mr.n_per_group)
+        res = Result(
+            mr.metric,
+            mr.value,
+            ci=None,
+            effect_size=None,
+            n_per_group=mr.n_per_group,
+            caveat=drop_caveat or mr.caveat,
+            n_dropped_nonfinite=prepared.n_dropped_nonfinite,
+        )
 
         groups = [g for g, n in (res.n_per_group or {}).items() if n >= self.min_group_size]
         abs_err = np.abs(yt - yp)
@@ -345,24 +479,14 @@ class FairnessAnalyzer:
                 raise ValueError(
                     "ci_samples must be positive when requesting confidence intervals."
                 )
+            group_keys = [str(g) for g in groups]
+            group_of = _sens_keys(sens)
+            obs_idx = np.arange(len(yp), dtype=int)
 
-            def stat_fn(sample_indices):
-                abs_err_boot = abs_err[sample_indices]
-                sens_boot = sens[sample_indices]
-                maes = []
-                for g in groups:
-                    if sens_boot.dtype.kind not in {"U", "S", "O"}:
-                        m = (sens_boot == g)
-                    else:
-                        m = (sens_boot.astype(str) == str(g))
-                    group_errs = abs_err_boot[m]
-                    if group_errs.size == 0:
-                        continue
-                    maes.append(float(group_errs.mean()))
-                return np.nan if len(maes) < 2 else (max(maes) - min(maes))
+            def stat_fn(sample_idx):
+                return mae_gap_stat_from_indices(sample_idx, abs_err, group_of, group_keys)
 
-            dummy = np.arange(len(yt))
-            res.ci = bootstrap_ci(dummy, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
+            res.ci = bootstrap_ci(obs_idx, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
 
         if with_effect_size and len(groups) >= 2:
             maes_by_group = {}

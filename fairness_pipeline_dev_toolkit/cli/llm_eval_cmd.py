@@ -3,17 +3,26 @@ from __future__ import annotations
 import argparse
 import sys
 
+import yaml
+
 from fairness_pipeline_dev_toolkit.llm_evals.client import (
     CacheMissError,
     LiveLLMCallForbidden,
 )
 from fairness_pipeline_dev_toolkit.llm_evals.config import load_llm_eval_config
 from fairness_pipeline_dev_toolkit.llm_evals.gating import (
+    EXIT_UNDEFINED,
     EXIT_USAGE,
     GATE_STATUS_TO_EXIT,
+    GATE_UNDEFINED,
     evaluate_llm_eval_gate,
 )
 from fairness_pipeline_dev_toolkit.llm_evals.guards import DEFAULT_LLM_MIN_GROUP_SIZE
+from fairness_pipeline_dev_toolkit.llm_evals.names import (
+    alias_deprecation_message,
+    canonicalize_evaluator_name,
+    collect_alias_deprecations,
+)
 from fairness_pipeline_dev_toolkit.llm_evals.runner import (
     results_to_markdown,
     run_llm_eval,
@@ -21,11 +30,35 @@ from fairness_pipeline_dev_toolkit.llm_evals.runner import (
 )
 
 
+def _print_alias_stderr(names: list[str]) -> None:
+    for msg in collect_alias_deprecations(names):
+        print(f"warning: {msg}", file=sys.stderr)
+
+
 def _selected_metric(args: argparse.Namespace) -> str | None:
     if args.metric is None:
         return None
     text = str(args.metric).strip()
-    return text or None
+    if not text:
+        return None
+    msg = alias_deprecation_message(text)
+    if msg is not None:
+        print(f"warning: {msg}", file=sys.stderr)
+    return canonicalize_evaluator_name(text, warn=True)
+
+
+def _raw_evaluators_from_config_path(path: str) -> list[str]:
+    with open(path, encoding="utf-8") as f:
+        root = yaml.safe_load(f) or {}
+    if not isinstance(root, dict):
+        return []
+    block = root.get("llm_eval", root)
+    if not isinstance(block, dict):
+        return []
+    evaluators = block.get("evaluators") or []
+    if not isinstance(evaluators, list):
+        return []
+    return [str(e) for e in evaluators]
 
 
 def cmd_llm_eval(args: argparse.Namespace) -> int:
@@ -37,6 +70,7 @@ def cmd_llm_eval(args: argparse.Namespace) -> int:
         )
         return EXIT_USAGE
 
+    _print_alias_stderr(_raw_evaluators_from_config_path(args.config))
     config = load_llm_eval_config(path=args.config)
     if metric is not None and metric not in config.evaluators:
         print(
@@ -96,6 +130,18 @@ def cmd_llm_eval(args: argparse.Namespace) -> int:
         )
         return EXIT_USAGE
 
+    if gate_status == GATE_UNDEFINED:
+        print(
+            "error: gated metric is undefined (insufficient evidence) — fairpipe "
+            "declined to produce a finite disparity number. A demographic group "
+            "likely fell below min_group_size, so every eligible group was "
+            "excluded (or fewer than two remain). Raise sample size / "
+            "--min-group-size, or use --allow-small-samples only for labelled "
+            "illustrative smoke tests. This is not a pass.",
+            file=sys.stderr,
+        )
+        return EXIT_UNDEFINED
+
     return GATE_STATUS_TO_EXIT[gate_status]
 
 
@@ -147,9 +193,10 @@ def register_llm_eval_parser(sub) -> None:
         type=float,
         default=None,
         help=(
-            "Optional: gate the selected --metric (exit 0 pass / 1 fail / 3 illustrative). "
-            "A caveated (illustrative) metric always exits 3, even when the number would "
-            "pass the threshold. Requires --metric when set."
+            "Optional: gate the selected --metric (exit 0 pass / 1 fail / "
+            "3 illustrative / 4 undefined). A caveated metric always exits 3; "
+            "a non-finite metric (typically min_group_size) exits 4. Requires "
+            "--metric when set."
         ),
     )
     p.add_argument(
@@ -157,7 +204,8 @@ def register_llm_eval_parser(sub) -> None:
         default=None,
         help=(
             "LLM-eval metric key to gate (required when --threshold is set). "
-            "Without --threshold, a caveat on this metric still exits 3."
+            "Without --threshold, a caveat still exits 3 and a non-finite value "
+            "still exits 4."
         ),
     )
     p.set_defaults(func=cmd_llm_eval)

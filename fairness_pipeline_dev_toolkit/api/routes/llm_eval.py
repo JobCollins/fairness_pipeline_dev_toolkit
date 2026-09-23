@@ -17,6 +17,10 @@ from fairness_pipeline_dev_toolkit.llm_evals.config import (
     load_llm_eval_config,
 )
 from fairness_pipeline_dev_toolkit.llm_evals.gating import evaluate_llm_eval_gate
+from fairness_pipeline_dev_toolkit.llm_evals.names import (
+    canonicalize_evaluator_name,
+    collect_alias_deprecations,
+)
 from fairness_pipeline_dev_toolkit.llm_evals.runner import run_llm_eval_async
 
 from ..models.requests import LLMEvalRequest
@@ -48,6 +52,29 @@ def _http_422(message: str, *, error: str = "ConfigValidationError") -> HTTPExce
         status_code=422,
         detail={"error": error, "message": message, "run_id": None},
     )
+
+
+def _deprecations_from_request(req: LLMEvalRequest) -> list[str]:
+    """Collect alias notices from raw request fields (evaluators + gate metric)."""
+    names: list[str] = []
+    provided = req.model_dump(exclude_unset=True)
+    provided.update(dict(req.model_extra or {}))
+    yaml_text = provided.get("config")
+    if isinstance(yaml_text, str) and yaml_text.strip():
+        try:
+            root = yaml.safe_load(yaml_text) or {}
+        except yaml.YAMLError:
+            root = {}
+        if isinstance(root, dict):
+            block = root.get("llm_eval", root)
+            if isinstance(block, dict):
+                for item in block.get("evaluators") or []:
+                    names.append(str(item))
+    for item in provided.get("evaluators") or []:
+        names.append(str(item))
+    if req.metric is not None:
+        names.append(str(req.metric))
+    return collect_alias_deprecations(names)
 
 
 def _config_from_request(req: LLMEvalRequest) -> LLMEvalConfig:
@@ -86,16 +113,21 @@ async def llm_eval(req: LLMEvalRequest, store: ResultStore = Depends(get_store))
     """Run LLM fairness evaluators. Credentials are env-only on the server process."""
     run_id = str(uuid.uuid4())
     ts = _utc_now()
+    deprecations = _deprecations_from_request(req)
 
     try:
         config = _config_from_request(req)
     except (ConfigValidationError, TypeError, ValueError) as exc:
         raise _http_422(str(exc)) from exc
 
-    if req.metric is not None and req.metric not in config.evaluators:
-        raise _http_422(
-            f"metric {req.metric!r} is not in this run's evaluators {config.evaluators}."
-        )
+    if req.metric is not None:
+        metric = canonicalize_evaluator_name(req.metric, warn=True)
+        if metric not in config.evaluators:
+            raise _http_422(
+                f"metric {req.metric!r} is not in this run's evaluators {config.evaluators}."
+            )
+    else:
+        metric = None
 
     try:
         result = await run_llm_eval_async(
@@ -118,13 +150,11 @@ async def llm_eval(req: LLMEvalRequest, store: ResultStore = Depends(get_store))
     except ConfigValidationError as exc:
         raise _http_422(str(exc)) from exc
 
-    metrics: Dict[str, Any] = {
-        name: _result_to_dict(metric) for name, metric in result.metrics.items()
-    }
+    metrics: Dict[str, Any] = {name: _result_to_dict(item) for name, item in result.metrics.items()}
 
     try:
         gate_status, passed = evaluate_llm_eval_gate(
-            metrics, threshold=req.threshold, metric=req.metric
+            metrics, threshold=req.threshold, metric=metric
         )
     except KeyError as exc:
         raise _http_422(f"metric {req.metric!r} was not present in the eval results.") from exc
@@ -136,6 +166,7 @@ async def llm_eval(req: LLMEvalRequest, store: ResultStore = Depends(get_store))
         "passed": passed,
         "metrics": metrics,
         "timestamp": ts,
+        "deprecations": deprecations or None,
         "_endpoint": "/llm-eval",
     }
     store.put(run_id, stored)
@@ -146,4 +177,5 @@ async def llm_eval(req: LLMEvalRequest, store: ResultStore = Depends(get_store))
         passed=passed,
         metrics=metrics,
         timestamp=ts,
+        deprecations=deprecations or None,
     )

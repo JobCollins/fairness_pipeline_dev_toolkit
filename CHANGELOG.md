@@ -9,12 +9,90 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Wave 1 trustworthy-measurement + train-once transforms (BL-013, BL-015, BL-017,
+BL-020, BL-025) plus the LLM metric rename below. Behaviour-changing; intended
+next release is a **minor** (0.12.0), not a patch. No version bump in this commit.
+
+### Upgrade notes (breaking)
+
+Read this before upgrading from ≤0.11.0.
+
+- **LLM metric rename (`counterfactual_fairness_*` → `demographic_swap_*`).**
+  `demographic_swap_divergence` / `demographic_swap_contrast` replace
+  `counterfactual_fairness_divergence` / `counterfactual_fairness_contrast`.
+  The old names remain **input** aliases for one release (YAML `evaluators:`,
+  REST bodies, CLI `--metric`, protocol method names, class import) and emit
+  `FutureWarning` (visible under default filters; CLI also prints to stderr;
+  REST returns a `deprecations` list). **Outputs use only the new keys** —
+  `result.metrics["counterfactual_fairness_divergence"]` raises `KeyError`
+  (deliberate; do not emit both). Case study moved to
+  `case_studies/llm_fairness_measurement_pitfalls.ipynb`; a stub remains at the
+  old path so PyPI / GitHub absolute links do not 404 until the next release
+  updates them.
+- **Undersized groups / non-finite LLM metrics** no longer pass the gate silently.
+  They produce `gate_status: "undefined"`, CLI exit **4**, and
+  `assert_llm_fairness` raises (unless `allow_nan=True` on the plugin). Precedence:
+  illustrative > undefined > fail > pass.
+- **Probability scores as `y_pred` raise.** Passing `predict_proba(X)[:, 1]` (or any
+  non-{0,1} encoding with more than two distinct values) raises
+  `MulticlassNotSupportedError` / `NonBinaryEncodingError`. Threshold first, e.g.
+  `(proba >= 0.5).astype(int)`. The error message says so.
+- **Multiclass and non-`{0,1}` binary encodings raise** (`MulticlassNotSupportedError`,
+  `NonBinaryEncodingError`). Positive class is **1**.
+- **NaN/inf in `y_true` / `y_pred`** are dropped; the result reports
+  `n_dropped_nonfinite` and a caveat (same idea as protected-attribute
+  `nan_policy="exclude"`).
+- **Mismatched pandas indices** among `y_true` / `y_pred` / `sensitive` /
+  `attrs_df` raise `IndexMismatchError` instead of silently zipping by position.
+  Fix with `.reindex()` / `.loc` / `.reset_index(drop=True)`. Mixed Series+array
+  stays positional.
+- **Transforms fit on training data only.** `execute_workflow` /
+  `apply_pipeline(..., fit=False)` apply the train-fitted mapping to test.
+  `DisparateImpactRemover` uses fitted train group CDFs, so single-row and batch
+  transforms agree. Workflows that refit on test or relied on within-batch ranks
+  get **different numbers**.
+- **LLM / pytest gates use magnitude.** `assert_llm_fairness` matches CLI/REST:
+  caveated results fail as illustrative; non-caveated use `abs(value) > threshold`.
+  A large **negative** signed contrast therefore fails — documented, not changed.
+  `comparator` is unused (call-site compatibility only).
+
+### Fixed
+
+- **Analyzer bootstrap stats were non-deterministic (Wave 1a / BL-013).** Classifier
+  CI stats ignored the bootstrap resample and redrew via global `np.random`,
+  invalidating BCa and distorting percentile intervals. Index-based stats now drive
+  DPD/EOD/MAE CIs.
+- **BCa percentile units were wrong in every release from v0.2.0 through v0.11.0
+  (Wave 1b / BL-013).** Accel/bias-corrected probabilities were passed to
+  `np.percentile` unscaled (fraction vs percent). BCa is **opt-in**; the **default
+  percentile CI path was unaffected** — published figures that used the default are
+  not automatically suspect. Only callers who set BCa need to recompute.
+
+### Changed (detail)
+
+- Shared `metrics/input_validation.py` for analyzer + adapters (BL-015);
+  `LengthMismatchError` replaces raw NumPy `IndexError` on length mismatch.
+- `apply_pipeline(..., fit=True|False)`; reweighing steps keep train-sized
+  `sample_weight_` without refitting on transform (BL-025). Persistence remains
+  pickle/joblib of the sklearn `Pipeline` — no first-class fairpipe serialize API.
+  REST `/pipeline` still fit-transforms the uploaded frame once.
+
+### Not fixed in this batch (still open)
+
+- **BL-014** — percentile CI coverage at true DPD equality remains ~0/100; the
+  determinism fix did not resolve it. Wave 3.
+- **BL-031** — BCa has no policy for NaN bootstrap replicates from analyzer stats.
+- **Signed-metric gate** — `abs(value) > threshold` means a large negative contrast
+  fails; intentional alignment with CLI, not changed here.
+- **Deploy follow-ons** — REST `/pipeline` cannot apply a previously fitted
+  pipeline; no first-class transform serialization beyond pickle/joblib.
+
 ## [v0.11.0] — 2026-09-21
 
-Additive minor: `counterfactual_fairness_contrast` plus the divergence interpretation
+Additive minor: `demographic_swap_contrast` plus the divergence interpretation
 correction that 0.10.0's PyPI README still framed wrongly.
 
-**`counterfactual_fairness_contrast`** reports gated-dimension divergence against a
+**`demographic_swap_contrast`** reports gated-dimension divergence against a
 same-coded control baseline measured in the **same run**, because the raw divergence
 metric's no-effect baseline is ~0.19–0.26, not 0. Two controls in the same domain
 measured **0.190** and **0.258** (~36% spread), so the baseline must be per-run rather
@@ -26,12 +104,12 @@ indicate a group effect for that metric.
 
 ### Added
 
-- **`counterfactual_fairness_contrast` (BL-012):** sibling metric to
-  `counterfactual_fairness_divergence`. Configures an explicit
+- **`demographic_swap_contrast` (BL-012):** sibling metric to
+  `demographic_swap_divergence`. Configures an explicit
   `counterfactual.control_dimension` whose values are same-coded (within-group baseline);
   reports signed `max(gated means) − control mean` with an independent difference-of-means
   bootstrap CI. Near-zero or negative is the expected null reading. Does **not** change
-  what `counterfactual_fairness_divergence` returns. Costs: roughly doubles API calls;
+  what `demographic_swap_divergence` returns. Costs: roughly doubles API calls;
   control values must be genuinely same-coded or the contrast under-reports (David→Tariq
   trap). Gate is magnitude-based (`abs(value) > threshold`) while the metric is signed.
 - **`counterfactual.control_dimension`:** validated in the counterfactual config block
@@ -57,14 +135,14 @@ indicate a group effect for that metric.
   of one name string (humanitarian recording: David 0.0 vs Tariq 1.0 on identical
   asylum-template text).
 - **`humanitarian_divergence_config()`:** replays the humanitarian
-  `recorded_refusal/` cache under `counterfactual_fairness_divergence` (same
+  `recorded_refusal/` cache under `demographic_swap_divergence` (same
   templates, `name_pools`, params, and `cache_dir` as
   `default_recorded_refusal_config()`). Finite at n=5/group, `caveat` is `None`.
   The 0.202 figure is lexical distance, not a group effect — see the
-  interpretation correction below and [BL-012](docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline).
+  interpretation correction below and [BL-012](docs/fairpipe-technical-backlog.md#bl-012--demographic_swap_divergence-has-no-no-effect-baseline).
 - **`recorded_within_group_control/`:** nine live Haiku responses (one asylum
   template × three same-coded names per group) that establish the no-effect
-  baseline for `counterfactual_fairness_divergence` at ~0.19. Manifest omits
+  baseline for `demographic_swap_divergence` at ~0.19. Manifest omits
   `illustrative`. This is evidence for BL-012, not a group-effect measurement.
 - **BL-011:** `refusal_score` / `refusal_rate_disparity` detect phrase-level refusal
   signals and do not distinguish a genuine refusal to engage from a scope disclaimer on
@@ -75,11 +153,11 @@ indicate a group effect for that metric.
 - **BL-010 closed:** `llm-fairness-check` mode landed in
   [`SvrusIO/fairpipe-action@v2`](https://github.com/SvrusIO/fairpipe-action)
   (merge `b629800`). README, `docs/integration_guide.md`, and case-study snippets
-  use `@v2`. `counterfactual_fairness_divergence` now calls `with_fixture_caveat`
+  use `@v2`. `demographic_swap_divergence` now calls `with_fixture_caveat`
   (same path as refusal / toxicity / stereotype).
 - `docs/fairpipe-technical-backlog.md`: BL-010 marked closed with acceptance
   criteria checked off.
-- **Case study rewrite:** `case_studies/llm_counterfactual_fairness.ipynb` reframed
+- **Case study rewrite:** `case_studies/llm_fairness_measurement_pitfalls.ipynb` reframed
   around two measurement failures (single-name-per-group artifact; divergence baseline
   ≠ 0) rather than presenting hiring 0.196 as a group-effect finding.
 
@@ -93,7 +171,7 @@ indicate a group effect for that metric.
   Do **not** cite this fixture as evidence of group-level refusal disparity. Toxicity and BBQ remain illustrative.
 - **`populate_recorded_refusal_cache()`** live-records those humanitarian templates
   (Phase 1 cache-once-replay). It no longer copies `recorded_counterfactual_expanded/`.
-- **`CounterfactualFairnessEvaluator`** now wraps both the guard/`nan` path and the computed
+- **`DemographicSwapEvaluator`** now wraps both the guard/`nan` path and the computed
   result in `with_fixture_caveat()`, matching refusal and toxicity. The expanded Phase 1
   fixture has no `illustrative` manifest key, so the published divergence stays
   `caveat is None`.
@@ -101,7 +179,7 @@ indicate a group effect for that metric.
   more non-control placeholders, `generate_counterfactual_prompts()` raises
   `ConfigValidationError` instead of silently filling one slot (avoids “Fatima in Fatima”
   collapses). Prefer an explicit `{control}` placeholder.
-- **`counterfactual_fairness_divergence` interpretation (v0.10.0 correction):**
+- **`demographic_swap_divergence` interpretation (v0.10.0 correction):**
   the hiring (≈0.196, 95% CI 0.185–0.205) and humanitarian (≈0.202, 95% CI
   0.188–0.220) figures measure lexical divergence, dominated by token overlap.
   They are **not** evidence of a group effect. A within-group control puts the
@@ -110,7 +188,7 @@ indicate a group effect for that metric.
   because 0 is not the no-effect baseline. The statistic and bootstrap were
   never wrong; the reference point was. Fixtures, evaluator, and
   `pairwise_divergence` are unchanged. See
-  [BL-012](docs/fairpipe-technical-backlog.md#bl-012--counterfactual_fairness_divergence-has-no-no-effect-baseline).
+  [BL-012](docs/fairpipe-technical-backlog.md#bl-012--demographic_swap_divergence-has-no-no-effect-baseline).
 
 ## [v0.10.0] — 2026-08-31
 
@@ -128,9 +206,9 @@ monitor. Additive minor bump — no breaking changes.
 - **`live_llm` / `live_bbq` pytest markers:** excluded from default runs
   (`-m 'not live_llm and not live_bbq'`). `live_llm` is provider calls; `live_bbq` is pinned
   BBQ JSONL fetch.
-- **Counterfactual fairness probe (Phase 1):** `CounterfactualFairnessEvaluator`, `run_llm_eval()`,
+- **Counterfactual fairness probe (Phase 1):** `DemographicSwapEvaluator`, `run_llm_eval()`,
   `fairpipe llm-eval` CLI with `--dry-run`, `--report-md`, and `--transcripts-out`.
-- **Case study:** `case_studies/llm_counterfactual_fairness.ipynb` — Part A is the n=1
+- **Case study:** `case_studies/llm_fairness_measurement_pitfalls.ipynb` — Part A is the n=1
   `min_group_size` guard (`nan`); Part B replays the expanded fixture (~0.196 divergence,
   95% CI ≈ 0.185–0.205 on Haiku hiring templates). Guided markdown interprets those
   numbers (lexical feature distance, not a percentage-unfair rate). The first cell prepends

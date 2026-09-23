@@ -31,7 +31,7 @@ def test_action_harness_pass_exit_zero(tmp_path, capsys, assert_no_live_llm_call
     exit_code = run_llm_fairness_check(
         {
             "config": str(cfg),
-            "metric": "counterfactual_fairness_divergence",
+            "metric": "demographic_swap_divergence",
             "threshold": "0.50",
             "fail-on-violation": "true",
         }
@@ -58,7 +58,7 @@ def test_action_harness_fail_exit_one(tmp_path, capsys, assert_no_live_llm_calls
     exit_code = run_llm_fairness_check(
         {
             "config": str(cfg),
-            "metric": "counterfactual_fairness_divergence",
+            "metric": "demographic_swap_divergence",
             "threshold": "0.01",
             "fail-on-violation": "true",
         }

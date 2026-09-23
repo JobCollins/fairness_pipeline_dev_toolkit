@@ -17,13 +17,16 @@ class ReweighingTransformer(BaseEstimator, TransformerMixin):
       - Else, we default to uniform target proportions across groups in each sensitive column.
 
     Output:
-      - `transform()` returns X unchanged.
-      - Learned attribute `sample_weight_` is a 1D numpy array aligned to X rows.
+      - `transform()` returns X unchanged (features are not modified).
+      - Learned attribute `sample_weight_` is a 1D numpy array aligned to the *fit*
+        rows only. It is a training artifact; transform on a held-out frame does not
+        recompute or overwrite it.
 
     Notes:
       - Multiple sensitive columns are supported; weights are multiplied across attributes
         (clipped to avoid explosions).
       - This is a scikit-learn compatible transformer: place it inside a Pipeline step.
+      - Fit once on training data; do not call ``fit`` again on test/inference batches.
     """
 
     def __init__(
@@ -102,7 +105,7 @@ class ReweighingTransformer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        if self.sample_weight_ is None or len(self.sample_weight_) != len(X):
-            # If transform is called without fit or on a different X, recompute quickly
-            self.fit(X)
+        if self.sample_weight_ is None:
+            raise RuntimeError("ReweighingTransformer must be fitted before transform.")
+        # Features unchanged; sample_weight_ stays from fit (train-sized).
         return X

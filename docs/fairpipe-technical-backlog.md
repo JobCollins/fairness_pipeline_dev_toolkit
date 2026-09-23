@@ -1,9 +1,10 @@
 # fairpipe — Technical Backlog
 **Document ID:** BACKLOG-001
-**Version:** 1.0
+**Version:** 1.1
 **Created:** 2026-05-13
+**Updated:** 2026-09-21
 **Owner:** Svrus LLC
-**Source:** Issues identified during COMPAS recidivism case study development
+**Source:** Issues identified during COMPAS recidivism case study development (BL-001–BL-006); LLM evals phases (BL-007–BL-012); independent PyPI 0.11.0 production adoption review 2026-09-21 (BL-013–BL-030), tracked from [`docs/fairpipe-review.md`](fairpipe-review.md). Tracking only — no patches from that review.
 
 ---
 
@@ -22,7 +23,26 @@
 | BL-009 | Re-record Phase 2 fixtures so they can produce group-level disparity | P1 | **refusal fixture closed** (real data); **disparity-signal still open**; toxicity + BBQ still open |
 | BL-010 | Wire `llm-fairness-check` mode into `SvrusIO/fairpipe-action` | P1 | **closed** (`@v2` / `b629800`) |
 | BL-011 | `refusal_score` cannot distinguish refusal-to-engage from a scope disclaimer | P1 | open |
-| BL-012 | `counterfactual_fairness_divergence` has no no-effect baseline | P1 | open |
+| BL-012 | `demographic_swap_divergence` has no no-effect baseline | P1 | open |
+| BL-013 | BCa intervals are mathematically wrong | P0 | open ([JobCollins#23](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/23) · [SvrusIO#23](https://github.com/SvrusIO/fAIr/issues/23)) |
+| BL-014 | Default percentile DPD intervals are not calibrated at equality | P0 | open ([JobCollins#24](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/24) · [SvrusIO#24](https://github.com/SvrusIO/fAIr/issues/24)) |
+| BL-015 | Invalid classifier inputs produce plausible or impossible numbers | P0 | open ([JobCollins#25](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/25) · [SvrusIO#25](https://github.com/SvrusIO/fAIr/issues/25)) |
+| BL-016 | LLM CIs can describe a different statistic from the reported value | P0 | open ([JobCollins#26](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/26) · [SvrusIO#26](https://github.com/SvrusIO/fAIr/issues/26)) |
+| BL-017 | Python and CLI fairness gates disagree | P0 | open ([JobCollins#27](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/27) · [SvrusIO#27](https://github.com/SvrusIO/fAIr/issues/27)) |
+| BL-018 | Published quickstart fails to produce its intended first result | P1 | open ([JobCollins#28](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/28) · [SvrusIO#28](https://github.com/SvrusIO/fAIr/issues/28)) |
+| BL-019 | Small or unsupported groups disappear; incomplete EO can look perfectly fair | P1 | open ([JobCollins#29](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/29) · [SvrusIO#29](https://github.com/SvrusIO/fAIr/issues/29)) |
+| BL-020 | Pandas index mismatch silently changes the question | P1 | open ([JobCollins#30](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/30) · [SvrusIO#30](https://github.com/SvrusIO/fAIr/issues/30)) |
+| BL-021 | The BBQ default cannot detect the behavior its name suggests | P1 | open ([JobCollins#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31) · [SvrusIO#31](https://github.com/SvrusIO/fAIr/issues/31)) |
+| BL-022 | Lexical toxicity/sentiment/refusal is easy to defeat accidentally | P1 | open ([JobCollins#32](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/32) · [SvrusIO#32](https://github.com/SvrusIO/fAIr/issues/32)) |
+| BL-023 | “Counterfactual fairness” is a lexical perturbation diagnostic, not a causal fairness measure | P1 | open ([JobCollins#33](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/33) · [SvrusIO#33](https://github.com/SvrusIO/fAIr/issues/33)) |
+| BL-024 | Mitigation attribution is unsupported | P1 | open ([JobCollins#34](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/34) · [SvrusIO#34](https://github.com/SvrusIO/fAIr/issues/34)) |
+| BL-025 | Transformation semantics are unsuitable for ordinary held-out/deployment use | P1 | **closed (Wave 1f)** ([JobCollins#35](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/35) · [SvrusIO#35](https://github.com/SvrusIO/fAIr/issues/35)) |
+| BL-026 | Statistical and compliance language overstates evidence | P1 | open ([JobCollins#36](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/36) · [SvrusIO#36](https://github.com/SvrusIO/fAIr/issues/36)) |
+| BL-027 | Default backend behavior changes with environment | P1 | open ([JobCollins#37](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/37) · [SvrusIO#37](https://github.com/SvrusIO/fAIr/issues/37)) |
+| BL-028 | Sensitive-label dtype breaks ancillary results | P2 | open ([JobCollins#38](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/38) · [SvrusIO#38](https://github.com/SvrusIO/fAIr/issues/38)) |
+| BL-029 | Install and engineering guarantees are weaker than the product framing | P2 | open ([JobCollins#39](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/39) · [SvrusIO#39](https://github.com/SvrusIO/fAIr/issues/39)) |
+| BL-030 | Identity, typing and API contracts need consolidation | P2 | open ([JobCollins#40](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/40) · [SvrusIO#40](https://github.com/SvrusIO/fAIr/issues/40)) |
+| BL-031 | BCa has no policy for NaN bootstrap replicates from analyzer stats | P1 | open ([JobCollins#41](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/41) · [SvrusIO#41](https://github.com/SvrusIO/fAIr/issues/41)) |
 
 ---
 
@@ -425,7 +445,7 @@ That figure is lexical distance, not a group effect — see **BL-012**.
 and pull this work forward a second time.
 
 ### Where Discovered
-Phase 1 gate review of `case_studies/llm_counterfactual_fairness.ipynb`. The committed
+Phase 1 gate review of `case_studies/llm_fairness_measurement_pitfalls.ipynb`. The committed
 Anthropic cache replay fixture has **n=1 prompt per demographic group** (`woman`, `man`,
 `nonbinary`). Shared LLM eval guard now mirrors classifier semantics: groups below
 `DEFAULT_LLM_MIN_GROUP_SIZE=5` are excluded and the metric returns **`nan`**.
@@ -674,7 +694,7 @@ construct is off.
 
 ---
 
-## BL-012 — `counterfactual_fairness_divergence` has no no-effect baseline
+## BL-012 — `demographic_swap_divergence` has no no-effect baseline
 
 **Status: open.** Does not change `pairwise_divergence`, the feature set, the evaluator,
 or the hiring / humanitarian recordings. Those are valid. What was wrong is treating
@@ -734,7 +754,7 @@ Kiran / Alex. Woman and man arms held MENA region; the ambiguous arm could not
 mean (0.193) is still indistinguishable from the region-held arms.
 
 ### Impact
-Anyone using `counterfactual_fairness_divergence` on their own data will treat a
+Anyone using `demographic_swap_divergence` on their own data will treat a
 CI that excludes 0 as a group effect unless warned. Shipped v0.10.0 docs and the
 Part B write-up made that error. Docs are corrected; this item tracks the metric
 contract.
@@ -755,6 +775,712 @@ contract and needs its own design pass. Do not pick it here.
 
 ---
 
+## BL-013 — BCa intervals are mathematically wrong
+
+**Status: open.** GitHub: [JobCollins#23](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/23) · [SvrusIO#23](https://github.com/SvrusIO/fAIr/issues/23).
+Blocker for production adoption (review severity: Blocker — RUN + READ).
+P0. Does not change any interval code until a numerical oracle exists.
+
+### Where Discovered
+Independent 0.11.0 production adoption review, 2026-09-21
+([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 1).
+PyPI `fairpipe[llm]==0.11.0`; checkout `8f7954c`.
+
+### Evidence
+- Review evidence: `metrics.log`
+- Source: `stats/bootstrap.py:151–154` passes probabilities to `np.percentile`
+  without multiplying by 100.
+- Source: analyzer closures in `metrics/core.py:185` ignore the supplied sample
+  and randomly resample again, invalidating BCa’s observed statistic / jackknife
+  even after the unit error is fixed.
+- Reproduced: mean of `arange(100)` is 49.5; fairpipe returns [39.5106, 43.0630];
+  SciPy BCa returns [43.9563, 55.3100].
+
+### Impact
+**Critical.** Invalid intervals can support unjustified deployment or
+discrimination conclusions. Coverage of the bootstrap module is not evidence of
+correctness (see BL-029).
+
+### Suggested fix (from review; not a design decision here)
+Correct quantile units and make statistics deterministic functions of their
+supplied samples; verify against independent implementations and coverage
+simulations.
+
+### Acceptance criteria
+- BCa on a known statistic (e.g. mean of `arange(100)`) matches an independent
+  implementation within agreed tolerance
+- Statistic functions used for BCa are deterministic in the supplied sample
+  (no nested resampling of the original data)
+- Numerical oracle / coverage tests exist; finite-ordered-float assertions alone
+  do not close this item (BL-029)
+
+---
+
+## BL-014 — Default percentile DPD intervals are not calibrated at equality
+
+**Status: open.** GitHub: [JobCollins#24](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/24) · [SvrusIO#24](https://github.com/SvrusIO/fAIr/issues/24).
+Blocker for production adoption (review severity: Blocker — RUN).
+P0. Finite simulation of one relevant setting, not a proof about all settings.
+
+### Where Discovered
+Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 2).
+
+### Evidence
+- Review evidence: `calibration.log`, script `audit_calibration.py`
+- 100 independent simulations: three groups, 100 Bernoulli(0.5) observations
+  each, 300 bootstrap draws. Zero of the nominal 95% intervals covered the true
+  DPD of zero. Lower bounds ranged 0.01–0.12.
+
+### Impact
+**Critical.** Directly contradicts using these intervals to establish nonzero
+disparity under equality. Distinct from BL-013 (BCa unit/closure bugs): this is
+the default percentile interval on the non-smooth max-minus-min DPD statistic.
+
+### Suggested fix (from review; not a design decision here)
+Validate inference for the non-smooth max-minus-min statistic, including its
+boundary; distinguish estimation from tests and equivalence decisions.
+
+### Acceptance criteria
+- Documented inference contract for DPD (estimation vs test vs equivalence)
+- Calibration evidence at equality (and stated limits of that evidence)
+- Default intervals are not presented as establishing nonzero disparity when
+  the true gap is zero in the validated setting
+
+---
+
+## BL-015 — Invalid classifier inputs produce plausible or impossible numbers
+
+**Status: open.** GitHub: [JobCollins#25](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/25) · [SvrusIO#25](https://github.com/SvrusIO/fAIr/issues/25).
+Blocker for production adoption (review severity: Blocker — RUN).
+P0.
+
+### Where Discovered
+Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 3;
+Required stress cases: NaNs, nonbinary/multiclass labels).
+
+### Evidence
+- Review evidence: `metrics.log`
+- Source: `metrics/native_adapter.py:45,75–76`
+- `y_pred=[0,1,NaN,1]`, groups A,A,B,B yields DPD 0.0; moving the NaN to the
+  first group yields NaN.
+- Multiclass inputs produce DPD and EOD 2.0 (valid binary rate gaps cannot
+  exceed one).
+
+### Impact
+**Critical.** Zero can silently mean missing data. Impossible values can look
+like extreme disparity.
+
+### Suggested fix (from review; not a design decision here)
+Validate binary labels, positive-label semantics, finiteness and lengths before
+computation; offer an explicit multiclass definition or reject the input.
+
+### Acceptance criteria
+- Non-finite predictions/labels are rejected or reported as undefined, not as
+  a zero gap
+- Multiclass inputs are either rejected with a named error or computed under a
+  documented definition whose range is valid
+- Length mismatches raise named errors (coordinate with BL-020)
+
+---
+
+## BL-016 — LLM CIs can describe a different statistic from the reported value
+
+**Status: open.** GitHub: [JobCollins#26](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/26) · [SvrusIO#26](https://github.com/SvrusIO/fAIr/issues/26).
+Blocker for production adoption (review severity: Blocker — RUN + READ).
+P0. Distinct from BL-012 (wrong no-effect *baseline* for a correctly computed
+distance). Here the CI is attached to the wrong *estimand*.
+
+### Where Discovered
+Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 4).
+
+### Evidence
+- Review evidence: `llm-dimensions.log`
+- Source: `llm_evals/evaluators/counterfactual_fairness.py:146–160`
+- Deterministic two-dimension fixture: divergence 0.81875 with CI
+  [0.2865625, 0.5321875]. Point estimate takes the maximum dimension mean; CI
+  bootstraps the pooled pair mean. Pairs sharing template responses are also
+  resampled independently.
+
+### Impact
+**Critical.** The uncertainty is attached to the wrong estimand; shared
+responses violate independent-pair resampling.
+
+### Suggested fix (from review; not a design decision here)
+Resample template clusters and recompute the exact max-dimension statistic in
+every draw; validate contrast-arm dependence too.
+
+### Acceptance criteria
+- Every bootstrap draw recomputes the same statistic as the reported point
+  (max-dimension, not a pooled substitute)
+- Resampling respects template/cluster dependence
+- A regression fixture like the two-dimension case cannot produce a CI that
+  excludes the reported point solely because of estimand mismatch
+
+---
+
+## BL-017 — Python and CLI fairness gates disagree
+
+**Status: open.** GitHub: [JobCollins#27](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/27) · [SvrusIO#27](https://github.com/SvrusIO/fAIr/issues/27).
+Blocker for production adoption (review severity: Blocker — RUN + READ).
+P0. Sibling of closed BL-010 (Action wiring of exit 0/1/2/3). This item is
+in-package policy mismatch between `assert_llm_fairness()` and the CLI.
+
+### Where Discovered
+Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 5).
+
+### Evidence
+- Review evidence: `extra.log`, `cli-exits.log`
+- Source: `integration/pytest_plugin.py:58–82` extracts only `.value`
+- `assert_llm_fairness()` accepts the caveated toxicity fixture at 0.05, while
+  CLI exits 3 (illustrative).
+- It accepts contrast −0.05629 at 0.05, while CLI exits 1 using absolute
+  magnitude.
+
+### Impact
+**Critical.** The same result can pass CI or block deployment depending on
+interface.
+
+### Suggested fix (from review; not a design decision here)
+Use one gate policy that preserves caveats, undefined results and
+metric-specific signed semantics.
+
+### Acceptance criteria
+- Caveated / illustrative metrics take the same gate path in Python, CLI, and
+  Action-shaped harness (exit 3 / equivalent)
+- Signed metrics share one documented comparison rule (raw vs absolute)
+- A shared contract test covers the toxicity-caveat and contrast-sign cases
+  from the review
+
+---
+
+## BL-018 — Published quickstart fails to produce its intended first result
+
+**Status: open.** GitHub: [JobCollins#28](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/28) · [SvrusIO#28](https://github.com/SvrusIO/fAIr/issues/28).
+Review severity: Major — RUN. P1.
+
+### Where Discovered
+Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 6).
+
+### Evidence
+- Review evidence: `quickstart.log`, `quickstart-followups.log`,
+  `quickstart-cli-with-data.log`
+- Basic Usage prints `Demographic Parity Difference: nan` and `95% CI: None`
+  (four rows per group versus minimum 30).
+- Loading Data raises `ModuleNotFoundError: No module named 'fairpipe.io'`.
+- CLI, unchanged but supplied with a CSV, exits 2: `--metric is required when
+  --threshold is set`.
+- DataFrame section assumes an unexplained `predictions.csv`.
+
+### Impact
+**High for first-use.** A capable reviewer can obtain a finite metric in under
+30 minutes, but the advertised newcomer path does not. Coordinate identity /
+missing `fairpipe.io` with BL-030.
+
+### Suggested fix (from review; not a design decision here)
+Execute hosted examples against the built wheel in CI; supply self-contained
+data and a valid nontrivial result.
+
+### Acceptance criteria
+- Hosted quickstart from the published wheel yields a finite, documented
+  nontrivial result without extra files or missing imports
+- CLI example is a valid invocation (metric/threshold pairing)
+- CI runs the hosted examples against the built wheel
+
+---
+
+## BL-019 — Small or unsupported groups disappear; incomplete EO can look perfectly fair
+
+**Status: open.** GitHub: [JobCollins#29](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/29) · [SvrusIO#29](https://github.com/SvrusIO/fAIr/issues/29).
+Review severity: Major — RUN + READ. P1.
+
+### Where Discovered
+Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 7;
+Required stress cases: empty declared subgroup, single member, severe class
+imbalance, continuous protected attribute, empty input / one observed group).
+
+### Evidence
+- Review evidence: `extra.log`, `metrics.log`, `empty-subgroup.log`
+- Two all-zero groups of 30 plus one selected minority member yield DPD 0,
+  CI [0,0], with the minority omitted.
+- A group with no positive labels yields EOD 0, CI [0,0], despite an
+  unestimable TPR comparison.
+- Default continuous sensitive values disappear into undersized categories.
+- Empty declared categorical subgroup C is omitted; other groups’ DPD 0 and
+  CI [0,0.30], no empty-group disclosure.
+- Single member: default excludes it; `minimum=1` gives CI [1,1] from two
+  total rows.
+
+### Impact
+**High.** Minimum total group size is not evidence of adequate
+positive/negative denominators. A filtered audit is not an audit of the full
+population. Pass can mean “insufficient evidence.”
+
+### Suggested fix (from review; not a design decision here)
+Report excluded counts/reasons and conditional denominators; distinguish
+insufficient evidence from pass; require deliberate binning for continuous
+attributes.
+
+### Acceptance criteria
+- Reports name excluded groups, counts, and reasons
+- EOD (and similar) is undefined or caveated when a conditional denominator is
+  missing — not 0 with CI [0,0]
+- Continuous attributes require explicit binning; defaults do not silently
+  drop the population into empty categories
+- Insufficient evidence is not a pass
+
+---
+
+## BL-020 — Pandas index mismatch silently changes the question
+
+**Status: open.** GitHub: [JobCollins#30](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/30) · [SvrusIO#30](https://github.com/SvrusIO/fAIr/issues/30).
+Review severity: Major — RUN. P1.
+
+### Where Discovered
+Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 8;
+Required stress cases: misaligned Series).
+
+### Evidence
+- Review evidence: `metrics.log`
+- Source: `utils/array_utils.py:20`
+- Identical indexed Series return DPD 0 under positional conversion versus 1
+  after index alignment.
+- Length mismatch gives a low-level NumPy `IndexError`.
+
+### Impact
+**High.** Joining predictions and protected attributes incorrectly can invert
+a fairness conclusion. Positional semantics need an explicit contract.
+
+### Suggested fix (from review; not a design decision here)
+Reject incompatible Series indices or offer explicit alignment semantics;
+validate lengths with named errors.
+
+### Acceptance criteria
+- Incompatible Series indices are rejected or aligned under a documented
+  policy (not silently converted to positional)
+- Length mismatch raises a named fairpipe error, not a raw NumPy `IndexError`
+- Contract tests cover the positional-vs-aligned DPD 0 vs 1 case from the
+  review
+
+---
+
+## BL-021 — The BBQ default cannot detect the behavior its name suggests
+
+**Status: open.** GitHub: [JobCollins#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31) · [SvrusIO#31](https://github.com/SvrusIO/fAIr/issues/31).
+Review severity: Major — RUN + READ. P1.
+Sibling of BL-009 (BBQ fixture half still open: all-ambiguous subset). Do not
+collapse this into a re-record. This item is construct/sampling: duplicated
+prompts, artificial group tags, gold-correctness vs stereotype association.
+
+### Where Discovered
+Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 9).
+
+### Evidence
+- Review evidence: `extra.log`, `llm.log`
+- Source: `llm_evals/bbq.py:38–39,63–75`, `evaluators/stereotype.py:66–69`
+- Twelve rows are six identical prompts duplicated under woman/man labels.
+  A responder choosing the package’s stereotyped option for every item scores
+  0 with CI [0,0].
+- Upstream first-24 loading yields one category and NaN; upstream
+  `stereotyped_groups=['F']` fails the answer-token match and falls back to
+  the gold label, sometimes unknown.
+
+### Impact
+**High.** Duplicated artificial group tags force equality under replay. Gold
+correctness is not stereotype association. Attribution is present, but this is
+not a valid evaluation of the published benchmark.
+
+### Suggested fix (from review; not a design decision here)
+Use genuine BBQ metadata/polarity and defined bias/accuracy statistics;
+stratify and balance sampling; count invalid answers separately; call original
+schema-only prompts a toy fixture.
+
+### Acceptance criteria
+- Default BBQ path uses genuine metadata/polarity (or is explicitly documented
+  as a toy fixture, not the benchmark)
+- A model that always picks the stereotyped option does not score 0 with
+  CI [0,0]
+- Invalid / unmatched answers are counted separately from gold-unknown
+- BL-009’s BBQ re-record remains a fixture-size/mix task; this item owns
+  scoring and sampling construct
+
+---
+
+## BL-022 — Lexical toxicity/sentiment/refusal is easy to defeat accidentally
+
+**Status: open.** GitHub: [JobCollins#32](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/32) · [SvrusIO#32](https://github.com/SvrusIO/fAIr/issues/32).
+Review severity: Major — RUN + READ. P1.
+Sibling of BL-011 (refusal vs scope disclaimer). Do not collapse. This item is
+the broader lexical-scorer defeatability across toxicity, sentiment, and
+refusal.
+
+### Where Discovered
+Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 10).
+
+### Evidence
+- Review evidence: `llm.log`
+- Source: `llm_evals/scoring.py:13–24`, `probes/counterfactual.py:186–200`
+- `poor` scores toxicity 1, `poor.` 0; `not poor` 0.5; `not recommend` scores
+  positive sentiment +0.5; `You are worthless and disgusting.` scores
+  toxicity 0.
+- A helpful medical scope disclaimer scores refusal 1 (overlaps BL-011).
+
+### Impact
+**High.** Punctuation and negation dominate the result; toxicity and refusal
+labels exceed what is measured. Unsuitable as a consequential gate.
+
+### Suggested fix (from review; not a design decision here)
+Require a validated scorer for consequential gates and retain lexical scoring
+as an explicitly illustrative diagnostic.
+
+### Acceptance criteria
+- Docs and gate policy treat default lexical scores as illustrative, not as
+  consequential evidence (coordinate with BL-017)
+- Punctuation/negation cases from the review are either scored under a
+  documented lexical contract or rejected as out of scope for gates
+- A validated scorer, if added, has its own contract tests; lexical path
+  remains explicitly named
+
+---
+
+## BL-023 — “Counterfactual fairness” is a lexical perturbation diagnostic, not a causal fairness measure
+
+**Status: open.** GitHub: [JobCollins#33](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/33) · [SvrusIO#33](https://github.com/SvrusIO/fAIr/issues/33).
+Review severity: Major — READ + RUN. P1.
+Sibling of BL-012 (no-effect baseline for the distance statistic). Do not
+collapse. This item is the name/construct vs Kusner et al. causal criterion.
+
+### Where Discovered
+Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 11).
+
+### Evidence
+- Review evidence: `llm.log`
+- Source: `llm_evals/probes/counterfactual.py:186–224`
+- Features are token-set overlap, normalized length, a word-list sentiment
+  score and phrase refusal.
+- Recorded expanded fixture: 0.195592 with CI [0.185068, 0.205139];
+  matched-control contrast: −0.056291 with CI crossing zero.
+- Current docs admit the nonzero baseline and name confounding.
+- Reviewer’s methodological judgment: neither string substitution nor a
+  significant lexical distance establishes discriminatory decisions or the
+  causal criterion in [Counterfactual Fairness](https://arxiv.org/abs/1703.06856).
+
+### Impact
+**High (construct).** The name implies more than lexical perturbation distance
+establishes.
+
+### Suggested fix (from review; not a design decision here)
+Name the construct precisely and validate it against decision/task outcomes,
+human judgments and per-run controls.
+
+### Acceptance criteria
+- Public name and docs describe the implemented construct (lexical
+  perturbation / matched-prompt distance), not demonstrated causal CF
+- BL-012 remains the no-effect-baseline contract for the numeric statistic
+- Any claim beyond lexical distance requires independent outcome/human
+  validation; default fixtures cannot close that claim (review: What remains
+  unverified)
+
+---
+
+## BL-024 — Mitigation attribution is unsupported
+
+**Status: open.** GitHub: [JobCollins#34](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/34) · [SvrusIO#34](https://github.com/SvrusIO/fAIr/issues/34).
+Review severity: Major — RUN + READ. P1.
+
+### Where Discovered
+Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 12;
+Mitigation control details).
+
+### Evidence
+- Review evidence: `mitigation.log`, `mitigation-control.log`, `workflow.log`
+- Source: `pipeline/transformers/instance_reweighting.py:34–81`
+- `InstanceReweighting.fit` ignores y and balances group frequency, not
+  group-label cells.
+- Balanced groups return all-one weights and an identical logistic model.
+- Fixed-threshold synthetic gains largely match a validation-tuned baseline
+  threshold. Independent 6k/12k split, 15% minority: at threshold 0.5,
+  weighting lowered EOD in all five seeds (~0.016–0.056) while accuracy fell
+  ~0.069–0.081; at 0.3 and 0.7, weighting increased EOD in every seed.
+  Unweighted threshold matched to weighted selection rate: test decisions
+  agreed 98.48–99.86%; EOD differed by less than 0.004.
+- On COMPAS, reweighting plus reductions yields EOD 0.12105; reductions
+  alone 0.10858 from the same 0.24431 baseline. Notebook 0.2083→0.0960 was
+  not reproduced (library versions / randomized reductions not isolated).
+- README attribution to Instance Reweighting and the notebook’s group/label
+  description are not supported by this implementation or ablation.
+
+### Impact
+**High.** Users may credit the wrong component. One run does not establish
+that weighting always hurts; the paired ablation shows README attribution
+needs evidence beyond before/after measurements.
+
+### Suggested fix (from review; not a design decision here)
+Separate population balancing from joint group-label reweighing; report
+ablations, held-out utility, fixed/tuned thresholds, constraints and seeds.
+
+### Acceptance criteria
+- `InstanceReweighting` is documented as implemented (group-frequency vs
+  group-label cells); README/notebook do not describe the other algorithm
+- Attributed gains require a component ablation (reweighting vs reductions vs
+  threshold) on held-out data
+- Docs do not present a single before/after as evidence of the named
+  transformer
+
+---
+
+## BL-025 — Transformation semantics are unsuitable for ordinary held-out/deployment use
+
+**Status: closed (Wave 1f).** GitHub: [JobCollins#35](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/35) · [SvrusIO#35](https://github.com/SvrusIO/fAIr/issues/35).
+Review severity: Major — RUN + READ. P1.
+
+### Where Discovered
+Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 13).
+
+### Evidence
+- Review evidence: `transform.log`
+- Source: `integration/orchestrator.py:442–443`,
+  `pipeline/orchestration/engine.py:136`
+- Workflow calls `apply_pipeline` on train and test; it calls `fit_transform`
+  both times.
+- A quantile repair pool changes from [0,39] to [100,139].
+- The same test row maps to 0.5 in a batch and remains 100 alone at default
+  minimum group size.
+
+### Impact
+**High.** Test-set refitting changes preprocessing, while batch-dependent
+repairs change an individual’s features with batch composition. This is not
+conventional train-once inference.
+
+### Suggested fix (from review; not a design decision here)
+Fit on training data only, retain the trained transformation and specify/test
+batch and single-row deployment semantics.
+
+### Acceptance criteria
+- Train/test workflow fits transformers on training data only
+- A held-out row’s transform is specified for batch vs single-row (and tested)
+- Quantile-repair (and similar) deployment semantics are documented, including
+  minimum group size effects
+
+### Resolution (Wave 1f)
+- Transformers already separated `fit`/`transform`; bug was plumbing plus
+  DIR within-batch ranks and reweighing auto-refit on transform.
+- `apply_pipeline(..., fit=True|False)`; orchestrator fits train, transforms test.
+- DIR uses fitted train group CDFs + pool (single-row == batch);
+  `min_group_size` gated at fit. Reweighing/`InstanceReweighting` keep
+  train-sized `sample_weight_` without refitting.
+- Persistence: pickle/joblib the sklearn `Pipeline`; no separate fairpipe API.
+
+
+## BL-026 — Statistical and compliance language overstates evidence
+
+**Status: open.** GitHub: [JobCollins#36](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/36) · [SvrusIO#36](https://github.com/SvrusIO/fAIr/issues/36).
+Review severity: Major — READ. P1.
+
+### Where Discovered
+Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 14).
+
+### Evidence
+- Source: `pipeline/detectors/core.py:169,178` — disparity detector flags every
+  raw p<alpha; correction helpers exist but have no callers in package code.
+- Review evidence: COMPAS cells (`compas_racial_bias-cells.txt`), ACS cells
+  (`acs_employment-cells.txt`)
+- COMPAS calls a rate ratio “large by Cohen's conventions”; ACS calls 0.05 a
+  regulatory threshold.
+- Cohen's d conventions do not classify a rate ratio.
+- [NYC's actual bias-audit rule](https://codelibrary.amlegal.com/codes/newyorkcity/latest/NYCrules/0-0-0-138530)
+  specifies selection/scoring rates and impact ratios, not a universal
+  EOD≤0.05 deployment test.
+
+### Impact
+**High (claim accuracy).** Multiple feature flags need family-level handling.
+Engineering thresholds can be misread as legal requirements.
+
+### Suggested fix (from review; not a design decision here)
+Wire corrections into scanning; label effect sizes correctly; distinguish
+chosen engineering thresholds from legal requirements.
+
+### Acceptance criteria
+- Multiple comparisons in the detector use a documented correction (or docs
+  state that raw p<alpha flags are uncorrected)
+- Effect-size language matches the statistic (no Cohen-d label on a rate
+  ratio)
+- Notebooks/docs distinguish chosen engineering thresholds from cited legal
+  rules
+
+---
+
+## BL-027 — Default backend behavior changes with environment
+
+**Status: open.** GitHub: [JobCollins#37](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/37) · [SvrusIO#37](https://github.com/SvrusIO/fAIr/issues/37).
+Review severity: Major — RUN + READ. P1.
+
+### Where Discovered
+Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 15).
+
+### Evidence
+- Review evidence: `calibration.log`
+- Source: `metrics/core.py:47–54`, `metrics/fairlearn_adapter.py:34–95`
+- Native gives EOD 0 on the missing-positive test; fairlearn backend gives
+  NaN; after installing Fairlearn, `backend=None` switches to the latter.
+- The Fairlearn adapter imports Fairlearn but manually computes these metrics.
+
+### Impact
+**High.** Adding an optional dependency changes audit decisions. A backend
+name is not proof of delegated, independently validated computations.
+Coordinate EOD-on-missing-positive with BL-019.
+
+### Suggested fix (from review; not a design decision here)
+Stabilize default semantics and run shared contract/oracle tests across
+adapters.
+
+### Acceptance criteria
+- Default backend does not silently change when an optional extra is installed
+  (or the change is an explicit, documented opt-in)
+- Shared contract tests cover native vs fairlearn adapters on the
+  missing-positive EOD case
+- Adapter names that do not delegate computation are documented as such
+
+---
+
+## BL-028 — Sensitive-label dtype breaks ancillary results
+
+**Status: open.** GitHub: [JobCollins#38](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/38) · [SvrusIO#38](https://github.com/SvrusIO/fAIr/issues/38).
+Review severity: Minor — RUN. P2.
+
+### Where Discovered
+Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 16).
+
+### Evidence
+- Review evidence: `metrics.log`
+- Numeric groups produce a NaN effect size and empty-mean warnings;
+  object-dtype numeric groups preserve the point value but return CI
+  [NaN,NaN].
+
+### Impact
+**Medium.** Equivalent group encodings should produce equivalent reports.
+
+### Suggested fix (from review; not a design decision here)
+Keep original group keys for masks and stringify only for display.
+
+### Acceptance criteria
+- Numeric vs object-encoded equivalent group labels yield the same point,
+  CI, and effect size (or a named error, not a silent NaN)
+- Empty-mean warnings are not the user-visible contract for this case
+
+---
+
+## BL-029 — Install and engineering guarantees are weaker than the product framing
+
+**Status: open.** GitHub: [JobCollins#39](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/39) · [SvrusIO#39](https://github.com/SvrusIO/fAIr/issues/39).
+Review severity: Minor — RUN + READ. P2.
+
+### Where Discovered
+Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 17).
+
+### Evidence
+- Review evidence: `tests.log`, `install.log`, `freeze.txt`, `environment.txt`,
+  `pip-check.log`
+- Mandatory MLflow contributes to a 756 MB environment (105 distributions on
+  the review install).
+- Test subset passed 249 cases; bootstrap 93% line coverage misses incorrect
+  intervals (BL-013).
+- BCa tests assert finite ordered floats, not numerical correctness:
+  `tests/stats/test_bootstrap_comprehensive.py:182–191,303–317`.
+- CI declares an 85% full-suite coverage gate and a 3-OS/3-Python matrix; the
+  review did not verify the whole matrix. Selected run: 47% whole-package
+  coverage from the subset; six live tests deselected.
+
+### Impact
+**Medium (adoption cost and verification).** Coverage is not correctness
+evidence; dependency cost expands for a basic metric calculation.
+
+### Suggested fix (from review; not a design decision here)
+Make tracking optional; prioritize oracle/property/coverage tests; test the
+published artifact and supported dependency boundaries.
+
+### Acceptance criteria
+- Tracking/MLflow is optional for a metrics-only install (or the mandatory
+  cost is an explicit documented product choice)
+- BCa/DPD tests include numerical oracles, not only finite-ordered-float
+  checks (closes the test-gap half; BL-013/BL-014 own the math)
+- Published coverage claims match what the suite actually measures; the
+  published wheel is in the test surface
+
+---
+
+## BL-030 — Identity, typing and API contracts need consolidation
+
+**Status: open.** GitHub: [JobCollins#40](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/40) · [SvrusIO#40](https://github.com/SvrusIO/fAIr/issues/40).
+Review severity: Minor — READ. P2.
+Missing `fairpipe.io` also fails the quickstart (BL-018).
+
+### Where Discovered
+Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 18).
+
+### Evidence
+- READ: PyPI name `fairpipe`; two import namespaces; supplied JobCollins repo;
+  SvrusIO/fAIr metadata/docs; `fairpipe.io` is missing despite documentation.
+- Versioning text promises within-major stability and also permits 0.x minor
+  breaking changes.
+- 349/435 definitions are fully annotated syntactically, including private
+  functions; no `py.typed` was found and the inspected CI does not run mypy.
+- Classifier `Result` lacks `caveat` despite the LLM docs' common-result claim.
+
+### Impact
+**Medium (discoverability / integration).** Annotations are not a verified
+typed API. Pre-1.0 policy is ambiguous.
+
+### Suggested fix (from review; not a design decision here)
+Publish one canonical identity/API map, accurate return contracts and an
+unambiguous pre-1.0 policy; check and distribute typing deliberately.
+
+### Acceptance criteria
+- One canonical package/import/docs identity map; documented modules exist
+  (`fairpipe.io` implemented or removed from docs — with BL-018)
+- Versioning policy is a single rule for 0.x
+- If typing is advertised, `py.typed` is shipped and CI checks the public API
+- Classifier and LLM result types match the documented common contract
+  (`caveat` present or the common-result claim is withdrawn)
+
+---
+
+## BL-031 — BCa has no policy for NaN bootstrap replicates from analyzer stats
+
+**Status: open.** GitHub: [JobCollins#41](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/41) · [SvrusIO#41](https://github.com/SvrusIO/fAIr/issues/41).
+P1. Follow-on created by Wave 1a + Wave 1b together — not part of the original
+0.11.0 review table.
+
+### Where Discovered
+Wave 1b BCa units fix (branch `fix/bl-013-bca-percentile-units`), after Wave 1a
+made analyzer statistics return `nan` for incomplete group membership in a
+resample.
+
+### Evidence
+- Wave 1a: `dpd_stat_from_indices` / EOD / MAE helpers return `nan` when any
+  analysis group is absent from the index sample; `_percentile_ci` uses
+  `np.nanpercentile`.
+- Wave 1b: `bca_ci` scales quantiles with `q * 100` but still uses
+  `np.percentile` on `boot_stats` and computes `z0` / jackknife assuming finite
+  replicates. No fallback, filter, or refuse path when replicates are `nan`.
+
+### Impact
+**Medium–high for the opt-in BCa path.** `ci_method="bca"` on analyzer metrics
+can feed non-finite bootstrap replicates into bias/acceleration estimates with
+no documented policy. Easy to forget once Wave 1b units look “fixed.”
+
+### Suggested directions (pick one; do not paper over)
+- Fall back to percentile when any replicate is non-finite
+- Drop non-finite replicates and recompute BCa only above a documented floor
+- Refuse BCa (raise / undefined CI) when the statistic can emit `nan`
+
+### Acceptance criteria
+- Documented policy for non-finite replicates under `method="bca"`
+- Analyzer `ci_method="bca"` regression covers at least one Wave 1a empty-group
+  `nan` draw
+- `z0` / jackknife are not silently computed on arrays containing `nan`
+
+---
+
 ## Implementation Order
 
 Given the conference deadline (May 19) and the importance of a working end-to-end
@@ -769,26 +1495,79 @@ demo, the recommended implementation order is:
 
 ---
 
-## GitHub Issues to Create
+## 0.11.0 review — recommended order
 
-Create one GitHub issue per backlog item. Suggested labels:
+From the review’s “Five changes most likely to increase adoption,” mapped onto
+BL-013–BL-030. Diagnoses and priorities only; no rewrite implied.
 
-| Issue | Labels |
-|-------|--------|
-| BL-001 | `enhancement`, `cli`, `ci-cd` |
-| BL-002 | `bug`, `execute_workflow`, `good first issue` |
-| BL-003 | `bug`, `execute_workflow`, `mitigation` |
-| BL-004 | `enhancement`, `api-design`, `breaking-change` |
-| BL-005 | `enhancement`, `cli`, `developer-experience` |
-| BL-006 | `bug`, `testing`, `hypothesis`, `good first issue` |
-| BL-007 | `enhancement`, `llm-evals`, `case-study`, `documentation` |
-| BL-008 | `enhancement`, `llm-evals`, `phase-2`, `testing` |
-| BL-009 | `enhancement`, `llm-evals`, `phase-2`, `testing`, `fixtures` |
-| BL-010 | `enhancement`, `ci-cd`, `llm-evals`, `companion-repo` |
-| BL-011 | `enhancement`, `llm-evals`, `scoring`, `construct-validity` |
-| BL-012 | `enhancement`, `llm-evals`, `scoring`, `construct-validity` |
+| Order | Issues | Rationale |
+|-------|--------|-----------|
+| 1st | BL-013, BL-014, BL-015, BL-016, BL-017, BL-019, BL-020 | Trustworthy measurement contract: BCa, DPD inference, invalid labels/NaNs, LLM CI estimand, unified gates, excluded groups, index alignment. |
+| 2nd | BL-024, BL-025, BL-026 | Honest mitigation: attribution/ablations, train-only transforms, effect-size and compliance language. |
+| 3rd | BL-018, BL-030 | First 10 minutes from the wheel; canonical identity/API. |
+| 4th | BL-021, BL-022, BL-023 | Narrow or validate LLM claims (BBQ, lexical scorers, CF name). Keep BL-009 / BL-011 / BL-012 as siblings. |
+| 5th | BL-027, BL-028, BL-029 | Stable backends, dtype-robust reports, optional tracking, oracle tests, honest coverage. |
 
 ---
 
-*Document ID: BACKLOG-001 | Version: 1.0 | Created: 2026-05-13 | Owner: Svrus LLC*
-*All issues sourced from COMPAS case study development session, May 13, 2026.*
+## GitHub Issues
+
+BL-013–BL-030 are filed on both
+[`JobCollins/fairness_pipeline_dev_toolkit`](https://github.com/JobCollins/fairness_pipeline_dev_toolkit)
+and the [`SvrusIO/fAIr`](https://github.com/SvrusIO/fAIr) mirror (#23–#40 on each).
+BL-031 (BCa NaN policy) is #41 on each.
+BL-001 exists as closed [#19](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/19) on origin only.
+BL-002–BL-012 are not yet filed as GitHub issues.
+
+| Issue | Labels | GitHub |
+|-------|--------|--------|
+| BL-001 | `enhancement`, `cli`, `ci-cd` | [#19](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/19) (closed) |
+| BL-002 | `bug`, `execute_workflow`, `good first issue` | — |
+| BL-003 | `bug`, `execute_workflow`, `mitigation` | — |
+| BL-004 | `enhancement`, `api-design`, `breaking-change` | — |
+| BL-005 | `enhancement`, `cli`, `developer-experience` | — |
+| BL-006 | `bug`, `testing`, `hypothesis`, `good first issue` | — |
+| BL-007 | `enhancement`, `llm-evals`, `case-study`, `documentation` | — |
+| BL-008 | `enhancement`, `llm-evals`, `phase-2`, `testing` | — |
+| BL-009 | `enhancement`, `llm-evals`, `phase-2`, `testing`, `fixtures` | — |
+| BL-010 | `enhancement`, `ci-cd`, `llm-evals`, `companion-repo` | — |
+| BL-011 | `enhancement`, `llm-evals`, `scoring`, `construct-validity` | — |
+| BL-012 | `enhancement`, `llm-evals`, `scoring`, `construct-validity` | — |
+| BL-013 | `bug`, `blocker`, `metrics`, `P0` | [JobCollins#23](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/23) · [SvrusIO#23](https://github.com/SvrusIO/fAIr/issues/23) |
+| BL-014 | `bug`, `blocker`, `metrics`, `P0` | [JobCollins#24](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/24) · [SvrusIO#24](https://github.com/SvrusIO/fAIr/issues/24) |
+| BL-015 | `bug`, `blocker`, `metrics`, `P0` | [JobCollins#25](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/25) · [SvrusIO#25](https://github.com/SvrusIO/fAIr/issues/25) |
+| BL-016 | `bug`, `blocker`, `llm-evals`, `P0` | [JobCollins#26](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/26) · [SvrusIO#26](https://github.com/SvrusIO/fAIr/issues/26) |
+| BL-017 | `bug`, `blocker`, `llm-evals`, `P0` | [JobCollins#27](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/27) · [SvrusIO#27](https://github.com/SvrusIO/fAIr/issues/27) |
+| BL-018 | `bug`, `documentation`, `P1` | [JobCollins#28](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/28) · [SvrusIO#28](https://github.com/SvrusIO/fAIr/issues/28) |
+| BL-019 | `bug`, `metrics`, `P1` | [JobCollins#29](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/29) · [SvrusIO#29](https://github.com/SvrusIO/fAIr/issues/29) |
+| BL-020 | `bug`, `metrics`, `P1` | [JobCollins#30](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/30) · [SvrusIO#30](https://github.com/SvrusIO/fAIr/issues/30) |
+| BL-021 | `bug`, `llm-evals`, `P1` | [JobCollins#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31) · [SvrusIO#31](https://github.com/SvrusIO/fAIr/issues/31) |
+| BL-022 | `bug`, `llm-evals`, `P1` | [JobCollins#32](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/32) · [SvrusIO#32](https://github.com/SvrusIO/fAIr/issues/32) |
+| BL-023 | `documentation`, `llm-evals`, `P1` | [JobCollins#33](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/33) · [SvrusIO#33](https://github.com/SvrusIO/fAIr/issues/33) |
+| BL-024 | `bug`, `documentation`, `P1` | [JobCollins#34](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/34) · [SvrusIO#34](https://github.com/SvrusIO/fAIr/issues/34) |
+| BL-025 | `bug`, `P1` | [JobCollins#35](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/35) · [SvrusIO#35](https://github.com/SvrusIO/fAIr/issues/35) |
+| BL-026 | `documentation`, `P1` | [JobCollins#36](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/36) · [SvrusIO#36](https://github.com/SvrusIO/fAIr/issues/36) |
+| BL-027 | `bug`, `metrics`, `P1` | [JobCollins#37](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/37) · [SvrusIO#37](https://github.com/SvrusIO/fAIr/issues/37) |
+| BL-028 | `bug`, `metrics`, `P2` | [JobCollins#38](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/38) · [SvrusIO#38](https://github.com/SvrusIO/fAIr/issues/38) |
+| BL-029 | `enhancement`, `P2` | [JobCollins#39](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/39) · [SvrusIO#39](https://github.com/SvrusIO/fAIr/issues/39) |
+| BL-030 | `enhancement`, `documentation`, `P2` | [JobCollins#40](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/40) · [SvrusIO#40](https://github.com/SvrusIO/fAIr/issues/40) |
+| BL-031 | `bug`, `metrics`, `P1` | [JobCollins#41](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/41) · [SvrusIO#41](https://github.com/SvrusIO/fAIr/issues/41) |
+
+---
+
+## Not filed as numbered items
+
+From the same review ([`docs/fairpipe-review.md`](fairpipe-review.md)). Recorded so
+the ranked table is fully accounted for; these are not defects to open.
+
+| Review row | Why not a BL item |
+|------------|-------------------|
+| Verified strength — ordinary binary point metrics and scale | Preserve as regression oracles under BL-013/BL-029 work; not a defect. Evidence: `metrics.log`. |
+| Verified strength — safe LLM replay and default call blocking | Retain; extend caveat semantics via BL-017. Evidence: `dry-run.log`, `llm.log`, `ATTRIBUTION.md`. |
+| Required stress cases table | Mapped into BL-015, BL-019, BL-020 rather than duplicated. Evidence: `metrics.log`, `extra.log`, `empty-subgroup.log`. |
+| What remains unverified | Review-scope gaps (full CI matrix, live provider quality, generalized mitigation ranking, etc.), not package findings. |
+
+---
+
+*Document ID: BACKLOG-001 | Version: 1.1 | Created: 2026-05-13 | Updated: 2026-09-21 | Owner: Svrus LLC*
+*BL-001–BL-006: COMPAS case study development, May 13, 2026. BL-007–BL-012: LLM evals phases. BL-013–BL-030: independent PyPI 0.11.0 production adoption review, September 21, 2026 (`docs/fairpipe-review.md`).*

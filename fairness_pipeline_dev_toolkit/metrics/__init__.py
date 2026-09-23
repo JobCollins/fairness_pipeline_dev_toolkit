@@ -15,5 +15,23 @@ Internal modules (do not import directly):
 from .base import MetricResult
 from .core import FairnessAnalyzer as FairnessAnalyzer
 from .core import FairnessAnalyzerDataFrameProxy as FairnessAnalyzerDataFrameProxy
+from .input_validation import (
+    POSITIVE_LABEL,
+    IndexMismatchError,
+    LengthMismatchError,
+    MetricInputError,
+    MulticlassNotSupportedError,
+    NonBinaryEncodingError,
+)
 
-__all__ = ["FairnessAnalyzer", "FairnessAnalyzerDataFrameProxy", "MetricResult"]
+__all__ = [
+    "FairnessAnalyzer",
+    "FairnessAnalyzerDataFrameProxy",
+    "MetricResult",
+    "MetricInputError",
+    "LengthMismatchError",
+    "IndexMismatchError",
+    "MulticlassNotSupportedError",
+    "NonBinaryEncodingError",
+    "POSITIVE_LABEL",
+]

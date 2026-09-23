@@ -19,7 +19,7 @@ classification-via-prompting, RAG answers).
 
 | | **A. LLM Fairness Evals (recommended)** | **B. General LLM Quality Evals** |
 |---|---|---|
-| What it measures | Disparate treatment/output-quality across demographic groups in LLM behavior: counterfactual fairness, stereotype association, refusal-rate and toxicity disparity | Faithfulness, hallucination, relevance, groundedness — general answer quality |
+| What it measures | Disparate treatment/output-quality across demographic groups in LLM behavior: lexical-divergence perturbation tests on name-swapped prompts (historically named "counterfactual fairness" — **not** Kusner et al. causal CF), stereotype association, refusal-rate and toxicity disparity | Faithfulness, hallucination, relevance, groundedness — general answer quality |
 | Fit with fairpipe identity | Direct extension of the existing "measurement, mitigation, monitoring" positioning and the Fairlearn/AIF360 comparison table | Overlaps with promptfoo, DeepEval, Ragas, OpenAI Evals — no differentiation, and it's a different product thesis |
 | Reuses existing machinery | Yes — bootstrap CI, effect sizes, `min_group_size`, `MetricResult` objects, monitoring/drift engine all apply directly | Partially — statistical rigor angle is weaker for single-answer quality scoring |
 
@@ -62,7 +62,7 @@ tolerates a metric that doesn't live inside the strict `MetricAdapter` contract.
 This shape does not fit `llm_evals` directly: there is no "fairlearn backend" or "aequitas
 backend" for counterfactual LLM fairness — there's only one way fairpipe computes it, so there's
 nothing to swap. Forcing the new metrics onto `MetricAdapter` itself (adding
-`counterfactual_fairness_divergence()` etc. as new required methods on that protocol) would mean
+`demographic_swap_divergence()` etc. as new required methods on that protocol) would mean
 every unrelated backend adapter now needs to implement or stub LLM-specific methods. **Decision:
 `llm_evals` gets a sibling protocol, `LLMEvalAdapter`, structurally parallel to `MetricAdapter`
 (fixed named methods per metric, an `available()` capability check, `MetricResult` return type)
@@ -132,7 +132,7 @@ The new capability should feel like it was built by the same team, not bolted on
   subclass of it** (see §3
   for why). Fixed named methods, mirroring `MetricAdapter`'s shape:
   - `available()` — checks the relevant provider SDK is installed and a credential is present.
-  - `counterfactual_fairness_divergence()`
+  - `demographic_swap_divergence()`
   - `refusal_rate_disparity()`
   - `toxicity_sentiment_disparity()`
   - `stereotype_association_score()`
@@ -222,7 +222,7 @@ CLI, and CI/CD pipeline as existing metrics — no separate report format.
 - CLI: `llm-eval` subcommand, added under `fairness_pipeline_dev_toolkit/cli/`
 - Tests: unit tests against mocked responses (required for merge); live tests behind marker
   (optional, documented as opt-in)
-- `case_studies/llm_counterfactual_fairness.ipynb` — a demonstration notebook in the same style
+- `case_studies/llm_fairness_measurement_pitfalls.ipynb` — a demonstration notebook in the same style
   as `case_studies/compas_racial_bias.ipynb`, run against a public benchmark subset, with a real
   measured effect size reported (not a placeholder number) — this is the credibility artifact,
   matching how the COMPAS/ACS notebooks ground the rest of the package's claims.
