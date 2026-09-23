@@ -1,3 +1,5 @@
+fairpipe_env/
+venv/
 .venv/
 __pycache__/
 .ipynb_checkpoints/
@@ -36,7 +38,7 @@ Thumbs.db
 .ruff_cache/
 .mypy_cache/
 
-# Test / coverage outputs (partially present today)
+# Test / coverage outputs
 coverage.xml
 htmlcov/
 
