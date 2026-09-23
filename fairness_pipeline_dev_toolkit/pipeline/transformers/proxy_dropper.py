@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
-from scipy.stats import chi2_contingency, pearsonr
+from scipy.stats import chi2_contingency
 from sklearn.base import BaseEstimator, TransformerMixin
 
 
@@ -33,10 +33,19 @@ def _pearson_abs(x: pd.Series, y: pd.Series) -> float:
     x_ = pd.to_numeric(x, errors="coerce")
     y_ = pd.to_numeric(y, errors="coerce")
     mask = (~x_.isna()) & (~y_.isna())
-    if mask.sum() < 3:
+    if mask.sum() < 2:
         return 0.0
-    r, _ = pearsonr(x_[mask].to_numpy(), y_[mask].to_numpy())
-    return float(abs(r))
+    
+    x_vals = x_[mask].to_numpy()
+    y_vals = y_[mask].to_numpy()
+    
+    if np.std(x_vals) == 0 or np.std(y_vals) == 0:
+        return 0.0
+        
+    corr = np.corrcoef(x_vals, y_vals)[0, 1]
+    if np.isnan(corr):
+        return 0.0
+    return float(abs(corr))
 
 
 class ProxyDropper(BaseEstimator, TransformerMixin):
@@ -70,20 +79,16 @@ class ProxyDropper(BaseEstimator, TransformerMixin):
         self.assoc_scores_: Dict[str, float] = {}
 
     def _assoc(self, feat: pd.Series, sens: pd.Series) -> float:
-        # decide association metric by variable types
-        feat_cat = feat.dtype == "object" or str(feat.dtype).startswith(("category", "string"))
-        sens_cat = sens.dtype == "object" or str(sens.dtype).startswith(("category", "string"))
+        feat_cat = not pd.api.types.is_numeric_dtype(feat)
+        sens_cat = not pd.api.types.is_numeric_dtype(sens)
 
         if feat_cat and sens_cat:
             return _cramers_v(feat, sens)
 
-        # numeric ↔ numeric OR numeric ↔ binary-categorical
         if not feat_cat and not sens_cat:
             return _pearson_abs(feat, sens)
 
-        # If one is binary categorical and the other numeric, use abs Pearson (point-biserial)
         if feat_cat and not sens_cat and _is_binary_series(feat):
-            # encode binary to {0,1}
             _, inv = np.unique(feat.astype(str), return_inverse=True)
             return _pearson_abs(pd.Series(inv, index=feat.index), sens)
 
@@ -91,7 +96,6 @@ class ProxyDropper(BaseEstimator, TransformerMixin):
             _, inv = np.unique(sens.astype(str), return_inverse=True)
             return _pearson_abs(feat, pd.Series(inv, index=sens.index))
 
-        # Fallback: treat as categorical↔categorical
         return _cramers_v(feat.astype(str), sens.astype(str))
 
     def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None):
@@ -115,14 +119,11 @@ class ProxyDropper(BaseEstimator, TransformerMixin):
                     if a > max_assoc:
                         max_assoc = a
                 except Exception:
-                    # robust fallback if a metric fails
                     continue
             scores[col] = float(max_assoc)
 
-        # Select columns to drop
         to_drop = [c for c, a in scores.items() if a >= self.threshold]
         if self.max_drop is not None and len(to_drop) > self.max_drop:
-            # drop the worst offenders first
             to_drop = [c for c, _ in sorted(scores.items(), key=lambda kv: kv[1], reverse=True)]
             to_drop = to_drop[: self.max_drop]
 
