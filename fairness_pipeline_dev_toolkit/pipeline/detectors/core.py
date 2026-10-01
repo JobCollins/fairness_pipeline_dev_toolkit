@@ -110,6 +110,27 @@ class RepresentationBiasDetector:
         )
 
 
+# ------------- dtype helpers ------------- #
+
+
+def _is_categorical_series(s: pd.Series) -> bool:
+    """True for categorical / string / bool / low-cardinality integer features.
+
+    Must treat pandas' dedicated string dtype as categorical. Under pandas 3.0
+    (and when a column is explicitly ``astype("string")``), plain Python strings
+    are no longer ``object``, so ``is_object_dtype`` alone is insufficient —
+    otherwise detectors send strings into ANOVA / eta-squared and crash.
+    """
+    if (
+        isinstance(s.dtype, pd.CategoricalDtype)
+        or pd.api.types.is_object_dtype(s)
+        or pd.api.types.is_string_dtype(s)
+        or pd.api.types.is_bool_dtype(s)
+    ):
+        return True
+    return pd.api.types.is_integer_dtype(s) and s.nunique(dropna=True) <= 20
+
+
 # ------------- Statistical disparity detector ------------- #
 
 
@@ -134,14 +155,7 @@ class StatisticalDisparityDetector:
         self.alpha = alpha
 
     def _is_categorical(self, s: pd.Series) -> bool:
-        if (
-            pd.api.types.is_categorical_dtype(s)
-            or pd.api.types.is_object_dtype(s)
-            or pd.api.types.is_bool_dtype(s)
-        ):
-            return True
-        # treat small-cardinality ints as categorical (e.g., codes)
-        return pd.api.types.is_integer_dtype(s) and s.nunique(dropna=True) <= 20
+        return _is_categorical_series(s)
 
     def run(
         self, df: pd.DataFrame, attribute: str, features: Optional[List[str]] = None
@@ -205,13 +219,7 @@ class ProxyVariableDetector:
         self.threshold = threshold
 
     def _is_categorical(self, s: pd.Series) -> bool:
-        if (
-            pd.api.types.is_categorical_dtype(s)
-            or pd.api.types.is_object_dtype(s)
-            or pd.api.types.is_bool_dtype(s)
-        ):
-            return True
-        return pd.api.types.is_integer_dtype(s) and s.nunique(dropna=True) <= 20
+        return _is_categorical_series(s)
 
     def run(
         self, df: pd.DataFrame, attribute: str, features: Optional[List[str]] = None
