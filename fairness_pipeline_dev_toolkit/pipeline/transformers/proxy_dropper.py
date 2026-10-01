@@ -4,13 +4,27 @@ from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
-from scipy.stats import chi2_contingency, pearsonr
+from scipy.stats import chi2_contingency
 from sklearn.base import BaseEstimator, TransformerMixin
 
 
 def _is_binary_series(s: pd.Series) -> bool:
     vals = pd.Series(s).dropna().unique()
     return len(vals) == 2
+
+
+def _is_categorical_like(s: pd.Series) -> bool:
+    """True for object / category / pandas string dtypes (not bool or numeric).
+
+    Uses pandas dtype APIs instead of ``str(dtype).startswith(...)`` so
+    ``StringDtype`` (``string`` / ``string[python]``) and categorical columns
+    are classified reliably across pandas 2.x and 3.x.
+    """
+    return bool(
+        isinstance(s.dtype, pd.CategoricalDtype)
+        or pd.api.types.is_object_dtype(s)
+        or pd.api.types.is_string_dtype(s)
+    )
 
 
 def _cramers_v(x: pd.Series, y: pd.Series) -> float:
@@ -30,13 +44,26 @@ def _cramers_v(x: pd.Series, y: pd.Series) -> float:
 
 
 def _pearson_abs(x: pd.Series, y: pd.Series) -> float:
+    """Absolute Pearson correlation with constant-column / NaN guards.
+
+    Requires at least 3 paired finite observations (unchanged contract). Uses
+    ``np.corrcoef`` so zero-variance inputs return ``0.0`` instead of raising.
+    """
     x_ = pd.to_numeric(x, errors="coerce")
     y_ = pd.to_numeric(y, errors="coerce")
     mask = (~x_.isna()) & (~y_.isna())
     if mask.sum() < 3:
         return 0.0
-    r, _ = pearsonr(x_[mask].to_numpy(), y_[mask].to_numpy())
-    return float(abs(r))
+
+    x_vals = x_[mask].to_numpy(dtype=float)
+    y_vals = y_[mask].to_numpy(dtype=float)
+    if np.std(x_vals) == 0.0 or np.std(y_vals) == 0.0:
+        return 0.0
+
+    corr = np.corrcoef(x_vals, y_vals)[0, 1]
+    if np.isnan(corr):
+        return 0.0
+    return float(abs(corr))
 
 
 class ProxyDropper(BaseEstimator, TransformerMixin):
@@ -71,11 +98,11 @@ class ProxyDropper(BaseEstimator, TransformerMixin):
 
     def _assoc(self, feat: pd.Series, sens: pd.Series) -> float:
         # decide association metric by variable types
-        feat_cat = feat.dtype == "object" or str(feat.dtype).startswith(("category", "string"))
-        sens_cat = sens.dtype == "object" or str(sens.dtype).startswith(("category", "string"))
+        feat_cat = _is_categorical_like(feat)
+        sens_cat = _is_categorical_like(sens)
 
         if feat_cat and sens_cat:
-            return _cramers_v(feat, sens)
+            return _cramers_v(feat.astype(str), sens.astype(str))
 
         # numeric ↔ numeric OR numeric ↔ binary-categorical
         if not feat_cat and not sens_cat:

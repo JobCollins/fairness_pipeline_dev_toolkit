@@ -164,6 +164,31 @@ class TestStatisticalDisparityDetector:
         assert 0.0 <= result.pvalue <= 1.0
         assert isinstance(result.flagged, bool)
 
+    def test_run_pandas_string_dtype_feature_uses_chi2(self):
+        """StringDtype columns must use chi2, not ANOVA (pandas 3.0 / explicit string).
+
+        Pandas 3.0 defaults Python-string columns to a dedicated string dtype
+        instead of object. Without ``is_string_dtype``, detectors mis-route them
+        into ``f_oneway`` and raise ``TypeError`` on string subtraction.
+        """
+        df = pd.DataFrame(
+            {
+                "group": ["A", "A", "A", "B", "B", "B"],
+                "feature": ["X", "X", "Y", "X", "Y", "Y"],
+            }
+        )
+        df["feature"] = df["feature"].astype(pd.StringDtype())
+        assert not pd.api.types.is_object_dtype(df["feature"])
+        assert pd.api.types.is_string_dtype(df["feature"])
+
+        detector = StatisticalDisparityDetector(alpha=0.05)
+        assert detector._is_categorical(df["feature"]) is True
+        results = detector.run(df, attribute="group", features=["feature"])
+
+        assert len(results) == 1
+        assert results[0].test == "chi2"
+        assert 0.0 <= results[0].pvalue <= 1.0
+
     def test_run_numeric_feature(self):
         """Test run with numeric feature (ANOVA test)."""
         df = pd.DataFrame(
