@@ -5,15 +5,31 @@ repos:
       - id: ruff            # lint only
         args: ["--fix"]     # optional auto-fix for lint issues
   - repo: https://github.com/psf/black
-    rev: 24.8.0
+    rev: 25.9.0             # keep in sync with black==25.9.0 in pyproject.toml / CI
     hooks:
       - id: black
   - repo: https://github.com/PyCQA/isort
     rev: 5.13.2
     hooks:
       - id: isort
+  - repo: https://github.com/PyCQA/flake8   # CI runs flake8; run it before commit too
+    rev: 7.1.1
+    hooks:
+      - id: flake8
+        files: ^fairness_pipeline_dev_toolkit/
   - repo: https://github.com/kynan/nbstripout
     rev: 0.7.1
     hooks:
       - id: nbstripout
         exclude: ^case_studies/
+  # Runs on `git push`, not on every commit. Enable with:
+  #   pre-commit install --hook-type pre-push
+  - repo: local
+    hooks:
+      - id: pytest-before-push
+        name: pytest (fast, before push)
+        entry: python -m pytest -q -x -p no:cacheprovider
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
