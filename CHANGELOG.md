@@ -58,6 +58,11 @@ Read this before upgrading from ≤0.11.0.
 
 ### Fixed
 
+- **ProxyDropper association scoring on string / constant columns.** Replaced
+  fragile ``str(dtype).startswith(...)`` checks with pandas dtype APIs
+  (``is_string_dtype`` / categorical / object) and hardened absolute Pearson
+  via ``np.corrcoef`` with zero-variance / NaN guards. Min paired sample
+  count remains **3** (unchanged numeric contract).
 - **Analyzer bootstrap stats were non-deterministic (Wave 1a / BL-013).** Classifier
   CI stats ignored the bootstrap resample and redrew via global `np.random`,
   invalidating BCa and distorting percentile intervals. Index-based stats now drive
