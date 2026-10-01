@@ -137,6 +137,7 @@ class StatisticalDisparityDetector:
         if (
             pd.api.types.is_categorical_dtype(s)
             or pd.api.types.is_object_dtype(s)
+            or pd.api.types.is_string_dtype(s)
             or pd.api.types.is_bool_dtype(s)
         ):
             return True
@@ -208,6 +209,7 @@ class ProxyVariableDetector:
         if (
             pd.api.types.is_categorical_dtype(s)
             or pd.api.types.is_object_dtype(s)
+            or pd.api.types.is_string_dtype(s)
             or pd.api.types.is_bool_dtype(s)
         ):
             return True
