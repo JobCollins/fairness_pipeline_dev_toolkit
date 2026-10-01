@@ -18,12 +18,6 @@ from .recorded_counterfactual import (
     populate_expanded_recorded_counterfactual_cache,
     populate_recorded_counterfactual_cache,
 )
-from .recorded_within_group_control import (
-    RECORDED_WITHIN_GROUP_CONTROL_CACHE_DIR,
-    RECORDED_WITHIN_GROUP_CONTROL_MANIFEST_PATH,
-    load_recorded_within_group_control_manifest,
-    load_within_group_control_records,
-)
 from .recorded_group_rates import (
     RECORDED_HUMANITARIAN_CONTRAST_CACHE_DIR,
     RECORDED_HUMANITARIAN_CONTRAST_MANIFEST_PATH,
@@ -38,6 +32,12 @@ from .recorded_group_rates import (
     populate_humanitarian_contrast_cache,
     populate_recorded_refusal_cache,
     populate_recorded_toxicity_cache,
+)
+from .recorded_within_group_control import (
+    RECORDED_WITHIN_GROUP_CONTROL_CACHE_DIR,
+    RECORDED_WITHIN_GROUP_CONTROL_MANIFEST_PATH,
+    load_recorded_within_group_control_manifest,
+    load_within_group_control_records,
 )
 
 __all__ = [
