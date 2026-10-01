@@ -58,10 +58,18 @@ Read this before upgrading from ≤0.11.0.
 
 ### Fixed
 
+<<<<<<< HEAD
 - **Detectors mis-routed pandas `StringDtype` columns into ANOVA (pandas 3 / explicit
   string).** `StatisticalDisparityDetector` and `ProxyVariableDetector` now treat
   `is_string_dtype` as categorical (shared `_is_categorical_series` helper), so
   string features use chi-squared / Cramér's V instead of crashing in `f_oneway`.
+=======
+- **ProxyDropper association scoring on string / constant columns.** Replaced
+  fragile ``str(dtype).startswith(...)`` checks with pandas dtype APIs
+  (``is_string_dtype`` / categorical / object) and hardened absolute Pearson
+  via ``np.corrcoef`` with zero-variance / NaN guards. Min paired sample
+  count remains **3** (unchanged numeric contract).
+>>>>>>> 908ac11 (fix(pipeline): harden ProxyDropper dtype routing and Pearson guards)
 - **Analyzer bootstrap stats were non-deterministic (Wave 1a / BL-013).** Classifier
   CI stats ignored the bootstrap resample and redrew via global `np.random`,
   invalidating BCa and distorting percentile intervals. Index-based stats now drive

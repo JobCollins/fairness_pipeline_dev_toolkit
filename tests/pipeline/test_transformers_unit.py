@@ -675,3 +675,42 @@ class TestProxyDropper:
         assert len(transformer.dropped_columns_) == 0
         assert "feature1" in result.columns
         assert "feature2" in result.columns
+
+    def test_string_dtype_columns_use_cramers_v(self):
+        """Explicit pandas StringDtype features must not crash association scoring."""
+        df = pd.DataFrame(
+            {
+                "proxy": ["x", "x", "x", "y", "y", "y"],
+                "noise": ["a", "b", "a", "b", "a", "b"],
+                "group": ["A", "A", "A", "B", "B", "B"],
+            }
+        )
+        df["proxy"] = df["proxy"].astype(pd.StringDtype())
+        df["group"] = df["group"].astype(pd.StringDtype())
+        assert pd.api.types.is_string_dtype(df["proxy"])
+        assert not pd.api.types.is_object_dtype(df["proxy"])
+
+        transformer = ProxyDropper(sensitive=["group"], threshold=0.5)
+        transformer.fit(df)
+        result = transformer.transform(df)
+
+        assert "proxy" in transformer.assoc_scores_
+        assert transformer.assoc_scores_["proxy"] >= 0.5
+        assert "proxy" in transformer.dropped_columns_
+        assert "group" in result.columns
+
+    def test_constant_numeric_feature_scores_zero(self):
+        """Zero-variance numerics must score 0.0 (no pearsonr/corrcoef failure)."""
+        df = pd.DataFrame(
+            {
+                "constant": [1, 1, 1, 1, 1, 1],
+                "feature1": [1, 2, 3, 4, 5, 6],
+                "group": [0, 0, 0, 1, 1, 1],
+            }
+        )
+
+        transformer = ProxyDropper(sensitive=["group"], threshold=0.3)
+        transformer.fit(df)
+
+        assert transformer.assoc_scores_["constant"] == 0.0
+        assert "constant" not in transformer.dropped_columns_
