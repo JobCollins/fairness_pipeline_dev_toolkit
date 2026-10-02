@@ -27,26 +27,53 @@ def _sens_keys(sens: np.ndarray) -> np.ndarray:
     return np.asarray(sens, dtype=str)
 
 
+def _group_codes(group_of: np.ndarray, groups: Sequence[str]) -> np.ndarray:
+    """Map each element of ``group_of`` to its index in ``groups``, else -1.
+
+    Precomputing this once per analyzer call (instead of once per bootstrap
+    draw) lets the per-draw statistic replace an O(len(groups)) Python loop
+    over boolean masks with a couple of O(n) vectorized passes.
+    """
+    return pd.Categorical(group_of, categories=list(groups)).codes
+
+
 def dpd_stat_from_indices(
     sample_idx: np.ndarray,
     y_pred: np.ndarray,
     group_of: np.ndarray,
     groups: Sequence[str],
+    *,
+    codes: Optional[np.ndarray] = None,
 ) -> float:
     """Max−min of group means over a bootstrap sample of observation indices.
 
     Deterministic in ``sample_idx``. Returns ``nan`` if any group in ``groups``
     has zero members in the resample — the estimand is defined on that fixed
     group set, so an incomplete resample does not estimate it.
+
+    ``y_pred`` must be binary {0, 1} (enforced upstream by
+    ``prepare_binary_classifier_inputs``), so per-group sums are exact
+    integers regardless of accumulation order — the vectorized bincount path
+    below is bit-identical to the group-by-group ``.mean()`` it replaces.
     """
     idxs = np.asarray(sample_idx, dtype=int)
-    rates: List[float] = []
-    for g in groups:
-        sel = idxs[group_of[idxs] == g]
-        if sel.size == 0:
-            return float("nan")
-        rates.append(float(y_pred[sel].mean()))
-    return float(max(rates) - min(rates))
+    n_groups = len(groups)
+    if codes is None:
+        codes = _group_codes(group_of, groups)
+
+    c = codes[idxs]
+    valid = c >= 0
+    if not np.any(valid):
+        return float("nan")
+    c = c[valid]
+    yp_s = y_pred[idxs][valid]
+
+    counts = np.bincount(c, minlength=n_groups)
+    if np.any(counts == 0):
+        return float("nan")
+    sums = np.bincount(c, weights=yp_s.astype(float, copy=False), minlength=n_groups)
+    rates = sums / counts
+    return float(rates.max() - rates.min())
 
 
 def eod_stat_from_indices(
@@ -55,31 +82,56 @@ def eod_stat_from_indices(
     y_pred: np.ndarray,
     group_of: np.ndarray,
     groups: Sequence[str],
+    *,
+    codes: Optional[np.ndarray] = None,
 ) -> float:
     """Equalized-odds gap (max of TPR/FPR gaps) over a bootstrap index sample.
 
     Deterministic in ``sample_idx``. Returns ``nan`` if any analysis group is
     absent from the resample.
+
+    ``y_true``/``y_pred`` are binary {0, 1}, so the bincount-based per-group
+    TPR/FPR sums below are exact integers and bit-identical to the
+    group-by-group ``.mean()`` loop this replaces, regardless of summation
+    order.
     """
     idxs = np.asarray(sample_idx, dtype=int)
-    tprs: List[float] = []
-    fprs: List[float] = []
-    for g in groups:
-        sel = idxs[group_of[idxs] == g]
-        if sel.size == 0:
-            return float("nan")
-        yt_g = y_true[sel]
-        yp_g = y_pred[sel]
-        pos = yt_g == 1
-        neg = yt_g == 0
-        tpr_g = np.nan if not np.any(pos) else float((yp_g[pos] == 1).mean())
-        fpr_g = np.nan if not np.any(neg) else float((yp_g[neg] == 1).mean())
-        if np.isfinite(tpr_g):
-            tprs.append(tpr_g)
-        if np.isfinite(fpr_g):
-            fprs.append(fpr_g)
-    tpr_gap = np.nan if len(tprs) < 2 else (max(tprs) - min(tprs))
-    fpr_gap = np.nan if len(fprs) < 2 else (max(fprs) - min(fprs))
+    n_groups = len(groups)
+    if codes is None:
+        codes = _group_codes(group_of, groups)
+
+    c_all = codes[idxs]
+    valid = c_all >= 0
+    if not np.any(valid):
+        return float("nan")
+    c = c_all[valid]
+    yt_s = y_true[idxs][valid]
+    yp_s = y_pred[idxs][valid]
+
+    total_counts = np.bincount(c, minlength=n_groups)
+    if np.any(total_counts == 0):
+        return float("nan")
+
+    pos_mask = yt_s == 1
+    neg_mask = yt_s == 0
+
+    pos_counts = np.bincount(c[pos_mask], minlength=n_groups)
+    neg_counts = np.bincount(c[neg_mask], minlength=n_groups)
+    pos_hits = np.bincount(
+        c[pos_mask], weights=yp_s[pos_mask].astype(float, copy=False), minlength=n_groups
+    )
+    neg_hits = np.bincount(
+        c[neg_mask], weights=yp_s[neg_mask].astype(float, copy=False), minlength=n_groups
+    )
+
+    with np.errstate(invalid="ignore", divide="ignore"):
+        tpr = np.where(pos_counts > 0, pos_hits / np.where(pos_counts > 0, pos_counts, 1), np.nan)
+        fpr = np.where(neg_counts > 0, neg_hits / np.where(neg_counts > 0, neg_counts, 1), np.nan)
+
+    tprs = tpr[np.isfinite(tpr)]
+    fprs = fpr[np.isfinite(fpr)]
+    tpr_gap = np.nan if tprs.size < 2 else float(tprs.max() - tprs.min())
+    fpr_gap = np.nan if fprs.size < 2 else float(fprs.max() - fprs.min())
     if not np.isfinite(tpr_gap) and not np.isfinite(fpr_gap):
         return float("nan")
     return float(np.nanmax([tpr_gap, fpr_gap]))
@@ -290,10 +342,13 @@ class FairnessAnalyzer:
                 )
             group_keys = [str(g) for g in groups]
             group_of = _sens_keys(sens)
+            group_codes = _group_codes(group_of, group_keys)
             obs_idx = np.arange(len(yp), dtype=int)
 
             def stat_fn(sample_idx):
-                return dpd_stat_from_indices(sample_idx, yp, group_of, group_keys)
+                return dpd_stat_from_indices(
+                    sample_idx, yp, group_of, group_keys, codes=group_codes
+                )
 
             res.ci = bootstrap_ci(obs_idx, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
 
@@ -397,10 +452,13 @@ class FairnessAnalyzer:
                 )
             group_keys = [str(g) for g in groups]
             group_of = _sens_keys(sens)
+            group_codes = _group_codes(group_of, group_keys)
             obs_idx = np.arange(len(yp), dtype=int)
 
             def stat_fn(sample_idx):
-                return eod_stat_from_indices(sample_idx, yt, yp, group_of, group_keys)
+                return eod_stat_from_indices(
+                    sample_idx, yt, yp, group_of, group_keys, codes=group_codes
+                )
 
             res.ci = bootstrap_ci(obs_idx, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
 

@@ -77,6 +77,17 @@ Read this before upgrading from ≤0.11.0.
   percentile CI path was unaffected** — published figures that used the default are
   not automatically suspect. Only callers who set BCa need to recompute.
 
+### Performance
+
+- **Vectorized DPD/EOD bootstrap CI statistics.** `dpd_stat_from_indices` /
+  `eod_stat_from_indices` replaced an O(groups) Python loop of boolean masks
+  with `np.bincount`-based group aggregation, computed once per bootstrap
+  draw instead of once per group per draw. ~4-5x faster on intersectional
+  attributes with many groups; no change to any metric value or CI (classifier
+  labels are binary {0,1}, so per-group sums are exact integers regardless of
+  accumulation order — proven bit-identical in
+  `tests/metrics/test_bootstrap_stat_vectorization.py`).
+
 ### Changed (detail)
 
 - Shared `metrics/input_validation.py` for analyzer + adapters (BL-015);
