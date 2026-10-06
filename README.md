@@ -31,8 +31,8 @@ PyPI package: **[fairpipe](https://pypi.org/project/fairpipe/)** · License: **A
 pip install fairpipe
 ```
 
-**Optional extras:** `pip install 'fairpipe[api]'` · `'fairpipe[training]'` · `'fairpipe[monitoring]'` · `'fairpipe[adapters]'` · `'fairpipe[llm]'`  
-(REST API, PyTorch training helpers, dashboards/drift, Fairlearn/Aequitas backends, LLM provider SDKs.) Full detail is in the **documentation** below—not duplicated here.
+**Optional extras:** `pip install 'fairpipe[api]'` · `'fairpipe[training]'` · `'fairpipe[monitoring]'` · `'fairpipe[adapters]'` · `'fairpipe[llm]'` · `'fairpipe[tracking]'`  
+(REST API, PyTorch training helpers, dashboards/drift, Fairlearn/Aequitas backends, LLM provider SDKs, MLflow tracking.) Full detail is in the **documentation** below—not duplicated here.
 
 ---
 

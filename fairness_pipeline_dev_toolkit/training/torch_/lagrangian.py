@@ -3,9 +3,26 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List, Literal
 
-import torch
-import torch.nn as nn
-import torch.optim as optim
+from fairness_pipeline_dev_toolkit._extras import require_dependency
+
+torch = require_dependency(
+    "torch",
+    dependency_name="torch",
+    extra_name="training",
+    purpose="LagrangianFairnessTrainer requires PyTorch",
+)
+nn = require_dependency(
+    "torch.nn",
+    dependency_name="torch",
+    extra_name="training",
+    purpose="LagrangianFairnessTrainer requires PyTorch",
+)
+optim = require_dependency(
+    "torch.optim",
+    dependency_name="torch",
+    extra_name="training",
+    purpose="LagrangianFairnessTrainer requires PyTorch",
+)
 
 ConstraintKind = Literal["demographic_parity", "equal_opportunity"]
 

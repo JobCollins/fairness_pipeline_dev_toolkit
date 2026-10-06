@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from fairness_pipeline_dev_toolkit.exceptions import DependencyError
 from fairness_pipeline_dev_toolkit.metrics.aequitas_adapter import AequitasAdapter
 from fairness_pipeline_dev_toolkit.metrics.base import MetricResult
 
@@ -288,7 +289,7 @@ class TestDemographicParityDifference:
             y_pred = np.array([0, 1])
             sensitive = np.array(["A", "B"])
 
-            with pytest.raises(RuntimeError, match="Aequitas not available"):
+            with pytest.raises(DependencyError, match="aequitas"):
                 adapter.demographic_parity_difference(y_true, y_pred, sensitive)
 
     def test_dp_n_per_group_counts(self, adapter):
@@ -444,7 +445,7 @@ class TestEqualizedOddsDifference:
             y_pred = np.array([0, 1])
             sensitive = np.array(["A", "B"])
 
-            with pytest.raises(RuntimeError, match="Aequitas not available"):
+            with pytest.raises(DependencyError, match="aequitas"):
                 adapter.equalized_odds_difference(y_true, y_pred, sensitive)
 
     def test_eo_n_per_group_counts(self, adapter):
@@ -591,7 +592,7 @@ class TestMAEParityDifference:
             y_pred = np.array([2.8, 2.3])
             sensitive = np.array(["A", "B"])
 
-            with pytest.raises(RuntimeError, match="Aequitas not available"):
+            with pytest.raises(DependencyError, match="aequitas"):
                 adapter.mae_parity_difference(y_true, y_pred, sensitive)
 
     def test_mae_n_per_group_counts(self, adapter):

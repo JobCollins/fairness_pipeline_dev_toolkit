@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Upgrade notes (breaking)
+
+- **`mlflow` is no longer installed by default** ([#39](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/39) / BL-029).
+  Use `pip install "fairpipe[tracking]"`. Calling MLflow logger helpers or
+  `--mlflow-experiment` without that extra raises `DependencyError` with the
+  install hint (previously returned `False` silently). CVE pins that existed
+  only for MLflow's transitive graph (`starlette`, `werkzeug`) moved into the
+  same extra.
+
 ### Stereotype association is experimental (not BBQ bias score)
 
 - **`load_bbq_items()` no longer loads a silent default subset.** Pass an explicit

@@ -3,10 +3,32 @@
 
 import os
 
-import dash
 import pandas as pd
-import plotly.graph_objs as go
-from dash import dcc, html
+
+from fairness_pipeline_dev_toolkit._extras import require_dependency
+
+dash = require_dependency(
+    "dash",
+    dependency_name="dash",
+    extra_name="monitoring",
+    purpose="monitoring_dash_app requires dash",
+)
+go = require_dependency(
+    "plotly.graph_objs",
+    dependency_name="plotly",
+    extra_name="monitoring",
+    purpose="monitoring_dash_app requires plotly",
+)
+dcc = require_dependency(
+    "dash",
+    dependency_name="dash",
+    extra_name="monitoring",
+).dcc
+html = require_dependency(
+    "dash",
+    dependency_name="dash",
+    extra_name="monitoring",
+).html
 
 app = dash.Dash(__name__)
 art_dir = os.environ.get("FPDT_ART_DIR", "artifacts/monitoring")
