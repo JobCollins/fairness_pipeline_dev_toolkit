@@ -459,6 +459,7 @@ def apply_pipeline(
     pipeline: sklearn.pipeline.Pipeline,
     df: pd.DataFrame,
     *,
+    y=None,
     fit: bool = True,
 ) -> PipelineResult
 ```
@@ -466,12 +467,16 @@ def apply_pipeline(
 **Parameters:**
 - `pipeline`: An sklearn `Pipeline` built with `build_pipeline(config)`.
 - `df` (pd.DataFrame): Input DataFrame (must include columns required by the steps).
+- `y` (optional): Label vector forwarded to `pipe.fit_transform(X, y)` when
+  `fit=True`. Required by `KamiranCaldersReweighing` unless that step sets
+  `label=` to a column in `X`. Other transformers accept and ignore `y`.
 - `fit` (bool, keyword-only): If `True` (default), `fit_transform` on `df` (training).
   If `False`, `transform` only — the same pipeline instance must already be fitted
-  on training data. `execute_workflow` fits on train then applies with `fit=False` on test.
+  on training data. `execute_workflow` fits on train (with `y_train`) then applies
+  with `fit=False` on test.
 
 **Returns:** `PipelineResult` with `data` (transformed DataFrame), `metadata` (step artifacts or
-`None`), `sample_weight` (optional array from instance/reweighing steps — sized to the
+`None`), `sample_weight` (optional array from instance/reweighing/KC steps — sized to the
 **fit** frame, not to a held-out `df` when `fit=False`), and `transformers_applied`
 (step names). Tuple unpacking `(df, meta)` is deprecated and warns; use attributes instead.
 
@@ -516,6 +521,18 @@ print(report.body)
 ```
 
 ### Transformers
+
+**Which reweighing class to use**
+
+| Goal | Class |
+|---|---|
+| Change how much each *group* counts (frequency balancing) | `InstanceReweighting` |
+| Remove label–group dependence in weighted training data | `KamiranCaldersReweighing` |
+
+Frequency balancing **cannot** change a group's internal base rate. Only the
+`reductions` training path consumes sample weights today; `regularized` /
+`lagrangian` ignore them
+([#58](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/58)).
 
 #### `InstanceReweighting`
 
@@ -565,11 +582,59 @@ transformer.fit(X_train)
 X_test_repaired = transformer.transform(X_test)
 ```
 
-#### `ReweighingTransformer`
+#### `KamiranCaldersReweighing`
 
-Compute per-row **training** sample weights from sensitive-attribute proportions.
-`transform` returns features unchanged and does **not** refit on held-out data;
-`sample_weight_` stays aligned to the fit frame.
+Label-aware reweighing after Kamiran & Calders (2012). Each training row in
+**joint** sensitive group `s` with binary label `y ∈ {0,1}` receives
+
+```
+w(s, y) = (n_s · n_y) / (n · n_sy)
+```
+
+In the weighted training sample, group and label are independent (equal
+weighted positive rates across groups). Weights sum to `n` (mean 1) when
+uncapped. Multiple sensitive attributes form one joint cell — weights are
+**not** multiplied per attribute.
+
+**Guarantees:** independence of the (joint) protected group and the label in
+the weighted *training* data.
+
+**Does not guarantee:** equalized odds; anything the model learns through
+proxies; low variance from small `(s, y)` cells.
+
+**Labels:** prefer `fit(X, y)`. Alternatively set `label=` to a column in `X`,
+or rely on YAML `training.target_column` (defaults `label` in `_make_step`).
+Missing labels raise `KamiranCaldersLabelError` (CLI exit 2, REST 422) — never
+a silent fallback to frequency balancing.
+
+**Parameters:** `sensitive`, optional `label`, optional `max_weight` (default
+`None` = no clip; clipping renormalizes to mean 1 and independence holds only
+approximately).
+
+**Citation:** Kamiran, F. & Calders, T. (2012). Data preprocessing techniques
+for classification without discrimination. *Knowledge and Information
+Systems*, 33(1).
+
+**Location:** `fairpipe.pipeline.KamiranCaldersReweighing`
+
+**Usage:**
+```python
+from fairpipe.pipeline import KamiranCaldersReweighing
+
+transformer = KamiranCaldersReweighing(sensitive=["gender"])
+transformer.fit(X_train, y_train)
+weights = transformer.sample_weight_
+_ = transformer.transform(X_test)  # features unchanged; weights stay train-sized
+```
+
+#### `ReweighingTransformer` *(deprecated)*
+
+Group-frequency balancer (ignores `y`). **Deprecated** — emits `FutureWarning`.
+Prefer `InstanceReweighting` for frequency balancing or
+`KamiranCaldersReweighing` for label-aware reweighing. Not an alias of
+`InstanceReweighting` (target-count rounding and missing-column handling
+differ). `transform` returns features unchanged; `sample_weight_` stays
+aligned to the fit frame.
 
 **Location:** `fairpipe.pipeline.ReweighingTransformer`
 

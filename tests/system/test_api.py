@@ -147,6 +147,7 @@ class TestPipelineAPI:
                 "InstanceReweighting",
                 "DisparateImpactRemover",
                 "ReweighingTransformer",
+                "KamiranCaldersReweighing",
                 "ProxyDropper",
             ]
 
@@ -163,6 +164,7 @@ class TestPipelineAPI:
             from fairness_pipeline_dev_toolkit.pipeline import (
                 DisparateImpactRemover,
                 InstanceReweighting,
+                KamiranCaldersReweighing,
                 PipelineConfig,
                 ProxyDropper,
                 ReweighingTransformer,
@@ -180,6 +182,7 @@ class TestPipelineAPI:
             assert InstanceReweighting is not None
             assert DisparateImpactRemover is not None
             assert ReweighingTransformer is not None
+            assert KamiranCaldersReweighing is not None
             assert ProxyDropper is not None
         except ImportError as e:
             if "fairlearn" in str(e) or "torch" in str(e):

@@ -8,6 +8,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
+from fairness_pipeline_dev_toolkit.exceptions import KamiranCaldersLabelError
 from fairness_pipeline_dev_toolkit.io import load_data
 from fairness_pipeline_dev_toolkit.pipeline.config import load_config
 from fairness_pipeline_dev_toolkit.pipeline.orchestration import (
@@ -60,7 +61,11 @@ async def pipeline_run(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    Xt = apply_pipeline(pipe, df).data
+    try:
+        Xt = apply_pipeline(pipe, df).data
+    except KamiranCaldersLabelError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     transformers_applied = [name for name, _ in pipe.steps]
 
     detector_dict = bias_report.to_dict()

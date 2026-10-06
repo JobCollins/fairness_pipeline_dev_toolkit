@@ -5,6 +5,7 @@ from typing import Dict, Type
 from ..transformers import (
     DisparateImpactRemover,
     InstanceReweighting,
+    KamiranCaldersReweighing,
     ProxyDropper,
     ReweighingTransformer,
 )
@@ -18,6 +19,7 @@ _TRANSFORMERS: Dict[str, Type] = {
     "InstanceReweighting": InstanceReweighting,
     "DisparateImpactRemover": DisparateImpactRemover,
     "ReweighingTransformer": ReweighingTransformer,
+    "KamiranCaldersReweighing": KamiranCaldersReweighing,
     "ProxyDropper": ProxyDropper,
 }
 

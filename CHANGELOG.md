@@ -13,6 +13,31 @@ Wave 1 trustworthy-measurement + train-once transforms (BL-013, BL-015, BL-017,
 BL-020, BL-025) plus the LLM metric rename below. Behaviour-changing; intended
 next release is a **minor** (0.12.0), not a patch. No version bump in this commit.
 
+### Added
+
+- **`KamiranCaldersReweighing`** ([JobCollins#44](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/44)):
+  label-aware reweighing `w(s,y)=(n_s·n_y)/(n·n_sy)` with joint sensitive cells,
+  optional `max_weight` clip+renorm, train-only `sample_weight_` /
+  `cell_weights_`, and `KamiranCaldersLabelError` when labels are missing.
+  Wired into the transformer registry and `PipelineResult.sample_weight`.
+- **`apply_pipeline(..., y=None)`** forwards labels to `pipe.fit_transform(X, y)`;
+  `execute_workflow` passes `y_train` when fitting. CLI/REST still supply labels
+  via the step `label` parameter (defaulted from `training.target_column`).
+
+### Deprecated
+
+- **`ReweighingTransformer`**: emits `FutureWarning`; prefer
+  `InstanceReweighting` (frequency balancing) or `KamiranCaldersReweighing`
+  (label-aware). Not turned into an alias — implementation differences would
+  change existing weights.
+
+### Documentation
+
+- **`DOCS.md` / `docs/api.md`**: document `KamiranCaldersReweighing` (formula,
+  citation, guarantees / non-guarantees); correct the false `strategy`
+  parameter on `ReweighingTransformer`; clarify which class to use and that
+  only `reductions` consumes weights today ([#58](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/58)).
+
 ### Upgrade notes (breaking)
 
 Read this before upgrading from ≤0.11.0.

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -10,6 +11,13 @@ from sklearn.base import BaseEstimator, TransformerMixin
 class ReweighingTransformer(BaseEstimator, TransformerMixin):
     """
     Compute per-row sample weights to counter representation imbalance.
+
+    .. deprecated::
+        Deprecated. Prefer :class:`InstanceReweighting` for group-frequency
+        balancing, or :class:`KamiranCaldersReweighing` for label-aware
+        Kamiran & Calders reweighing. This class remains a group-frequency
+        balancer (it ignores ``y``); it is **not** an alias of either
+        alternative — small implementation differences would change weights.
 
     Behavior:
       - If `benchmarks` is provided (e.g., {"group_col": {"A": 0.5, "B": 0.5}}),
@@ -35,6 +43,15 @@ class ReweighingTransformer(BaseEstimator, TransformerMixin):
         benchmarks: Optional[Dict[str, Dict[str, float]]] = None,
         clip: float = 10.0,
     ):
+        warnings.warn(
+            "ReweighingTransformer is deprecated and will be removed in a future "
+            "release. Use InstanceReweighting for group-frequency balancing, or "
+            "KamiranCaldersReweighing for label-aware (Kamiran & Calders) reweighing. "
+            "ReweighingTransformer is not an alias of InstanceReweighting — the two "
+            "differ slightly (target-count rounding; missing-column raise vs skip).",
+            FutureWarning,
+            stacklevel=2,
+        )
         self.sensitive = list(sensitive)
         self.benchmarks = benchmarks or {}
         self.clip = float(clip)
