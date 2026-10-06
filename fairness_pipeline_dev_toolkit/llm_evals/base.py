@@ -159,8 +159,13 @@ class StubLLMEvalAdapter:
         min_group_size: int = DEFAULT_LLM_MIN_GROUP_SIZE,
         **kwargs: Any,
     ) -> MetricResult:
+        from fairness_pipeline_dev_toolkit.llm_evals.provenance import (
+            CAVEAT_STEREOTYPE_EXPERIMENTAL,
+        )
+
         return MetricResult(
             metric="stereotype_association_score",
             value=0.0,
             n_per_group={"A": min_group_size, "B": min_group_size},
+            caveat=CAVEAT_STEREOTYPE_EXPERIMENTAL,
         )

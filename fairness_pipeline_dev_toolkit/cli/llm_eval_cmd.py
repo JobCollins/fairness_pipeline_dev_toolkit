@@ -62,6 +62,8 @@ def _raw_evaluators_from_config_path(path: str) -> list[str]:
 
 
 def cmd_llm_eval(args: argparse.Namespace) -> int:
+    from fairness_pipeline_dev_toolkit.exceptions import ConfigValidationError
+
     metric = _selected_metric(args)
     if args.threshold is not None and metric is None:
         print(
@@ -71,7 +73,11 @@ def cmd_llm_eval(args: argparse.Namespace) -> int:
         return EXIT_USAGE
 
     _print_alias_stderr(_raw_evaluators_from_config_path(args.config))
-    config = load_llm_eval_config(path=args.config)
+    try:
+        config = load_llm_eval_config(path=args.config)
+    except ConfigValidationError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
     if metric is not None and metric not in config.evaluators:
         print(
             f"error: metric {metric!r} is not in this run's evaluators "
@@ -96,6 +102,9 @@ def cmd_llm_eval(args: argparse.Namespace) -> int:
             random_state=args.random_state,
         )
     except (CacheMissError, LiveLLMCallForbidden) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    except ConfigValidationError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USAGE
 

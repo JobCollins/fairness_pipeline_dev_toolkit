@@ -43,15 +43,42 @@ def test_load_valid_llm_eval_block():
 
 
 def test_load_valid_standalone_root_block():
+    from fairness_pipeline_dev_toolkit.llm_evals.bbq import DEFAULT_LOCAL_FIXTURE
+
     cfg = load_llm_eval_config(
         obj={
             "provider": "local",
             "model": "stub-model",
             "evaluators": ["stereotype_association_score"],
+            "bbq_path": str(DEFAULT_LOCAL_FIXTURE),
         }
     )
     assert cfg.provider == "local"
     assert cfg.model == "stub-model"
+    assert cfg.bbq_path == str(DEFAULT_LOCAL_FIXTURE)
+
+
+def test_rejects_stereotype_without_bbq_path():
+    with pytest.raises(ConfigValidationError, match="bbq_path.*BBQ-schema"):
+        load_llm_eval_config(
+            obj={
+                "provider": "local",
+                "model": "stub-model",
+                "evaluators": ["stereotype_association_score"],
+            }
+        )
+
+
+def test_rejects_stereotype_with_blank_bbq_path():
+    with pytest.raises(ConfigValidationError, match="bbq_path.*BBQ-schema"):
+        load_llm_eval_config(
+            obj={
+                "provider": "local",
+                "model": "stub-model",
+                "evaluators": ["stereotype_association_score"],
+                "bbq_path": "   ",
+            }
+        )
 
 
 def test_rejects_missing_model():

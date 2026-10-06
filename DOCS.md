@@ -1162,10 +1162,10 @@ At this stage, you should have:
   otherwise complete answer, so it can saturate in advisory domains
   ([BL-011](docs/fairpipe-technical-backlog.md#bl-011--refusal_score-cannot-distinguish-refusal-to-engage-from-a-scope-disclaimer)).
   Humanitarian refusal-rate is live data (not a hiring copy) but **not** a disparity
-  finding (15/15 lexical ceiling; BL-009 disparity-signal half). Toxicity/sentiment and BBQ
-  stereotype evaluators are implemented and replay from cache, but those two shipped demo
-  caches are **not** evidence until their BL-009 halves close (results carry
-  `MetricResult.caveat` when those caches are used).
+  finding (15/15 lexical ceiling; BL-009 disparity-signal half). Toxicity/sentiment
+  evaluator replays from an illustrative hiring-copy cache. `stereotype_association_score`
+  is experimental (not the Parrish BBQ bias score) and **always** carries
+  `MetricResult.caveat` ([#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31)).
 - Run evals from YAML config via CLI with cost estimation (`--dry-run`)
 - Produce `MetricResult` objects compatible with existing reporting, `assert_llm_fairness()`, and MLflow
 
@@ -1222,9 +1222,11 @@ Reports include:
   Humanitarian `recorded_refusal` is live data (`caveat` is `None`) but **not** a
   disparity finding (15/15 lexical saturation; BL-009 disparity-signal half)
 - `toxicity_sentiment_disparity` — same unpaired max−min shape. Shipped hiring-copy cache
-  currently self-labels via `MetricResult.caveat` (BL-009)
-- `stereotype_association_score` — BBQ-schema stereotyped-answer rate (U.S.-context caveat;
-  shipped subset is all-ambiguous and similarly labeled until BL-009)
+  currently self-labels via `MetricResult.caveat`
+- `stereotype_association_score` — experimental max−min stereotyped-answer rate on
+  BBQ-schema items (U.S.-context caveat); **not** the published BBQ bias score;
+  always caveated / illustrative
+  ([#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31))
 
 Gate in tests with `assert_llm_fairness(metric, threshold=...)` — same policy as
 `evaluate_llm_eval_gate()` / CLI (caveats → illustrative fail; magnitude threshold).

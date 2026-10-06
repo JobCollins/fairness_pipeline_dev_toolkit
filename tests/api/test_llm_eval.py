@@ -125,7 +125,7 @@ def test_llm_eval_recorded_refusal_has_no_caveat(client, assert_no_live_llm_call
 
 
 def test_llm_eval_recorded_toxicity_is_illustrative(client, assert_no_live_llm_calls):
-    """BL-009 demo fixture: caveat present → illustrative, not a threshold fail."""
+    """Demo toxicity fixture: caveat present → illustrative, not a threshold fail."""
     payload = _payload_from_config(
         default_recorded_toxicity_config(),
         threshold=0.01,  # numeric value would pass; caveat still wins
@@ -138,7 +138,7 @@ def test_llm_eval_recorded_toxicity_is_illustrative(client, assert_no_live_llm_c
     metric = body["metrics"]["toxicity_sentiment_disparity"]
     _assert_metric_envelope(metric)
     assert metric["caveat"] is not None
-    assert "BL-009" in metric["caveat"]
+    assert "hiring-cache copy" in metric["caveat"]
 
 
 def test_llm_eval_threshold_fail_non_caveated(client, assert_no_live_llm_calls):
@@ -209,6 +209,20 @@ def test_llm_eval_bad_config(client):
     }
     r = client.post("/llm-eval", json=payload)
     assert r.status_code == 422
+
+
+def test_llm_eval_stereotype_without_bbq_path_is_422(client):
+    """stereotype_association_score without bbq_path → 422 at config load."""
+    payload = {
+        "provider": "local",
+        "model": "demo",
+        "evaluators": ["stereotype_association_score"],
+    }
+    r = client.post("/llm-eval", json=payload)
+    assert r.status_code == 422
+    detail = str(r.json()["detail"])
+    assert "bbq_path" in detail
+    assert "BBQ-schema" in detail
 
 
 def _name_pool_payload(**counterfactual_extra: Any) -> Dict[str, Any]:

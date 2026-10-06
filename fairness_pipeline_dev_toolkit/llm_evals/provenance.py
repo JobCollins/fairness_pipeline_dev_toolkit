@@ -10,20 +10,22 @@ from typing import Optional
 from fairness_pipeline_dev_toolkit.metrics.base import MetricResult
 
 DEFAULT_ILLUSTRATIVE_CAVEAT = (
-    "Illustrative fixture (BL-009): this value is not evidence of group-level disparity."
+    "Illustrative fixture: this value is not evidence of group-level disparity."
 )
 CAVEAT_RECORDED_REFUSAL = (
-    "Demo fixture (BL-009): recorded_refusal is a hiring-cache copy; "
+    "Demo fixture: recorded_refusal is a hiring-cache copy; "
     "this value is not evidence of refusal-rate disparity."
 )
 CAVEAT_RECORDED_TOXICITY = (
-    "Demo fixture (BL-009): recorded_toxicity is a hiring-cache copy; "
+    "Demo fixture: recorded_toxicity is a hiring-cache copy; "
     "this value is not evidence of toxicity/sentiment disparity."
 )
-CAVEAT_RECORDED_BBQ = (
-    "Demo fixture (BL-009): recorded_bbq is an all-ambiguous subset; "
-    "this value is not evidence of stereotype association."
+CAVEAT_STEREOTYPE_EXPERIMENTAL = (
+    "Experimental: this is not the BBQ bias score, and answer mapping is incomplete; "
+    "see https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31"
 )
+# Recorded BBQ cache uses the same standing experimental caveat as every stereotype run.
+CAVEAT_RECORDED_BBQ = CAVEAT_STEREOTYPE_EXPERIMENTAL
 
 
 def _manifest_for_cache_dir(cache_dir: Path) -> Optional[Path]:
@@ -36,8 +38,8 @@ def _manifest_for_cache_dir(cache_dir: Path) -> Optional[Path]:
 def caveat_for_cache_dir(cache_dir: Optional[str]) -> Optional[str]:
     """Return a caveat iff the cache's sibling/parent ``manifest.json`` has ``illustrative: true``.
 
-    Closing BL-009 is: re-record into the same paths and set ``illustrative`` false/absent.
-    Path identity is not part of the trigger.
+    Closing an illustrative fixture is: re-record into the same paths and set
+    ``illustrative`` false/absent. Path identity is not part of the trigger.
     """
     if not cache_dir:
         return None
@@ -65,3 +67,8 @@ def with_fixture_caveat(metric: MetricResult, cache_dir: Optional[str]) -> Metri
     if not text:
         return metric
     return replace(metric, caveat=text)
+
+
+def with_stereotype_caveat(metric: MetricResult) -> MetricResult:
+    """Always mark stereotype_association_score as experimental (gates as illustrative)."""
+    return replace(metric, caveat=CAVEAT_STEREOTYPE_EXPERIMENTAL)

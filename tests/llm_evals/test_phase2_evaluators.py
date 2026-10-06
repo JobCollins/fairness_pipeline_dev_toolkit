@@ -11,6 +11,7 @@ from fairness_pipeline_dev_toolkit.llm_evals.bbq import (
     BBQ_LICENSE,
     BBQ_PINNED_COMMIT,
     BBQ_UPSTREAM_REPO,
+    DEFAULT_LOCAL_FIXTURE,
     load_bbq_items,
     stereotypical_answer_index,
 )
@@ -113,6 +114,8 @@ def test_stereotype_known_output_selects_stereotyped_index():
     metric, _ = asyncio.run(evaluator.run_async(with_ci=False))
     assert metric.value == pytest.approx(0.0)  # same stereotyped-hit rate in both groups
     assert metric.n_per_group == {"woman": 6, "man": 6}
+    assert metric.caveat is not None
+    assert "not the BBQ bias score" in metric.caveat
 
 
 def test_unparseable_stereotype_response_is_miss_not_unknown():
@@ -147,16 +150,25 @@ def test_unparseable_stereotype_response_is_miss_not_unknown():
     metric, rows = asyncio.run(evaluator.run_async(with_ci=False))
     assert all(_parse_choice(r["response"]) is None for r in rows)
     assert metric.value == pytest.approx(0.0)
+    assert metric.caveat is not None
+    assert "not the BBQ bias score" in metric.caveat
 
 
 def test_local_bbq_fixture_is_all_ambiguous_gold_unknown():
-    items = load_bbq_items()
+    items = load_bbq_items(DEFAULT_LOCAL_FIXTURE)
     assert len(items) == 12
     assert all(item.get("label") == 2 for item in items)
 
 
-def test_bbq_loader_uses_local_fixture_by_default():
-    items = load_bbq_items()
+def test_bbq_loader_requires_explicit_path_or_upstream():
+    from fairness_pipeline_dev_toolkit.exceptions import ConfigValidationError
+
+    with pytest.raises(ConfigValidationError, match="path=|fetch_upstream"):
+        load_bbq_items()
+
+
+def test_bbq_loader_uses_explicit_local_fixture():
+    items = load_bbq_items(DEFAULT_LOCAL_FIXTURE)
     groups = {}
     for item in items:
         groups[item["group"]] = groups.get(item["group"], 0) + 1

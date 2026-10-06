@@ -47,7 +47,7 @@ def test_gate_illustrative_even_if_number_would_pass_threshold():
             "refusal_rate_disparity": _metric(
                 "refusal_rate_disparity",
                 0.0,
-                caveat="Demo fixture (BL-009): not evidence.",
+                caveat="Demo fixture: not evidence.",
             )
         },
         threshold=0.01,
@@ -62,7 +62,7 @@ def test_gate_illustrative_even_if_number_would_fail_threshold():
             "toxicity_sentiment_disparity": _metric(
                 "toxicity_sentiment_disparity",
                 0.9,
-                caveat="Demo fixture (BL-009): not evidence.",
+                caveat="Demo fixture: not evidence.",
             )
         },
         threshold=0.01,
@@ -97,7 +97,7 @@ def test_gate_illustrative_wins_over_undefined():
             "toxicity_sentiment_disparity": _metric(
                 "toxicity_sentiment_disparity",
                 float("nan"),
-                caveat="Demo fixture (BL-009): not evidence.",
+                caveat="Demo fixture: not evidence.",
             )
         },
         threshold=0.05,

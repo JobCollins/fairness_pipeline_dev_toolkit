@@ -1,4 +1,4 @@
-"""MetricResult.caveat provenance from fixture manifest ``illustrative`` flag (BL-009)."""
+"""MetricResult.caveat provenance from fixture manifest ``illustrative`` flag."""
 
 from __future__ import annotations
 
@@ -30,6 +30,7 @@ from fairness_pipeline_dev_toolkit.llm_evals.fixtures import (
 from fairness_pipeline_dev_toolkit.llm_evals.provenance import (
     CAVEAT_RECORDED_BBQ,
     CAVEAT_RECORDED_TOXICITY,
+    CAVEAT_STEREOTYPE_EXPERIMENTAL,
     DEFAULT_ILLUSTRATIVE_CAVEAT,
     caveat_for_cache_dir,
 )
@@ -41,6 +42,7 @@ def test_shipped_illustrative_fixtures_produce_caveat():
         CAVEAT_RECORDED_TOXICITY
     )
     assert caveat_for_cache_dir(default_recorded_bbq_config().cache_dir) == CAVEAT_RECORDED_BBQ
+    assert CAVEAT_RECORDED_BBQ == CAVEAT_STEREOTYPE_EXPERIMENTAL
 
 
 def test_recorded_refusal_fixture_has_no_illustrative_caveat():
@@ -149,27 +151,27 @@ def test_divergence_evaluator_sets_caveat_when_manifest_illustrative(tmp_path):
     cache = tmp_path / "cache"
     cache.mkdir()
     (tmp_path / "manifest.json").write_text(
-        json.dumps({"illustrative": True, "caveat": "Demo fixture (BL-009): divergence flag."}),
+        json.dumps({"illustrative": True, "caveat": "Demo fixture: divergence flag."}),
         encoding="utf-8",
     )
     client = LocalLLMClient("test", responder=biased_hiring_responder)
     evaluator = DemographicSwapEvaluator(_local_divergence_config(str(cache)), client)
     metric, _ = asyncio.run(evaluator.run_async(with_ci=False, allow_small_samples=True))
-    assert metric.caveat == "Demo fixture (BL-009): divergence flag."
+    assert metric.caveat == "Demo fixture: divergence flag."
 
 
 def test_divergence_evaluator_nan_path_sets_caveat_when_illustrative(tmp_path):
     cache = tmp_path / "cache"
     cache.mkdir()
     (tmp_path / "manifest.json").write_text(
-        json.dumps({"illustrative": True, "caveat": "Demo fixture (BL-009): divergence flag."}),
+        json.dumps({"illustrative": True, "caveat": "Demo fixture: divergence flag."}),
         encoding="utf-8",
     )
     client = LocalLLMClient("test", responder=biased_hiring_responder)
     evaluator = DemographicSwapEvaluator(_local_divergence_config(str(cache)), client)
     metric, _ = asyncio.run(evaluator.run_async(with_ci=False, allow_small_samples=False))
     assert math.isnan(metric.value)
-    assert metric.caveat == "Demo fixture (BL-009): divergence flag."
+    assert metric.caveat == "Demo fixture: divergence flag."
 
 
 def test_divergence_evaluator_user_cache_has_no_caveat(tmp_path):

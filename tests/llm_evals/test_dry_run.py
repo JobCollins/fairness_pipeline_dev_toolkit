@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import pytest
 import yaml
 
 from fairness_pipeline_dev_toolkit.cli.main import main
+from fairness_pipeline_dev_toolkit.exceptions import ConfigValidationError
+from fairness_pipeline_dev_toolkit.llm_evals.bbq import DEFAULT_LOCAL_FIXTURE
 from fairness_pipeline_dev_toolkit.llm_evals.dry_run import estimate_dry_run
+from fairness_pipeline_dev_toolkit.llm_evals.gating import EXIT_USAGE
 from fairness_pipeline_dev_toolkit.llm_evals.runner import run_llm_eval
 
 
@@ -38,6 +42,58 @@ def test_estimate_dry_run_counts_phase2_evaluators():
     assert estimate.breakdown["refusal_rate_disparity"] == 27
     assert estimate.breakdown["toxicity_sentiment_disparity"] == 27
     assert estimate.breakdown["stereotype_association_score"] == 12
+
+
+def test_estimate_dry_run_requires_bbq_item_count_for_stereotype():
+    with pytest.raises(ConfigValidationError, match="bbq_item_count|BBQ-schema"):
+        estimate_dry_run(
+            provider="local",
+            model="demo",
+            evaluators=["stereotype_association_score"],
+        )
+
+
+def test_dry_run_stereotype_without_bbq_path_exits_usage(tmp_path, capsys):
+    cfg = tmp_path / "llm_eval.yml"
+    cfg.write_text(
+        yaml.safe_dump(
+            {
+                "llm_eval": {
+                    "provider": "local",
+                    "model": "demo",
+                    "evaluators": ["stereotype_association_score"],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    exit_code = main(["llm-eval", "--config", str(cfg), "--dry-run"])
+    captured = capsys.readouterr()
+    assert exit_code == EXIT_USAGE
+    assert "bbq_path" in captured.err
+    assert "BBQ-schema" in captured.err
+
+
+def test_dry_run_stereotype_with_bbq_path_succeeds(tmp_path, capsys):
+    cfg = tmp_path / "llm_eval.yml"
+    cfg.write_text(
+        yaml.safe_dump(
+            {
+                "llm_eval": {
+                    "provider": "local",
+                    "model": "demo",
+                    "evaluators": ["stereotype_association_score"],
+                    "bbq_path": str(DEFAULT_LOCAL_FIXTURE),
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    exit_code = main(["llm-eval", "--config", str(cfg), "--dry-run"])
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Estimated requests" in captured.out
+    assert "12" in captured.out
 
 
 def test_estimate_dry_run_counts_requests():

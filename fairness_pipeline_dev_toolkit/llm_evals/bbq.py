@@ -1,4 +1,4 @@
-"""BBQ loader — local fixture by default; optional fetch from a pinned upstream commit."""
+"""BBQ loader — explicit path or opt-in upstream fetch; no silent default subset."""
 
 from __future__ import annotations
 
@@ -7,9 +7,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.request import urlopen
 
+from fairness_pipeline_dev_toolkit.exceptions import ConfigValidationError
+
 BBQ_UPSTREAM_REPO = "https://github.com/nyu-mll/BBQ"
 BBQ_PINNED_COMMIT = "bea11bd97d79217245b5871acd247b9d6eb24598"
 BBQ_LICENSE = "CC BY 4.0"
+# Schema-shaped fixture for tests / recorded-cache helpers only — not a default load.
 DEFAULT_LOCAL_FIXTURE = (
     Path(__file__).resolve().parent / "fixtures" / "bbq" / "gender_identity_subset.json"
 )
@@ -25,8 +28,11 @@ def load_bbq_items(
     """
     Load BBQ-schema items.
 
-    Default CI path uses the packaged local subset (no network). Set
-    ``fetch_upstream=True`` to pull JSONL from the pinned BBQ commit.
+    Requires an explicit ``path`` or ``fetch_upstream=True``. There is no silent
+    default item set: the packaged schema fixture under ``fixtures/bbq/`` is for
+    tests and recorded-cache helpers only (pass that path explicitly if needed).
+
+    Set ``fetch_upstream=True`` to pull JSONL from the pinned BBQ commit (network).
     """
     if fetch_upstream:
         url = (
@@ -37,7 +43,14 @@ def load_bbq_items(
         items = [json.loads(line) for line in lines if line.strip()]
         return items[:max_items]
 
-    target = Path(path) if path is not None else DEFAULT_LOCAL_FIXTURE
+    if path is None:
+        raise ConfigValidationError(
+            "load_bbq_items requires path=... or fetch_upstream=True. "
+            "There is no default BBQ item set; pass an explicit JSON path "
+            "(tests may use fairness_pipeline_dev_toolkit.llm_evals.bbq.DEFAULT_LOCAL_FIXTURE)."
+        )
+
+    target = Path(path)
     payload = json.loads(target.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and "items" in payload:
         return list(payload["items"])
@@ -55,7 +68,11 @@ def item_to_prompt(item: Dict[str, Any]) -> str:
 
 
 def stereotypical_answer_index(item: Dict[str, Any]) -> int:
-    """Index of the stereotyped option — not the BBQ gold 'unknown' label."""
+    """Index of the stereotyped option — not the BBQ gold 'unknown' label.
+
+    Answer mapping is incomplete (possessives and upstream F/M codes often miss);
+    see GitHub issue #31. Prefer treating results as experimental until that lands.
+    """
     additional = item.get("additional_metadata") or {}
     stereotyped = additional.get("stereotyped_groups") or []
     answers = [item.get("ans0", ""), item.get("ans1", ""), item.get("ans2", "")]
