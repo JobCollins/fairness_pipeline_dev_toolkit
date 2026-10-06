@@ -31,16 +31,21 @@ from ..probes.counterfactual import (
 from ..provenance import with_fixture_caveat
 from ..template_ci import contrast_template_arms, divergence_template_arms
 
-#: Default when ``with_ci`` and ``ci_method`` is unset. C2b missed decision 8 on
-#: the real-data check (issue #63); opt in with ``ci_method="template_bonferroni_t"``.
+#: Default when ``with_ci`` and ``ci_method`` is unset. Real-data coverage for
+#: Bonferroni-t on per-template means did not meet the calibration criterion
+#: (issue #63; see ``investigations/wave3a/``). Opt in with
+#: ``ci_method="template_bonferroni_t"``.
 C2B_UNCALIBRATED_NOTE = (
-    "undefined:no_calibrated_interval (C2b real-data coverage missed decision 8 "
-    "at every T; see https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63)"
+    "undefined:no_calibrated_interval (Bonferroni-t on per-template means did not "
+    "meet the calibration criterion — mean coverage ≥ 0.95 and worst ≥ 0.93 for a "
+    "95% interval — on real data at any template count; see "
+    "https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63 and "
+    "investigations/wave3a/)"
 )
 
 
 def _apply_c2b(arms, T: int, *, level: float, value: float) -> tuple:
-    """Return (ci, ci_kind, ci_note) for C2b, or (None, None, note) when undefined."""
+    """Return (ci, ci_kind, ci_note) for template Bonferroni-t, or undefined."""
     if T < T_MIN_TEMPLATES:
         return (
             None,
@@ -66,8 +71,8 @@ def _resolve_llm_ci(
     value: float,
     bootstrap_B: int,
 ) -> tuple:
-    """Default CI is undefined; C2b is an explicit opt-in."""
-    _ = bootstrap_B  # accepted for API compatibility; C2b is analytic
+    """Default CI is undefined; template Bonferroni-t is an explicit opt-in."""
+    _ = bootstrap_B  # accepted for API compatibility; method is analytic
     if not with_ci:
         return None, None, None
     if ci_method is not None and ci_method not in ("template_bonferroni_t",):
@@ -423,8 +428,9 @@ class DemographicSwapEvaluator:
         """Max mean matched-template divergence across dimensions.
 
         Default CI is undefined (``ci=None`` +
-        ``ci_note="undefined:no_calibrated_interval (...)"``): C2b missed
-        decision 8 on the real-data check (issue #63). Opt in with
+        ``ci_note="undefined:no_calibrated_interval (...)"``): Bonferroni-t on
+        per-template means did not meet the calibration criterion on real data
+        (issue #63; see ``investigations/wave3a/``). Opt in with
         ``ci_method="template_bonferroni_t"`` (analytic; ``bootstrap_B``
         ignored; refuses below ``T_MIN_TEMPLATES=5``). ``p_value`` is always
         ``None``.

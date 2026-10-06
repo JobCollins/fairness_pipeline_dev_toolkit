@@ -1414,10 +1414,11 @@ control establishes the no-effect baseline at ~0.19, not 0.
 ([BL-012](fairpipe-technical-backlog.md#bl-012--demographic_swap_divergence-has-no-no-effect-baseline);
 [BL-023](fairpipe-technical-backlog.md#bl-023--counterfactual-fairness-is-a-lexical-perturbation-diagnostic-not-a-causal-fairness-measure)).
 
-**CI (Wave 3a / BL-016):** the default is `ci=None` with
-`ci_note="undefined:no_calibrated_interval (...)"`. C2b (Bonferroni-t on
-per-template means, inverted to `[max L, max U]`) missed decision 8 on the
-real-data check at every T — measured coverage (mean / worst), generated from
+**CI (BL-016):** the default is `ci=None` with
+`ci_note="undefined:no_calibrated_interval (...)"`. Bonferroni-t on
+per-template means (inverted to `[max L, max U]`) did not meet the calibration
+criterion (mean coverage ≥ 0.95 and worst ≥ 0.93 for a 95% interval) on real
+data at any template count — measured coverage (mean / worst), generated from
 `investigations/wave3a/results/tmin_c2b_summary.json` via
 `investigations/wave3a/coverage_quotes.py`:
 
@@ -1439,11 +1440,11 @@ control subtracted — same CI policy. LLM `p_value` stays `None`.
 
 Phase 2. Max−min group rates; each calls `apply_min_group_size()` (default 5).
 `refusal_rate_disparity` / `stereotype_association_score` use simultaneous
-Agresti–Caffo (M2a; pairing ignored). `toxicity_sentiment_disparity` defaults
-to an undefined CI: paired Bonferroni-t missed decision 8 on the
-recorded-toxicity real-data check (all draws undefined — fixture lexical scores
-are identically 0; see
-[#63](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63)).
+Agresti–Caffo (pairing ignored for the interval). `toxicity_sentiment_disparity`
+defaults to an undefined CI: paired Bonferroni-t could not be validated on real
+data because the recorded_toxicity fixture scores are all zero (see
+[#63](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63) and
+`investigations/wave3a/`).
 Opt in with `ci_method="template_bonferroni_t"`. `refusal_rate_disparity`
 detects phrase-level refusal signals (`i cannot`, `i can't`, `cannot provide`,
 …). It does **not** distinguish a genuine refusal to engage from a scope
@@ -1887,7 +1888,7 @@ The default response is aggregated metrics and CIs only — **no raw transcripts
       "caveat": null,
       "p_value": null,
       "ci_kind": null,
-      "ci_note": "undefined:no_calibrated_interval (C2b real-data coverage missed decision 8 at every T; see https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63)"
+      "ci_note": "undefined:no_calibrated_interval (Bonferroni-t on per-template means did not meet the calibration criterion — mean coverage ≥ 0.95 and worst ≥ 0.93 for a 95% interval — on real data at any template count; see https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63 and investigations/wave3a/)"
     }
   },
   "timestamp": "2026-08-31T17:00:00.000000+00:00"

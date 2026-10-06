@@ -142,7 +142,7 @@ def binary_gap_interval(
     n: Sequence[float],
     level: float = 0.95,
 ) -> Tuple[float, float]:
-    """Simultaneous interval for the max−min gap of K binary rates (method M2a).
+    """Simultaneous interval for the max−min gap of K binary rates.
 
     Bonferroni Agresti–Caffo intervals for all ``K(K−1)/2`` pairwise rate
     differences, inverted by :func:`simultaneous_gap_bounds`. Analytic: no
@@ -160,10 +160,10 @@ def binary_gap_interval(
     Coverage ≥ ``level`` up to the Agresti–Caffo large-sample approximation. The
     bounds always contain the observed gap (the interval is widened to it in the
     rare tiny-group, extreme-gap cases where the shrunken Agresti–Caffo centres
-    would miss it). In the Wave 3a grid (K ∈ {2, 3, 5}, n_k from 30 to 3000, rates
-    0.1/0.5, 500 datasets per cell) coverage at a true gap of 0 averaged 0.960
-    with a minimum of 0.930. It is conservative away from equality and widens
-    with K.
+    would miss it). On the calibration grid in ``investigations/wave3a/``
+    (K ∈ {2, 3, 5}, n_k from 30 to 3000, rates 0.1/0.5, 500 datasets per cell)
+    coverage at a true gap of 0 averaged 0.960 with a minimum of 0.930. It is
+    conservative away from equality and widens with K.
 
     Examples
     --------
@@ -203,12 +203,12 @@ def equalized_odds_gap_interval(
     Guarantees
     ----------
     Same as :func:`binary_gap_interval`, including containment of the observed
-    gap. In the Wave 3a grid (prevalence 0.4, FPR/TPR 0.1/0.9 and 0.5/0.5,
-    4000 datasets per cell at a true gap of 0) coverage averaged 0.962 with a
-    minimum of 0.932. The known weak spot is **K = 5 groups of 30** (and the
-    K = 2 unequal 30/3000 cell) at base rate 0.5: that is where the floor sits.
-    Do not retune the Bonferroni factor for those cells; they still clear the
-    decision-8 floor of 0.93.
+    gap. On the calibration grid in ``investigations/wave3a/`` (prevalence 0.4,
+    FPR/TPR 0.1/0.9 and 0.5/0.5, 4000 datasets per cell at a true gap of 0)
+    coverage averaged 0.962 with a minimum of 0.932. The known weak spot is
+    **K = 5 groups of 30** (and the K = 2 unequal 30/3000 cell) at base rate
+    0.5: that is where the floor sits. Do not retune the Bonferroni factor for
+    those cells; they still clear worst coverage ≥ 0.93.
 
     Raises
     ------

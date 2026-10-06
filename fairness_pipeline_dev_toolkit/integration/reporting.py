@@ -45,33 +45,51 @@ def format_ci_note_plain(ci_note: Optional[str]) -> Optional[str]:
 def interpret_gap_interval(
     ci: Optional[Sequence[float]],
     *,
+    ci_kind: Optional[str] = None,
     level: float = 0.95,
     delta: Optional[float] = None,
     p_value: Optional[float] = None,
 ) -> str:
-    """Plain-language reading of a simultaneous gap interval (Wave 3a).
+    """Plain-language reading of a gap confidence interval.
+
+    For ``ci_kind="simultaneous_pairwise"``:
 
     - ``L > 0``: largest gap is at least L at the stated level.
     - ``L = 0``: consistent with no gap; could be as large as U.
     - ``U < δ``: below δ with (level) confidence (equivalence wording).
-    - ``significant`` only when ``p_value`` is provided and ≤ 0.05.
+
+    For ``"percentile"`` or ``"bca"``, the interval is labeled by kind and noted
+    as not calibrated near zero. ``significant`` only when ``p_value`` is
+    provided and ≤ 0.05.
     """
     if ci is None or len(ci) < 2 or ci[0] is None or ci[1] is None:
         return ""
     lo, hi = float(ci[0]), float(ci[1])
     pct = f"{level * 100:.0f}%"
     parts: List[str] = []
-    if lo > 0:
-        parts.append(
-            f"the largest gap is at least {lo:.4f} ({pct} simultaneous interval [{lo:.4f}, {hi:.4f}])"
-        )
+    kind = (ci_kind or "").strip() or None
+    if kind == "simultaneous_pairwise":
+        if lo > 0:
+            parts.append(
+                f"the largest gap is at least {lo:.4f} "
+                f"({pct} simultaneous interval [{lo:.4f}, {hi:.4f}])"
+            )
+        else:
+            parts.append(
+                f"consistent with no gap; could be as large as {hi:.4f} "
+                f"({pct} simultaneous interval [{lo:.4f}, {hi:.4f}])"
+            )
+        if delta is not None and hi < delta:
+            parts.append(f"below {delta:g} with {pct} confidence")
+    elif kind in ("percentile", "bca"):
+        parts.append(f"{pct} {kind} interval [{lo:.4f}, {hi:.4f}] (not calibrated near zero)")
+        if delta is not None and hi < delta:
+            parts.append(f"upper bound < {delta:g}")
     else:
-        parts.append(
-            f"consistent with no gap; could be as large as {hi:.4f} "
-            f"({pct} simultaneous interval [{lo:.4f}, {hi:.4f}])"
-        )
-    if delta is not None and hi < delta:
-        parts.append(f"below {delta:g} with {pct} confidence")
+        label = kind or "confidence"
+        parts.append(f"{pct} {label} interval [{lo:.4f}, {hi:.4f}]")
+        if delta is not None and hi < delta:
+            parts.append(f"upper bound < {delta:g}")
     if p_value is not None:
         if p_value <= 0.05:
             parts.append(f"permutation p-value {p_value:.4g} (significant at 0.05)")
@@ -359,11 +377,12 @@ def _generate_recommendations(report_data: Dict[str, Any]) -> Dict[str, List[str
                 "tightening `dp_tolerance` to enforce constraints more strongly."
             )
 
-    # Evaluation stage recommendations (Wave 3a simultaneous intervals)
+    # Evaluation stage recommendations
     if dp_result is not None:
         ci = getattr(dp_result, "ci", None)
         ci_note = getattr(dp_result, "ci_note", None)
         p_value = getattr(dp_result, "p_value", None)
+        ci_kind = getattr(dp_result, "ci_kind", None)
         if ci is None and ci_note:
             plain = format_ci_note_plain(ci_note)
             if plain:
@@ -371,7 +390,13 @@ def _generate_recommendations(report_data: Dict[str, Any]) -> Dict[str, List[str
                     f"Confidence interval undefined: {plain}."
                 )
         elif ci is not None and len(ci) >= 2 and ci[0] is not None and ci[1] is not None:
-            reading = interpret_gap_interval(ci, level=0.95, delta=threshold, p_value=p_value)
+            reading = interpret_gap_interval(
+                ci,
+                ci_kind=ci_kind,
+                level=0.95,
+                delta=threshold,
+                p_value=p_value,
+            )
             if reading:
                 recommendations["evaluation_stage"].append(reading + ".")
 
@@ -695,6 +720,7 @@ def generate_training_fairness_report(
             if hasattr(result, "ci") and result.ci:
                 reading = interpret_gap_interval(
                     result.ci,
+                    ci_kind=getattr(result, "ci_kind", None),
                     level=0.95,
                     delta=threshold,
                     p_value=getattr(result, "p_value", None),
@@ -791,6 +817,7 @@ def generate_training_fairness_report(
         if hasattr(dp_result, "ci") and dp_result.ci:
             reading = interpret_gap_interval(
                 dp_result.ci,
+                ci_kind=getattr(dp_result, "ci_kind", None),
                 level=0.95,
                 delta=threshold,
                 p_value=getattr(dp_result, "p_value", None),
@@ -814,6 +841,7 @@ def generate_training_fairness_report(
         if hasattr(eo_result, "ci") and eo_result.ci:
             reading = interpret_gap_interval(
                 eo_result.ci,
+                ci_kind=getattr(eo_result, "ci_kind", None),
                 level=0.95,
                 delta=threshold,
                 p_value=getattr(eo_result, "p_value", None),

@@ -541,7 +541,7 @@ def test_model_fairness():
         context="Demographic parity difference"
     )
     
-    # Equivalence-style check on the simultaneous interval (Wave 3a):
+    # Equivalence-style check on the simultaneous interval:
     # "below δ with (level) confidence" means the upper bound is < δ.
     # Do not call this "significant" — that word is reserved for p_value.
     assert result.ci is not None, "Confidence interval should be computed"

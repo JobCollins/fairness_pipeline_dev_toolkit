@@ -111,7 +111,7 @@ def test_contrast_positive_engineered_local():
     )
     assert result.metric == "demographic_swap_contrast"
     assert result.value > 0.05
-    # Default undefined; opt-in C2b.
+    # Default undefined; opt-in template Bonferroni-t.
     assert result.ci is None
     opted, _ = asyncio.run(
         evaluator.run_contrast_async(
@@ -276,7 +276,7 @@ def test_divergence_hiring_regression_unchanged(assert_no_live_llm_calls):
     metric = result.metrics["demographic_swap_divergence"]
     assert math.isfinite(metric.value)
     assert metric.value == pytest.approx(0.196, abs=5e-4)
-    # Default CI undefined; C2b is opt-in.
+    # Default CI undefined; template Bonferroni-t is opt-in.
     assert metric.ci is None
     assert metric.ci_note is not None and metric.ci_note.startswith(
         "undefined:no_calibrated_interval"

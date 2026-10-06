@@ -102,7 +102,7 @@ def test_recorded_toxicity_cache_replays_without_error(assert_no_live_llm_calls)
     assert metric.n_per_group == {"woman": 9, "man": 9, "nonbinary": 9}
     assert metric.caveat is not None
     assert "BL-009" in metric.caveat
-    # Default CI undefined (paired-t missed decision 8 on recorded_toxicity).
+    # Default CI undefined (recorded_toxicity scores are all zero; #63).
     assert metric.ci is None
     assert metric.ci_kind is None
     assert metric.ci_note is not None and metric.ci_note.startswith(

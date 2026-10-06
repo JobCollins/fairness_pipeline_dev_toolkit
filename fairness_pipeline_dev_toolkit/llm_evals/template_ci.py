@@ -1,4 +1,4 @@
-"""Build template-level arm values for C2b LLM intervals (Wave 3a / BL-016)."""
+"""Build template-level arm values for Bonferroni-t LLM intervals (BL-016)."""
 
 from __future__ import annotations
 
@@ -47,7 +47,7 @@ def divergence_template_arms(
     *,
     dimensions: Sequence[str],
 ) -> Tuple[Dict[str, List[float]], int]:
-    """Per-dimension template means for C2b divergence.
+    """Per-dimension template means for divergence Bonferroni-t.
 
     Only templates complete for *every* listed dimension (all groups present in
     each) are kept; every arm then has the same length ``T``.
@@ -100,7 +100,7 @@ def contrast_template_arms(
     gated_dimensions: Sequence[str],
     control_dimension: str,
 ) -> Tuple[Dict[str, List[float]], int]:
-    """Per-gated-dimension template contrasts (gated − control) for C2b.
+    """Per-gated-dimension template contrasts (gated − control) for contrast Bonferroni-t.
 
     A template is kept only when it is complete for the control dimension and
     every gated dimension. Each arm value is

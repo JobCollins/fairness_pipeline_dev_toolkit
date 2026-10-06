@@ -69,7 +69,7 @@ def test_expanded_recorded_fixture_finite_at_default_threshold(assert_no_live_ll
     assert metric.n_per_group == {"woman": 9, "man": 9, "nonbinary": 9}
     # Statistic regression (not a group-effect claim; see BL-012).
     assert metric.value == pytest.approx(0.196, abs=5e-4)
-    # Default CI undefined (C2b missed decision 8); opt-in below.
+    # Default CI undefined (#63); opt-in below.
     assert metric.ci is None
     assert metric.ci_kind is None
     assert metric.ci_note is not None and metric.ci_note.startswith(
