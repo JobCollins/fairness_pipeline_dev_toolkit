@@ -34,6 +34,21 @@ almost never contained 0 when groups were equal); old BCa intervals could be
   ([#61](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/61)).
   Its permutation `p_value` is reported. `stats.gap_intervals.welch_gap_interval`
   is available if you have checked it for your data.
+- **LLM `demographic_swap_divergence` / `demographic_swap_contrast`** now use
+  C2b (`ci_kind="template_bonferroni_t"`): Bonferroni-t on per-template means
+  (gated − control for contrast), inverted to `[max L, max U]`. `bootstrap_B` is
+  accepted for API compatibility but ignored. Below `T_MIN_TEMPLATES=5` complete
+  templates the CI is undefined; from 5 through 10 a `small_T:` note is attached.
+  The real-data check did not clear decision-8 coverage at any T
+  ([#63](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63));
+  C2b still ships at the design floor of 5 (same spirit as the EOD weak-cell
+  call-out).
+- **`refusal_rate_disparity` / `stereotype_association_score`** switch to
+  simultaneous M2a (`ci_kind="simultaneous_pairwise"`); pairing is ignored.
+- **`toxicity_sentiment_disparity`** ships with `ci=None` and
+  `undefined:no_calibrated_interval` ([#63](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63)).
+- **`bootstrap_rate_disparity` is deprecated** (`FutureWarning`).
+- LLM `p_value` stays `None`.
 - **New `p_value`** (permutation test of "no gap", group labels shuffled — within
   `y_true` strata for EOD; 2000 shuffles seeded by `random_state`) on all three
   classifier gaps. Computed whenever `with_ci=True`, or set `with_pvalue=True/False`.

@@ -205,7 +205,10 @@ def equalized_odds_gap_interval(
     Same as :func:`binary_gap_interval`, including containment of the observed
     gap. In the Wave 3a grid (prevalence 0.4, FPR/TPR 0.1/0.9 and 0.5/0.5,
     4000 datasets per cell at a true gap of 0) coverage averaged 0.962 with a
-    minimum of 0.932 (K=2, sizes 30 and 3000, rates 0.5).
+    minimum of 0.932. The known weak spot is **K = 5 groups of 30** (and the
+    K = 2 unequal 30/3000 cell) at base rate 0.5: that is where the floor sits.
+    Do not retune the Bonferroni factor for those cells; they still clear the
+    decision-8 floor of 0.93.
 
     Raises
     ------

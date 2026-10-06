@@ -53,7 +53,10 @@ def test_humanitarian_contrast_replays(assert_no_live_llm_calls):
     }
     assert metric.caveat is None
     assert metric.ci is not None
-    assert metric.ci[0] < metric.ci[1]
+    assert metric.ci_kind == "template_bonferroni_t"
+    assert metric.ci_note is not None and metric.ci_note.startswith("small_T:T=5")
+    assert metric.p_value is None
+    assert metric.ci[0] <= metric.value <= metric.ci[1]
     assert len(result.transcripts["counterfactual"]) == 30
 
 

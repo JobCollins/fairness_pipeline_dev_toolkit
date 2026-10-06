@@ -112,7 +112,9 @@ def test_contrast_positive_engineered_local():
     assert result.metric == "demographic_swap_contrast"
     assert result.value > 0.05
     assert result.ci is not None
-    assert result.ci[0] < result.ci[1]
+    assert result.ci_kind == "template_bonferroni_t"
+    # Engineered local responder is deterministic → C2b may collapse to a point.
+    assert result.ci[0] <= result.value <= result.ci[1]
 
 
 def test_contrast_negative_sign_survives():
@@ -177,7 +179,9 @@ def test_contrast_difference_of_means_ci_sane():
         )
     )
     assert result.ci is not None
-    assert result.ci[0] < result.ci[1]
+    assert result.ci_kind == "template_bonferroni_t"
+    assert result.ci[0] <= result.value <= result.ci[1]
+    assert result.p_value is None
 
 
 def _contrast_yaml(**counterfactual_extra):
@@ -254,8 +258,10 @@ def test_divergence_hiring_regression_unchanged(assert_no_live_llm_calls):
     assert math.isfinite(metric.value)
     assert metric.value == pytest.approx(0.196, abs=5e-4)
     assert metric.ci is not None
-    assert metric.ci[0] == pytest.approx(0.185, abs=5e-4)
-    assert metric.ci[1] == pytest.approx(0.205, abs=5e-4)
+    assert metric.ci_kind == "template_bonferroni_t"
+    assert metric.ci[0] == pytest.approx(0.1842, abs=5e-4)
+    assert metric.ci[1] == pytest.approx(0.2070, abs=5e-4)
+    assert metric.ci[0] <= metric.value <= metric.ci[1]
 
 
 def test_stub_protocol_includes_contrast():

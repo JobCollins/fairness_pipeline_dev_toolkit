@@ -4,10 +4,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
+from fairness_pipeline_dev_toolkit.exceptions import IntervalUndefinedError
 from fairness_pipeline_dev_toolkit.metrics.base import MetricResult
-from fairness_pipeline_dev_toolkit.stats.bootstrap import (
-    bootstrap_ci,
-    bootstrap_difference_of_means,
+from fairness_pipeline_dev_toolkit.stats.template_intervals import (
+    T_MIN_TEMPLATES,
+    small_template_note,
+    template_bonferroni_t_max_mean,
 )
 
 from .._async_utils import run_coroutine
@@ -22,12 +24,29 @@ from ..probes.counterfactual import (
     CounterfactualPrompt,
     divergence_by_dimension,
     generate_counterfactual_prompts,
-    matched_pairwise_divergences,
     n_per_group_by_dimension,
     pairwise_divergences_by_dimension,
     response_key,
 )
 from ..provenance import with_fixture_caveat
+from ..template_ci import contrast_template_arms, divergence_template_arms
+
+
+def _apply_c2b(arms, T: int, *, level: float, value: float) -> tuple:
+    """Return (ci, ci_kind, ci_note) for C2b, or (None, None, note) when undefined."""
+    if T < T_MIN_TEMPLATES:
+        return (
+            None,
+            None,
+            f"undefined:too_few_templates (T={T} < {T_MIN_TEMPLATES})",
+        )
+    try:
+        lo, hi = template_bonferroni_t_max_mean(arms, level=level)
+    except IntervalUndefinedError as err:
+        return None, None, err.ci_note
+    # Containment of the reported point (same hull idea as classifier gaps).
+    lo, hi = min(lo, value), max(hi, value)
+    return (float(lo), float(hi)), "template_bonferroni_t", small_template_note(T)
 
 
 class DemographicSwapEvaluator:
@@ -151,20 +170,15 @@ class DemographicSwapEvaluator:
         exclude = self._exclude_dimensions()
         value, _ = divergence_by_dimension(analysis_prompts, responses, exclude_dimensions=exclude)
 
-        ci = None
-        if exclude:
-            gated_prompts = [p for p in analysis_prompts if p.dimension not in exclude]
-            pair_values = matched_pairwise_divergences(gated_prompts, responses)
-        else:
-            pair_values = matched_pairwise_divergences(analysis_prompts, responses)
-        if with_ci and len(pair_values) >= 2 and np.isfinite(value):
-            ci = bootstrap_ci(
-                np.asarray(pair_values, dtype=float),
-                stat_fn=np.mean,
-                B=bootstrap_B,
-                level=ci_level,
-                random_state=random_state,
-            )
+        dims = sorted(
+            {p.dimension for p in analysis_prompts if exclude is None or p.dimension not in exclude}
+        )
+        ci = ci_kind = ci_note = None
+        if with_ci and np.isfinite(value):
+            arms, T = divergence_template_arms(analysis_prompts, responses, dimensions=dims)
+            # bootstrap_B is accepted for API compatibility but ignored by C2b (analytic).
+            _ = bootstrap_B
+            ci, ci_kind, ci_note = _apply_c2b(arms, T, level=ci_level, value=float(value))
 
         return with_fixture_caveat(
             MetricResult(
@@ -173,6 +187,9 @@ class DemographicSwapEvaluator:
                 ci=ci,
                 effect_size=float(value) if np.isfinite(value) else float("nan"),
                 n_per_group=reporting_n_per_group,
+                p_value=None,
+                ci_kind=ci_kind,
+                ci_note=ci_note,
             ),
             self.config.cache_dir,
         )
@@ -260,15 +277,16 @@ class DemographicSwapEvaluator:
         # Signed: negative means cross-group ≤ within-group baseline (null reading).
         contrast = float(gated_value - control_value)
 
-        ci = None
-        if with_ci and len(gated_pairs) >= 2 and len(control_pairs) >= 2:
-            ci = bootstrap_difference_of_means(
-                np.asarray(gated_pairs, dtype=float),
-                np.asarray(control_pairs, dtype=float),
-                B=bootstrap_B,
-                level=ci_level,
-                random_state=random_state,
+        ci = ci_kind = ci_note = None
+        if with_ci and np.isfinite(contrast):
+            arms, T = contrast_template_arms(
+                analysis_prompts,
+                responses,
+                gated_dimensions=gated_dims,
+                control_dimension=control_dim,
             )
+            _ = bootstrap_B  # accepted for API compatibility; C2b is analytic
+            ci, ci_kind, ci_note = _apply_c2b(arms, T, level=ci_level, value=contrast)
 
         return with_fixture_caveat(
             MetricResult(
@@ -277,6 +295,9 @@ class DemographicSwapEvaluator:
                 ci=ci,
                 effect_size=contrast if np.isfinite(contrast) else float("nan"),
                 n_per_group=reporting_n,
+                p_value=None,
+                ci_kind=ci_kind,
+                ci_note=ci_note,
             ),
             self.config.cache_dir,
         )
@@ -346,6 +367,12 @@ class DemographicSwapEvaluator:
         random_state: int = 42,
         **kwargs: Any,
     ) -> MetricResult:
+        """Max mean matched-template divergence across dimensions.
+
+        CI is C2b (``ci_kind="template_bonferroni_t"``). ``bootstrap_B`` is
+        accepted for API compatibility but ignored (analytic). ``p_value`` is
+        always ``None``.
+        """
         return run_coroutine(
             self.run_async(
                 min_group_size=min_group_size,
@@ -368,6 +395,12 @@ class DemographicSwapEvaluator:
         random_state: int = 42,
         **kwargs: Any,
     ) -> MetricResult:
+        """Signed gated−control contrast of matched-template divergences.
+
+        CI is C2b on per-template ``gated − control`` values. ``bootstrap_B`` is
+        accepted for API compatibility but ignored (analytic). ``p_value`` is
+        always ``None``.
+        """
         return run_coroutine(
             self.run_contrast_async(
                 min_group_size=min_group_size,

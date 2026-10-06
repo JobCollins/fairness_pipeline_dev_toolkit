@@ -71,8 +71,15 @@ def test_expanded_recorded_fixture_finite_at_default_threshold(assert_no_live_ll
     assert metric.ci[0] < metric.ci[1]
     # Statistic regression (not a group-effect claim; see BL-012).
     assert metric.value == pytest.approx(0.196, abs=5e-4)
-    assert metric.ci[0] == pytest.approx(0.185, abs=5e-4)
-    assert metric.ci[1] == pytest.approx(0.205, abs=5e-4)
+    assert metric.ci is not None
+    assert metric.ci_kind == "template_bonferroni_t"
+    assert metric.ci_note is not None and metric.ci_note.startswith("small_T:")
+    assert metric.p_value is None
+    # C2b analytic interval (Wave 3a); contains the point; supersedes the old
+    # pair-mean percentile bootstrap pin of (0.185, 0.205).
+    assert metric.ci[0] == pytest.approx(0.1842, abs=5e-4)
+    assert metric.ci[1] == pytest.approx(0.2070, abs=5e-4)
+    assert metric.ci[0] <= metric.value <= metric.ci[1]
     assert len(result.transcripts["counterfactual"]) == 27
 
     prompts = generate_counterfactual_prompts(
