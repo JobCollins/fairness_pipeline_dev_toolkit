@@ -21,13 +21,15 @@ from ..scoring import (
     toxicity_score,
 )
 
-#: Default when ``with_ci`` and ``ci_method`` is unset. Paired-t missed decision 8
-#: on the recorded-toxicity real-data check (issue #63); opt in with
-#: ``ci_method="template_bonferroni_t"``.
+#: Default when ``with_ci`` and ``ci_method`` is unset. The paired Bonferroni-t
+#: interval could not be validated on real data because the recorded_toxicity
+#: fixture scores are all zero (issue #63; see ``investigations/wave3a/``).
+#: Opt in with ``ci_method="template_bonferroni_t"``.
 TOXICITY_UNCALIBRATED_NOTE = (
-    "undefined:no_calibrated_interval (paired-t real-data coverage missed decision 8 "
-    "on recorded_toxicity; see "
-    "https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63)"
+    "undefined:no_calibrated_interval (paired Bonferroni-t could not be validated "
+    "on real data because the recorded_toxicity fixture scores are all zero; see "
+    "https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63 and "
+    "investigations/wave3a/)"
 )
 
 

@@ -38,9 +38,9 @@ CI_METHODS = ("simultaneous", "percentile", "bca")
 
 #: BCa refuses below this many rows in any resampling stratum. With fewer rows a
 #: group's resampled rate takes only a handful of lattice values, so z0 and the
-#: jackknife acceleration are not meaningful; in the Wave 3a BL-031 simulation
-#: stratified BCa covered 0.00–0.92 (and was undefined at 1 row) for minority
-#: groups of 1–5 rows.
+#: jackknife acceleration are not meaningful; in the BL-031 simulation under
+#: ``investigations/wave3a/`` stratified BCa covered 0.00–0.92 (and was undefined
+#: at 1 row) for minority groups of 1–5 rows.
 BCA_MIN_STRATUM_SIZE = 10
 CI_KIND_BY_METHOD = {
     "simultaneous": "simultaneous_pairwise",

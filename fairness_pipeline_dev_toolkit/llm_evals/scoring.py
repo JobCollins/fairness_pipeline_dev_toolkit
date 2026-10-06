@@ -47,10 +47,10 @@ def binary_rate_gap_interval(
     *,
     level: float = 0.95,
 ) -> Tuple[float, float]:
-    """Simultaneous M2a interval for a max−min gap of binary group rates.
+    """Simultaneous Agresti–Caffo interval for a max−min gap of binary group rates.
 
-    Ignores template pairing (Wave 3a: M2a passed decision 8 on the
-    rate-disparity grid). Analytic: ``bootstrap_B`` is irrelevant.
+    Ignores template pairing (calibration evidence in ``investigations/wave3a/``).
+    Analytic: ``bootstrap_B`` is irrelevant.
     """
     groups = [g for g, vals in scores.items() if vals]
     if len(groups) < 2:
@@ -79,7 +79,8 @@ def paired_template_gap_interval(
 
     Opt-in helper for ``toxicity_sentiment_disparity``
     (``ci_method="template_bonferroni_t"``). The metric's default CI is undefined:
-    the recorded-toxicity real-data check missed decision 8 (issue #63).
+    the interval could not be validated on real data because the recorded
+    fixture scores are all zero (issue #63; see ``investigations/wave3a/``).
     ``scores_by_template`` maps group → ``{replicate_id: score}``. Only templates
     complete for every group are kept.
     """
@@ -122,7 +123,8 @@ def bootstrap_rate_disparity(
     """Deprecated. Prefer :func:`binary_rate_gap_interval` for 0/1 rates.
 
     Within-group percentile bootstrap of the max−min gap. Under-covers at
-    equality (Wave 3a / BL-014); kept for one release as a compatibility path.
+    equality (see ``investigations/wave3a/``); kept for one release as a
+    compatibility path.
     """
     warnings.warn(
         "bootstrap_rate_disparity is deprecated and will be removed in a future "

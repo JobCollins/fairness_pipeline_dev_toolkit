@@ -11,9 +11,9 @@ Four evaluators historically; five with the BL-012 contrast sibling — all retu
 |---|---|---|
 | `demographic_swap_divergence` | max mean pairwise feature divergence | **Matched by template** (same prompt, swapped group). Lexical-divergence perturbation test on demographically swapped prompts (formerly `counterfactual_fairness_divergence`). **0 is not the no-effect baseline** ([BL-012](fairpipe-technical-backlog.md#bl-012--demographic_swap_divergence-has-no-no-effect-baseline)). |
 | `demographic_swap_contrast` | gated mean − control mean (signed) | Same matcher; requires `control_dimension` with same-coded values. Humanitarian recording ≈ **−0.056** (CI includes 0). Near-zero/negative ≈ null. Roughly doubles API calls; bad control coding under-reports (David→Tariq trap). Gate uses `abs(value)` while the metric is signed. |
-| `refusal_rate_disparity` | max − min group refusal rate | **Template-paired prompts** for sample balance; disparity is still max−min of **group rates** (DPD-style). Default CI is simultaneous M2a (pairing ignored for the interval). |
-| `toxicity_sentiment_disparity` | max − min group toxicity/sentiment rate | Same template-paired design; default CI undefined ([#63](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63)); opt in `ci_method="template_bonferroni_t"` (paired-t). |
-| `stereotype_association_score` | max − min stereotyped-answer rate on BBQ-schema items | Items are not template-paired; default CI is simultaneous M2a. |
+| `refusal_rate_disparity` | max − min group refusal rate | **Template-paired prompts** for sample balance; disparity is still max−min of **group rates** (DPD-style). Default CI is simultaneous Agresti–Caffo (pairing ignored for the interval). |
+| `toxicity_sentiment_disparity` | max − min group toxicity/sentiment rate | Same template-paired design; default CI undefined ([#63](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63)); opt in `ci_method="template_bonferroni_t"` (paired Bonferroni-t on per-template differences). |
+| `stereotype_association_score` | max − min stereotyped-answer rate on BBQ-schema items | Items are not template-paired; default CI is simultaneous Agresti–Caffo. |
 
 For refusal/stereotype the **rate gap** is unpaired across groups (difference of means). Templates
 balance sample size; they do not make the CI a matched-pair interval (except toxicity’s opt-in paired-t).

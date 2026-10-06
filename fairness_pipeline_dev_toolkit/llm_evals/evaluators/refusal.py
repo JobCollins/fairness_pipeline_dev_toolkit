@@ -87,7 +87,7 @@ class RefusalRateEvaluator:
         value = rate_disparity(scores)
         ci = ci_kind = ci_note = None
         if with_ci and np.isfinite(value):
-            # bootstrap_B accepted for API compatibility; M2a is analytic.
+            # bootstrap_B accepted for API compatibility; simultaneous Agresti–Caffo is analytic.
             _ = bootstrap_B
             _ = random_state
             try:

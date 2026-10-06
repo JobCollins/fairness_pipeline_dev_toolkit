@@ -36,19 +36,21 @@ almost never contained 0 when groups were equal); old BCa intervals could be
   is available if you have checked it for your data.
 - **LLM `demographic_swap_divergence` / `demographic_swap_contrast` default CI
   is undefined** (`ci=None`,
-  `ci_note="undefined:no_calibrated_interval (... #63)"`). C2b missed decision 8
-  on the real-data check at every T (raw coverage from
-  `tmin_c2b_summary.json` via `coverage_quotes.py`: T=3 mean 0.790 / worst 0.736;
-  T=4 0.875 / 0.845; T=5 0.929 / 0.920; T=7 0.944 / 0.934; T=10 0.945 / 0.939).
-  Opt in with `ci_method="template_bonferroni_t"` (analytic; `bootstrap_B`
-  ignored; refuses below `T_MIN_TEMPLATES=5`; small-T note through T=10).
+  `ci_note="undefined:no_calibrated_interval (... #63)"`). Bonferroni-t on
+  per-template means did not meet the calibration criterion (mean coverage ≥ 0.95
+  and worst ≥ 0.93 for a 95% interval) on real data at any template count (raw
+  coverage from `tmin_c2b_summary.json` via `coverage_quotes.py`: T=3 mean 0.790 /
+  worst 0.736; T=4 0.875 / 0.845; T=5 0.929 / 0.920; T=7 0.944 / 0.934; T=10
+  0.945 / 0.939). Opt in with `ci_method="template_bonferroni_t"` (analytic;
+  `bootstrap_B` ignored; refuses below `T_MIN_TEMPLATES=5`; small-T note through
+  T=10). See `investigations/wave3a/`.
 - **`refusal_rate_disparity` / `stereotype_association_score`** switch to
-  simultaneous M2a (`ci_kind="simultaneous_pairwise"`); pairing is ignored.
+  simultaneous Agresti–Caffo (`ci_kind="simultaneous_pairwise"`); pairing is
+  ignored.
 - **`toxicity_sentiment_disparity` default CI is undefined** (same `#63` note
-  pattern). Paired Bonferroni-t cleared a synthetic S=4000 gap-0 check, but the
-  recorded-toxicity real-data check (centre / add effect / resample T∈{3,5,7,9})
-  is undefined at every draw (fixture scores are identically 0). Opt in with
-  `ci_method="template_bonferroni_t"`.
+  pattern). Paired Bonferroni-t cleared a synthetic S=4000 gap-0 check, but could
+  not be validated on real data because the recorded_toxicity fixture scores are
+  all zero. Opt in with `ci_method="template_bonferroni_t"`.
 - **`bootstrap_rate_disparity` is deprecated** (`FutureWarning`).
 - LLM `p_value` stays `None`.
 - **New `p_value`** (permutation test of "no gap", group labels shuffled — within

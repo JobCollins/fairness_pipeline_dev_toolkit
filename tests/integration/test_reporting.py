@@ -235,8 +235,8 @@ class TestToMarkdownReport:
                 value=0.12,
                 ci=None,
                 ci_note=(
-                    "undefined:no_calibrated_interval (no candidate cleared decision 8; "
-                    "see https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/61)"
+                    "undefined:no_calibrated_interval (no candidate met the calibration "
+                    "criterion; see https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/61)"
                 ),
             ),
             "demographic_swap_divergence": MetricResult(
@@ -244,8 +244,9 @@ class TestToMarkdownReport:
                 value=0.196,
                 ci=None,
                 ci_note=(
-                    "undefined:no_calibrated_interval (C2b missed decision 8; "
-                    "see https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63)"
+                    "undefined:no_calibrated_interval (Bonferroni-t on per-template means "
+                    "did not meet the calibration criterion; see "
+                    "https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63)"
                 ),
             ),
         }
@@ -879,6 +880,7 @@ class TestGenerateRecommendations:
             metric="demographic_parity_difference",
             value=0.03,
             ci=(0.0, 0.07),
+            ci_kind="simultaneous_pairwise",
             p_value=0.4,
         )
         report_data = {
@@ -900,11 +902,21 @@ class TestGenerateRecommendations:
         )
 
     def test_interpret_gap_interval_branches(self):
-        assert "at least" in interpret_gap_interval((0.1, 0.2), level=0.95)
-        assert "consistent with no gap" in interpret_gap_interval((0.0, 0.2), level=0.9)
-        assert "below 0.05 with 95% confidence" in interpret_gap_interval(
-            (0.0, 0.04), level=0.95, delta=0.05
+        assert "at least" in interpret_gap_interval(
+            (0.1, 0.2), ci_kind="simultaneous_pairwise", level=0.95
         )
+        assert "consistent with no gap" in interpret_gap_interval(
+            (0.0, 0.2), ci_kind="simultaneous_pairwise", level=0.9
+        )
+        assert "below 0.05 with 95% confidence" in interpret_gap_interval(
+            (0.0, 0.04), ci_kind="simultaneous_pairwise", level=0.95, delta=0.05
+        )
+        pct = interpret_gap_interval((0.1, 0.2), ci_kind="percentile", level=0.95)
+        assert "percentile interval" in pct and "not calibrated near zero" in pct
+        assert "at least" not in pct and "consistent with no gap" not in pct
+        bca = interpret_gap_interval((0.05, 0.15), ci_kind="bca", level=0.9)
+        assert "bca interval" in bca and "not calibrated near zero" in bca
+        assert "at least" not in bca
 
     def test_evaluation_stage_high_effect_size(self):
         """Test recommendations for high effect size."""

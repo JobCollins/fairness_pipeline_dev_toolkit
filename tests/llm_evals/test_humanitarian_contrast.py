@@ -52,7 +52,7 @@ def test_humanitarian_contrast_replays(assert_no_live_llm_calls):
         "Leyla": 5,
     }
     assert metric.caveat is None
-    # Default CI undefined (C2b missed decision 8).
+    # Default CI undefined (#63).
     assert metric.ci is None
     assert metric.ci_note is not None and metric.ci_note.startswith(
         "undefined:no_calibrated_interval"

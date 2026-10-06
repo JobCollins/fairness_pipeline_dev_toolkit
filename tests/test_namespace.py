@@ -28,7 +28,9 @@ def test_fairpipe_integration_exports_log_fairness_metrics():
     assert callable(execute_workflow)
     assert callable(to_markdown_report)
     assert format_ci_note_plain("undefined:no_calibrated_interval (... #63)").endswith("#63")
-    assert "at least" in interpret_gap_interval((0.1, 0.2), level=0.95)
+    assert "at least" in interpret_gap_interval(
+        (0.1, 0.2), ci_kind="simultaneous_pairwise", level=0.95
+    )
 
 
 def test_fairpipe_stats_shim_identity():
