@@ -115,9 +115,12 @@ def demographic_parity_difference(
     columns: Optional[List[str]] = None,
     with_ci: bool = True,
     ci_level: float = 0.95,
-    ci_method: str = "percentile",
-    ci_samples: int = 1000,
-    with_effect_size: bool = True
+    ci_method: str = "simultaneous",
+    ci_samples: int = 2000,
+    with_effect_size: bool = True,
+    with_pvalue: Optional[bool] = None,
+    n_permutations: int = 2000,
+    random_state: Optional[int] = None,
 ) -> Result
 ```
 
@@ -127,11 +130,14 @@ def demographic_parity_difference(
 - `intersectional` (bool): If True, compute intersectional fairness across multiple attributes
 - `attrs_df` (pd.DataFrame, optional): Required if `intersectional=True`. DataFrame containing all sensitive attributes
 - `columns` (List[str], optional): Column names in `attrs_df` to use for intersectional analysis
-- `with_ci` (bool): Compute bootstrap confidence intervals (default: True)
+- `with_ci` (bool): Compute confidence intervals (default: True)
 - `ci_level` (float): Confidence level for intervals (default: 0.95)
-- `ci_method` (str): Bootstrap method. Options: `"percentile"` (default), `"bca"`
-- `ci_samples` (int): Number of bootstrap samples (default: 1000)
+- `ci_method` (str): `"simultaneous"` (default; analytic Agresti–Caffo Bonferroni inversion),
+  `"percentile"` (opt-in; not calibrated for gaps), or `"bca"` (**deprecated** for gaps —
+  refuses with `ci=None` + `ci_note` when unsafe)
+- `ci_samples` (int): Bootstrap draws when using percentile/bca (default: 2000); ignored by `"simultaneous"`
 - `with_effect_size` (bool): Compute effect size (risk ratio) (default: True)
+- `with_pvalue` / `n_permutations` / `random_state`: permutation test of "no gap"
 
 **Input contract (Wave 1d / 1e):** Labels must be binary `{0, 1}`. Non-finite `y_true` /
 `y_pred` rows are dropped with a reported count. Lengths must match
@@ -144,7 +150,9 @@ auto-align. A single Series mixed with arrays/lists is positional. Prefer
 **Returns:** `Result` object with:
 - `metric` (str): Metric name
 - `value` (float): Point estimate of DPD
-- `ci` (tuple[float, float] | None): Confidence interval
+- `ci` (tuple[float, float] | None): Confidence interval (`None` when undefined — never `(nan, nan)`)
+- `ci_kind` / `ci_note`: how `ci` was built, or why it is undefined
+- `p_value` (float | None): permutation-test p-value (only this backs "significant")
 - `effect_size` (float | None): Risk ratio effect size
 - `n_per_group` (Dict[str, int] | None): Sample sizes per group
 
@@ -161,7 +169,10 @@ result = analyzer.demographic_parity_difference(
     ci_level=0.95
 )
 print(f"DPD: {result.value:.4f}")
-print(f"95% CI: [{result.ci[0]:.4f}, {result.ci[1]:.4f}]")
+print(f"CI ({result.ci_kind}): [{result.ci[0]:.4f}, {result.ci[1]:.4f}]")
+print(f"p_value: {result.p_value}")
+# Markdown/CLI reports use format_ci_note_plain(ci_note) when ci is None
+# (e.g. MAE → "no calibrated interval for this metric yet, see #61").
 ```
 
 #### `equalized_odds_difference()`
@@ -1594,16 +1605,10 @@ subtracting a published number
 
 **Recorded humanitarian result** (`humanitarian_contrast_config()`, Haiku, `temperature=0`,
 `max_tokens=512`): gated gender mean ≈ **0.202**, control mean ≈ **0.258**, contrast ≈
-**−0.056** (difference-of-means 95% CI ≈ **−0.128 to 0.004**, includes 0). Fixture:
+**−0.056**. Default CI is undefined (plain report text: “no calibrated interval for this
+metric yet, see #63”); opt in with `ci_method="template_bonferroni_t"`. Fixture:
 `fixtures/recorded_humanitarian_contrast/` (gender arm copied from `recorded_refusal/`;
 control arm live-recorded; no `illustrative` flag).
-
-**Shared prompts / CI caveat:** two of the fifteen control prompts are byte-identical to
-gender-arm prompts (Amina on template 0, Fatima on template 1) and reuse the same cache
-entries. The difference-of-means bootstrap still resamples gated and control pair lists
-as if those responses were independent draws — they are not. The CI is slightly
-optimistic on that overlap; it does not change the null reading here (CI already includes
-0).
 
 **Control fill into `{gender}`:** when `control_dimension` is set and the template has no
 `{control}` placeholder, control values fill the person slot **only if the template has
@@ -1876,10 +1881,13 @@ The default response is aggregated metrics and CIs only — **no raw transcripts
     "demographic_swap_divergence": {
       "metric": "demographic_swap_divergence",
       "value": 0.196,
-      "ci": [0.185, 0.205],
+      "ci": null,
       "effect_size": null,
       "n_per_group": {"woman": 9, "man": 9, "nonbinary": 9},
-      "caveat": null
+      "caveat": null,
+      "p_value": null,
+      "ci_kind": null,
+      "ci_note": "undefined:no_calibrated_interval (C2b real-data coverage missed decision 8 at every T; see https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63)"
     }
   },
   "timestamp": "2026-08-31T17:00:00.000000+00:00"

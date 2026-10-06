@@ -4,7 +4,7 @@ Public API for integration utilities.
 Public exports:
 - execute_workflow (runtime: class_weight, decision_threshold), WorkflowResult, ValidationResult
 - log_workflow_results, log_fairness_metrics
-- to_markdown_report
+- to_markdown_report, format_ci_note_plain, interpret_gap_interval
 - assert_fairness
 
 Internal modules (do not import directly):
@@ -19,7 +19,7 @@ from .mlflow_logger import (
 )
 from .orchestrator import ValidationResult, WorkflowResult, execute_workflow
 from .pytest_plugin import assert_fairness, assert_llm_fairness
-from .reporting import to_markdown_report
+from .reporting import format_ci_note_plain, interpret_gap_interval, to_markdown_report
 
 __all__ = [
     "execute_workflow",
@@ -29,6 +29,8 @@ __all__ = [
     "log_fairness_metrics",
     "log_llm_eval_results",
     "to_markdown_report",
+    "format_ci_note_plain",
+    "interpret_gap_interval",
     "assert_fairness",
     "assert_llm_fairness",
 ]
