@@ -46,7 +46,9 @@ def assert_fairness(
         if allow_nan:
             return
         suffix = f" | {context}" if context else ""
-        raise AssertionError(f"Fairness metric is NaN (insufficient data?){suffix}")
+        raise AssertionError(
+            f"Fairness metric is undefined (non-finite value; insufficient evidence){suffix}"
+        )
 
     if comparator == "<=":
         ok = value <= threshold

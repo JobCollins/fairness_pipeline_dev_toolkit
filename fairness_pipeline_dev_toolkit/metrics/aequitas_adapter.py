@@ -15,9 +15,12 @@ from .input_validation import (
 
 class AequitasAdapter:
     """
-    Adapter over Aequitas auditing.
-    Guarded import; falls back if not installed.
-    For Phase 1, we compute the same group-wise statistics manually to maintain parity.
+    Adapter named for Aequitas.
+
+    Aequitas does not expose demographic-parity / equalized-odds *difference* APIs
+    matching fairpipe's MetricResult contract, so all three metrics are **computed
+    natively**; the backend name is kept for compatibility. Availability still
+    requires ``import aequitas`` (``pip install fairpipe[adapters]``).
     """
 
     name = "aequitas"
@@ -118,27 +121,14 @@ class AequitasAdapter:
         s = s[valid].to_numpy()
         yt = yt[valid]
         yp = yp[valid]
-        groups = np.unique(s)
-        tpr, fpr, n_per = {}, {}, {}
-        for g in groups:
-            m = s == g
-            yt_g, yp_g = yt[m], yp[m]
-            pos = yt_g == 1
-            neg = yt_g == 0
-            tpr[str(g)] = float(np.mean(yp_g[pos]) if pos.any() else np.nan)
-            fpr[str(g)] = float(np.mean(yp_g[neg]) if neg.any() else np.nan)
-            n_per[str(g)] = int(m.sum())
+        groups = list(np.unique(s))
+        n_per = {str(g): int((s == g).sum()) for g in groups}
+        from .eod_undefined import equalized_odds_point_estimate
 
-        def span(d):
-            vals = [v for v in d.values() if not np.isnan(v)]
-            return np.nan if len(vals) < 2 else (max(vals) - min(vals))
-
-        tpr_gap = span(tpr)
-        fpr_gap = span(fpr)
-        value = np.nan if (np.isnan(tpr_gap) or np.isnan(fpr_gap)) else max(tpr_gap, fpr_gap)
+        value = equalized_odds_point_estimate(yt, yp, s, groups=groups)
         return MetricResult(
             "equalized_odds_difference",
-            float(value) if value == value else np.nan,
+            value,
             n_per_group=n_per,
             caveat=drop_caveat,
             n_dropped_nonfinite=prepared.n_dropped_nonfinite,

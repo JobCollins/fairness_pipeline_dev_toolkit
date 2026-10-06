@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from .base import MetricResult
+from .eod_undefined import equalized_odds_point_estimate
 from .input_validation import (
     nonfinite_drop_caveat,
     prepare_binary_classifier_inputs,
@@ -100,25 +101,9 @@ class NativeAdapter:
         s = s[valid].to_numpy()
         yt = yt[valid]
         yp = yp[valid]
-        groups = np.unique(s)
-        tpr, fpr, n_per = {}, {}, {}
-        for g in groups:
-            m = s == g
-            yt_g, yp_g = yt[m], yp[m]
-            pos = yt_g == 1
-            neg = yt_g == 0
-            tpr[str(g)] = float(np.mean(yp_g[pos]) if pos.any() else np.nan)
-            fpr[str(g)] = float(np.mean(yp_g[neg]) if neg.any() else np.nan)
-            n_per[str(g)] = int(m.sum())
-
-        def span(d):
-            vals = [v for v in d.values() if not np.isnan(v)]
-            return np.nan if len(vals) < 2 else (max(vals) - min(vals))
-
-        tpr_gap = span(tpr)
-        fpr_gap = span(fpr)
-        finite = [g for g in (tpr_gap, fpr_gap) if np.isfinite(g)]
-        value = np.nan if not finite else float(max(finite))
+        groups = list(np.unique(s))
+        n_per = {str(g): int((s == g).sum()) for g in groups}
+        value = equalized_odds_point_estimate(yt, yp, s, groups=groups)
         return MetricResult(
             "equalized_odds_difference",
             value,

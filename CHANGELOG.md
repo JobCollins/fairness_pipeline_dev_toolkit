@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   install hint (previously returned `False` silently). CVE pins that existed
   only for MLflow's transitive graph (`starlette`, `werkzeug`) moved into the
   same extra.
+- **Default metrics backend is always ``native``** ([#37](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/37) / BL-027).
+  ``FairnessAnalyzer(backend=None)`` no longer auto-picks Fairlearn or Aequitas
+  when those packages are installed. Opt in explicitly with
+  ``backend="fairlearn"`` or ``backend="aequitas"`` (``pip install
+  "fairpipe[adapters]"``).
+- **Equalized odds with an incomplete label stratum is undefined**
+  ([#29](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/29) /
+  BL-019 EO half). If any analysed group has no positives or no negatives,
+  ``equalized_odds_difference`` returns ``value=NaN``, ``ci=None`` with
+  ``ci_note="undefined:empty_label_stratum (...)"``, and ``p_value=None`` on
+  every backend (native previously could report ``0.0``). Classifier gating
+  treats non-finite values as **undefined** (``assert_fairness`` raises;
+  ``fairpipe validate --threshold`` exits **4**).
 
 ### Stereotype association is experimental (not BBQ bias score)
 
