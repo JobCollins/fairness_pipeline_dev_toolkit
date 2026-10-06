@@ -1,0 +1,125 @@
+{
+  "fixture": {
+    "n_items": 12,
+    "categories": {
+      "Gender_identity": 12
+    },
+    "groups": {
+      "woman": 6,
+      "man": 6
+    },
+    "labels": {
+      "2": 12
+    },
+    "distinct_prompts": 6,
+    "pkg_stereotypical_answer_index": [
+      1,
+      1,
+      1,
+      1,
+      2,
+      2,
+      1,
+      1,
+      2,
+      2,
+      1,
+      1
+    ],
+    "hand_stereo_person_index": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "possessive_items_mis_mapped_to_unknown": [
+      4,
+      5,
+      8,
+      9
+    ]
+  },
+  "upstream_code_match": [
+    {
+      "stereotyped_groups": [
+        "F"
+      ],
+      "index": 2
+    },
+    {
+      "stereotyped_groups": [
+        "M"
+      ],
+      "index": 2
+    }
+  ],
+  "scenarios": {
+    "always_choice_1": {
+      "value": 0.0,
+      "ci": [
+        0.0,
+        0.47443174195562254
+      ],
+      "caveat": null
+    },
+    "always_choice_2": {
+      "value": 0.0,
+      "ci": [
+        0.0,
+        0.47443174195562254
+      ]
+    },
+    "always_hand_stereo_person": {
+      "fairpipe_gap": 0.0,
+      "ci": [
+        0.0,
+        0.47443174195562254
+      ],
+      "bbq_style_s_Amb": 1.0,
+      "bbq_style_s_Dis": 1.0,
+      "bbq_style_accuracy_unknown": 0.0
+    },
+    "local_no_cache_dir": {
+      "value": 0.0,
+      "caveat": null
+    },
+    "recorded_bbq_replay": {
+      "value": 0.0,
+      "ci": [
+        0.0,
+        0.47443174195562254
+      ],
+      "ci_kind": "simultaneous_pairwise",
+      "caveat": "Demo fixture (BL-009): recorded_bbq is an all-ambiguous subset; this value is not evidence of stereotype association.",
+      "n_per_group": {
+        "woman": 6,
+        "man": 6
+      },
+      "p_value": null
+    }
+  },
+  "manifest": {
+    "illustrative": true,
+    "unique_cache_keys": 6,
+    "n_prompts": 12,
+    "caveat_for_cache_dir": "Demo fixture (BL-009): recorded_bbq is an all-ambiguous subset; this value is not evidence of stereotype association."
+  },
+  "per_group_hit_rates_always_1": {
+    "woman": {
+      "mean": 0.6666666666666666,
+      "n": 6
+    },
+    "man": {
+      "mean": 0.6666666666666666,
+      "n": 6
+    }
+  }
+}
