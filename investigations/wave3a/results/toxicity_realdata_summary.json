@@ -1,0 +1,140 @@
+{
+ "by_T": {
+  "3": {
+   "mean": 0.0,
+   "min": 0.0,
+   "excl_point_max": 0.0,
+   "undefined_max": 1.0,
+   "pass": false
+  },
+  "5": {
+   "mean": 0.0,
+   "min": 0.0,
+   "excl_point_max": 0.0,
+   "undefined_max": 1.0,
+   "pass": false
+  },
+  "7": {
+   "mean": 0.0,
+   "min": 0.0,
+   "excl_point_max": 0.0,
+   "undefined_max": 1.0,
+   "pass": false
+  },
+  "9": {
+   "mean": 0.0,
+   "min": 0.0,
+   "excl_point_max": 0.0,
+   "undefined_max": 1.0,
+   "pass": false
+  }
+ },
+ "pass_decision8": false,
+ "S": 2000,
+ "TS": [
+  3,
+  5,
+  7,
+  9
+ ],
+ "population": "recorded_toxicity",
+ "native_T": 9,
+ "rows": [
+  {
+   "T": 3,
+   "effect": 0.0,
+   "coverage": 0.0,
+   "excl_point": 0.0,
+   "undefined": 1.0,
+   "mcse": 0.0
+  },
+  {
+   "T": 3,
+   "effect": 0.05,
+   "coverage": 0.0,
+   "excl_point": 0.0,
+   "undefined": 1.0,
+   "mcse": 0.0
+  },
+  {
+   "T": 3,
+   "effect": 0.1,
+   "coverage": 0.0,
+   "excl_point": 0.0,
+   "undefined": 1.0,
+   "mcse": 0.0
+  },
+  {
+   "T": 5,
+   "effect": 0.0,
+   "coverage": 0.0,
+   "excl_point": 0.0,
+   "undefined": 1.0,
+   "mcse": 0.0
+  },
+  {
+   "T": 5,
+   "effect": 0.05,
+   "coverage": 0.0,
+   "excl_point": 0.0,
+   "undefined": 1.0,
+   "mcse": 0.0
+  },
+  {
+   "T": 5,
+   "effect": 0.1,
+   "coverage": 0.0,
+   "excl_point": 0.0,
+   "undefined": 1.0,
+   "mcse": 0.0
+  },
+  {
+   "T": 7,
+   "effect": 0.0,
+   "coverage": 0.0,
+   "excl_point": 0.0,
+   "undefined": 1.0,
+   "mcse": 0.0
+  },
+  {
+   "T": 7,
+   "effect": 0.05,
+   "coverage": 0.0,
+   "excl_point": 0.0,
+   "undefined": 1.0,
+   "mcse": 0.0
+  },
+  {
+   "T": 7,
+   "effect": 0.1,
+   "coverage": 0.0,
+   "excl_point": 0.0,
+   "undefined": 1.0,
+   "mcse": 0.0
+  },
+  {
+   "T": 9,
+   "effect": 0.0,
+   "coverage": 0.0,
+   "excl_point": 0.0,
+   "undefined": 1.0,
+   "mcse": 0.0
+  },
+  {
+   "T": 9,
+   "effect": 0.05,
+   "coverage": 0.0,
+   "excl_point": 0.0,
+   "undefined": 1.0,
+   "mcse": 0.0
+  },
+  {
+   "T": 9,
+   "effect": 0.1,
+   "coverage": 0.0,
+   "excl_point": 0.0,
+   "undefined": 1.0,
+   "mcse": 0.0
+  }
+ ]
+}

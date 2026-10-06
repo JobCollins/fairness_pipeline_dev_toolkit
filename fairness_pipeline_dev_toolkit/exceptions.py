@@ -141,6 +141,33 @@ class MetricComputationError(FairnessToolkitError):
         super().__init__(message, context=context, suggestion=suggestion)
 
 
+class IntervalUndefinedError(FairnessToolkitError):
+    """Raised when a confidence interval cannot be computed honestly.
+
+    Callers that build a result catch this and report ``ci=None`` with a ``ci_note``
+    of the form ``"undefined:<reason> (<detail>)"`` rather than a NaN interval.
+
+    Attributes:
+        reason: Machine-readable code, e.g. ``"nonfinite_replicates"``.
+        detail: Human-readable explanation.
+    """
+
+    def __init__(self, reason: str, detail: str = ""):
+        self.reason = reason
+        self.detail = detail
+        message = f"Confidence interval undefined: {reason}" + (f" ({detail})" if detail else "")
+        super().__init__(message)
+
+    @property
+    def ci_note(self) -> str:
+        """``ci_note`` text for a result whose CI is undefined for this reason."""
+        return f"undefined:{self.reason}" + (f" ({self.detail})" if self.detail else "")
+
+
+class BootstrapUndefinedError(IntervalUndefinedError):
+    """Raised when bootstrap replicates, the BCa jackknife, or BCa ``z0`` are non-finite."""
+
+
 class PipelineExecutionError(FairnessToolkitError):
     """Raised when pipeline execution fails.
 

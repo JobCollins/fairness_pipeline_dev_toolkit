@@ -1,13 +1,20 @@
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
 
-from ..stats.bootstrap import bootstrap_ci
+from ..exceptions import BootstrapUndefinedError, IntervalUndefinedError
+from ..stats.bootstrap import _percentile_ci, bca_ci, stratified_bootstrap_replicates
 from ..stats.effect_size import cohens_d, risk_ratio
+from ..stats.gap_intervals import (
+    binary_gap_interval,
+    equalized_odds_gap_interval,
+    permutation_gap_pvalue,
+)
 from ..utils.array_utils import to_numpy_1d
 from ..utils.intersectional import build_intersectional_labels, min_group_mask
 from .aequitas_adapter import AequitasAdapter
@@ -25,6 +32,119 @@ from .native_adapter import NativeAdapter
 def _sens_keys(sens: np.ndarray) -> np.ndarray:
     """Stable string group keys aligned with ``sens`` for bootstrap membership tests."""
     return np.asarray(sens, dtype=str)
+
+
+CI_METHODS = ("simultaneous", "percentile", "bca")
+
+#: BCa refuses below this many rows in any resampling stratum. With fewer rows a
+#: group's resampled rate takes only a handful of lattice values, so z0 and the
+#: jackknife acceleration are not meaningful; in the BL-031 simulation under
+#: ``investigations/wave3a/`` stratified BCa covered 0.00–0.92 (and was undefined
+#: at 1 row) for minority groups of 1–5 rows.
+BCA_MIN_STRATUM_SIZE = 10
+CI_KIND_BY_METHOD = {
+    "simultaneous": "simultaneous_pairwise",
+    "percentile": "percentile",
+    "bca": "bca",
+}
+
+
+def _mae_no_calibrated_interval() -> Tuple[float, float]:
+    # Bonferroni Welch-t, a studentized bootstrap and an Edgeworth-corrected Welch all
+    # covered a zero MAE gap well below 0.93 for skewed errors in small groups.
+    raise IntervalUndefinedError(
+        "no_calibrated_interval",
+        "no simultaneous MAE-gap interval passed calibration for skewed errors in small "
+        "groups; see https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/61",
+    )
+
+
+def _validate_ci_method(ci_method: str, ci_samples: int, with_ci: bool) -> None:
+    if ci_method not in CI_METHODS:
+        raise ValueError(f"Unknown ci_method {ci_method!r}; expected one of {CI_METHODS}")
+    if not with_ci:
+        return
+    if ci_method == "bca":
+        warnings.warn(
+            "ci_method='bca' is deprecated for gap metrics and will be removed in a "
+            "future release: BCa is not calibrated at equality for max−min gaps. "
+            "Use the default ci_method='simultaneous'.",
+            FutureWarning,
+            stacklevel=3,
+        )
+    if ci_method != "simultaneous" and ci_samples <= 0:
+        raise ValueError("ci_samples must be positive when requesting confidence intervals.")
+
+
+def _set_ci(
+    res: "Result",
+    *,
+    ci_method: str,
+    analytic: Callable[[], Tuple[float, float]],
+    strata: Callable[[], List[np.ndarray]],
+    stat_fn: Callable[[np.ndarray], float],
+    ci_samples: int,
+    ci_level: float,
+    random_state: Optional[int],
+) -> None:
+    """Fill ``ci`` / ``ci_kind`` / ``ci_note`` on ``res`` under the refuse policy."""
+    try:
+        if ci_method == "simultaneous":
+            ci = analytic()
+        else:
+            parts = strata()
+            if any(p.size == 0 for p in parts):
+                raise IntervalUndefinedError(
+                    "empty_label_stratum", "a group has no rows in a resampling stratum"
+                )
+            smallest = min(p.size for p in parts)
+            if ci_method == "bca" and smallest < BCA_MIN_STRATUM_SIZE:
+                raise BootstrapUndefinedError(
+                    "stratum_too_small_for_bca",
+                    f"smallest resampling stratum has {smallest} rows < {BCA_MIN_STRATUM_SIZE}",
+                )
+            boot = stratified_bootstrap_replicates(
+                parts, stat_fn, B=ci_samples, random_state=random_state
+            )
+            if ci_method == "percentile":
+                ci = _percentile_ci(boot, ci_level)
+            else:
+                ci = bca_ci(np.concatenate(parts), stat_fn, boot, level=ci_level)
+    except IntervalUndefinedError as err:
+        res.ci, res.ci_kind, res.ci_note = None, None, err.ci_note
+        return
+    res.ci = (float(ci[0]), float(ci[1]))
+    res.ci_kind = CI_KIND_BY_METHOD[ci_method]
+
+
+def _set_pvalue(
+    res: "Result",
+    values: np.ndarray,
+    idx_by_group: List[np.ndarray],
+    *,
+    strata_values: Optional[np.ndarray] = None,
+    n_permutations: int,
+    random_state: Optional[int],
+) -> None:
+    rows = np.concatenate(idx_by_group)
+    codes = np.concatenate([np.full(ix.size, k) for k, ix in enumerate(idx_by_group)])
+    strata = None if strata_values is None else strata_values[rows]
+    try:
+        res.p_value = permutation_gap_pvalue(
+            values[rows],
+            codes,
+            strata=strata,
+            n_permutations=n_permutations,
+            random_state=random_state,
+        )
+    except IntervalUndefinedError:
+        res.p_value = None
+
+
+def _undefined_ci_note(groups: Sequence[Any], value: float) -> str:
+    if len(groups) < 2:
+        return f"undefined:too_few_groups ({len(groups)} group(s) meet min_group_size)"
+    return "undefined:undefined_value (the point estimate is not finite)"
 
 
 def dpd_stat_from_indices(
@@ -108,6 +228,8 @@ def mae_gap_stat_from_indices(
 
 @dataclass
 class Result:
+    """Analyzer result. Field semantics match :class:`~.base.MetricResult`."""
+
     metric: str
     value: float
     ci: Optional[tuple[float, float]] = None
@@ -115,6 +237,9 @@ class Result:
     n_per_group: Optional[Dict[str, int]] = None
     caveat: Optional[str] = None
     n_dropped_nonfinite: Optional[int] = None
+    p_value: Optional[float] = None
+    ci_kind: Optional[str] = None
+    ci_note: Optional[str] = None
 
 
 class FairnessAnalyzer:
@@ -220,10 +345,64 @@ class FairnessAnalyzer:
         columns: Optional[List[str]] = None,
         with_ci: bool = True,
         ci_level: float = 0.95,
-        ci_method: str = "percentile",
-        ci_samples: int = 1000,
+        ci_method: str = "simultaneous",
+        ci_samples: int = 2000,
         with_effect_size: bool = True,
+        with_pvalue: Optional[bool] = None,
+        n_permutations: int = 2000,
+        random_state: Optional[int] = 42,
     ):
+        """Demographic parity difference: max − min positive-prediction rate over groups.
+
+        Parameters
+        ----------
+        y_pred, sensitive
+            Binary predictions and group labels. Groups smaller than
+            ``min_group_size`` are excluded from the value, CI and p-value.
+        with_ci
+            Compute a confidence interval for the gap (default ``True``).
+        ci_level
+            Confidence level (default 0.95).
+        ci_method
+            ``"simultaneous"`` (default): Bonferroni Agresti–Caffo intervals for every
+            pairwise rate difference, inverted into an interval for the gap
+            (``ci_kind="simultaneous_pairwise"``). Analytic; covers a true gap of 0.
+            ``"percentile"``: within-group stratified bootstrap percentile interval.
+            **Not calibrated at equality** (BL-014: coverage of a true gap of 0 is
+            ≈0 with three or more groups); explicit opt-in only.
+            ``"bca"``: deprecated for gap metrics (``FutureWarning``), same
+            calibration problem; refuses (``ci=None`` + ``ci_note``) rather than
+            returning NaN.
+        ci_samples
+            Bootstrap replicates for ``"percentile"`` / ``"bca"`` (default 2000).
+            Ignored by ``"simultaneous"``.
+        with_effect_size
+            Risk ratio of the highest to the lowest group rate.
+        with_pvalue
+            Permutation-test ``p_value`` for "all group rates equal" (gap statistic,
+            group labels shuffled). ``None`` (default) follows ``with_ci``.
+        n_permutations
+            Label shuffles for the p-value (default 2000).
+        random_state
+            Seed for bootstrap and permutation draws (default 42).
+
+        Returns
+        -------
+        Result
+            ``ci`` is a finite ``(lower, upper)`` or ``None``; when a requested CI is
+            undefined, ``ci_note`` starts with ``"undefined:<reason>"``. Only
+            ``p_value`` supports a "significant" claim; ``ci[1] < δ`` reads as "below
+            δ with ``ci_level`` confidence".
+
+        Examples
+        --------
+        >>> fa = FairnessAnalyzer(min_group_size=5, backend="native")
+        >>> r = fa.demographic_parity_difference([1, 0] * 10, ["a"] * 10 + ["b"] * 10)
+        >>> r.ci_kind
+        'simultaneous_pairwise'
+        """
+        _validate_ci_method(ci_method, ci_samples, with_ci)
+        want_p = with_ci if with_pvalue is None else with_pvalue
         if intersectional:
             if attrs_df is None:
                 raise ValueError("attrs_df is required when intersectional=True")
@@ -243,7 +422,12 @@ class FairnessAnalyzer:
             labels = self._intersectional_prep(attrs_df, columns)
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
-                return Result("demographic_parity_difference", np.nan, n_per_group={})
+                return Result(
+                    "demographic_parity_difference",
+                    np.nan,
+                    n_per_group={},
+                    ci_note=_undefined_ci_note([], np.nan) if with_ci else None,
+                )
             # Ensure mask is boolean numpy array for proper indexing
             mask = np.asarray(mask, dtype=bool)
             # Use boolean indexing - ensure labels is a proper array
@@ -282,20 +466,41 @@ class FairnessAnalyzer:
                 m = sens == g
             rates_dict[str(g)] = float(yp[m].mean())
 
-        # CI via bootstrap over observation indices (statistic is deterministic in its sample).
-        if with_ci and len(groups) >= 2 and np.isfinite(res.value):
-            if ci_samples <= 0:
-                raise ValueError(
-                    "ci_samples must be positive when requesting confidence intervals."
-                )
+        estimable = len(groups) >= 2 and np.isfinite(res.value)
+        if with_ci and not estimable:
+            res.ci_note = _undefined_ci_note(groups, res.value)
+        if estimable and (with_ci or want_p):
             group_keys = [str(g) for g in groups]
             group_of = _sens_keys(sens)
-            obs_idx = np.arange(len(yp), dtype=int)
+            idx_by_group = [np.flatnonzero(group_of == k) for k in group_keys]
+            yp_f = np.asarray(yp, dtype=float)
 
             def stat_fn(sample_idx):
-                return dpd_stat_from_indices(sample_idx, yp, group_of, group_keys)
+                return dpd_stat_from_indices(sample_idx, yp_f, group_of, group_keys)
 
-            res.ci = bootstrap_ci(obs_idx, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
+            if with_ci:
+                _set_ci(
+                    res,
+                    ci_method=ci_method,
+                    analytic=lambda: binary_gap_interval(
+                        [yp_f[ix].sum() for ix in idx_by_group],
+                        [ix.size for ix in idx_by_group],
+                        ci_level,
+                    ),
+                    strata=lambda: idx_by_group,
+                    stat_fn=stat_fn,
+                    ci_samples=ci_samples,
+                    ci_level=ci_level,
+                    random_state=random_state,
+                )
+            if want_p:
+                _set_pvalue(
+                    res,
+                    yp_f,
+                    idx_by_group,
+                    n_permutations=n_permutations,
+                    random_state=random_state,
+                )
 
         # Effect size: risk ratio of max-rate/min-rate
         if with_effect_size and len(rates_dict) >= 2:
@@ -318,10 +523,39 @@ class FairnessAnalyzer:
         columns: Optional[List[str]] = None,
         with_ci: bool = True,
         ci_level: float = 0.95,
-        ci_method: str = "percentile",
-        ci_samples: int = 1000,
+        ci_method: str = "simultaneous",
+        ci_samples: int = 2000,
         with_effect_size: bool = True,  # note: effect size less canonical here; we omit or set None
+        with_pvalue: Optional[bool] = None,
+        n_permutations: int = 2000,
+        random_state: Optional[int] = 42,
     ):
+        """Equalized odds difference: ``max(TPR gap, FPR gap)`` over groups.
+
+        CI arguments, ``with_pvalue``, ``n_permutations`` and ``random_state`` behave
+        as in :meth:`demographic_parity_difference`, with these differences:
+
+        - ``"simultaneous"`` uses Agresti–Caffo intervals for every pairwise TPR
+          *and* FPR difference under one Bonferroni correction; the gap interval is
+          the max over both families.
+        - Bootstrap methods resample within group × ``y_true`` strata, so every
+          replicate keeps each group's positives and negatives.
+        - The permutation test shuffles group labels within ``y_true`` strata.
+        - If an analysed group has no positives or no negatives, its TPR or FPR is
+          undefined: ``ci`` is ``None`` with
+          ``ci_note="undefined:empty_label_stratum (...)"`` and ``p_value`` is ``None``.
+
+        Examples
+        --------
+        >>> fa = FairnessAnalyzer(min_group_size=5, backend="native")
+        >>> r = fa.equalized_odds_difference(
+        ...     [1, 0] * 10, [1, 0, 0, 1] * 5, ["a"] * 10 + ["b"] * 10
+        ... )
+        >>> r.ci_kind
+        'simultaneous_pairwise'
+        """
+        _validate_ci_method(ci_method, ci_samples, with_ci)
+        want_p = with_ci if with_pvalue is None else with_pvalue
         if intersectional:
             if attrs_df is None:
                 raise ValueError("attrs_df is required when intersectional=True")
@@ -342,7 +576,12 @@ class FairnessAnalyzer:
             labels = self._intersectional_prep(attrs_df, columns)
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
-                return Result("equalized_odds_difference", np.nan, n_per_group={})
+                return Result(
+                    "equalized_odds_difference",
+                    np.nan,
+                    n_per_group={},
+                    ci_note=_undefined_ci_note([], np.nan) if with_ci else None,
+                )
             # Ensure mask is boolean numpy array for proper indexing
             mask = np.asarray(mask, dtype=bool)
             # Use boolean indexing - ensure labels is a proper array
@@ -390,19 +629,47 @@ class FairnessAnalyzer:
             tprs.append(tpr)
             fprs.append(fpr)
 
-        if with_ci and len(groups) >= 2 and np.isfinite(res.value):
-            if ci_samples <= 0:
-                raise ValueError(
-                    "ci_samples must be positive when requesting confidence intervals."
-                )
+        estimable = len(groups) >= 2 and np.isfinite(res.value)
+        if with_ci and not estimable:
+            res.ci_note = _undefined_ci_note(groups, res.value)
+        if estimable and (with_ci or want_p):
             group_keys = [str(g) for g in groups]
             group_of = _sens_keys(sens)
-            obs_idx = np.arange(len(yp), dtype=int)
+            idx_by_group = [np.flatnonzero(group_of == k) for k in group_keys]
+            yt_f = np.asarray(yt, dtype=float)
+            yp_f = np.asarray(yp, dtype=float)
+            pos_idx = [ix[yt_f[ix] == 1] for ix in idx_by_group]
+            neg_idx = [ix[yt_f[ix] == 0] for ix in idx_by_group]
 
             def stat_fn(sample_idx):
-                return eod_stat_from_indices(sample_idx, yt, yp, group_of, group_keys)
+                return eod_stat_from_indices(sample_idx, yt_f, yp_f, group_of, group_keys)
 
-            res.ci = bootstrap_ci(obs_idx, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
+            if with_ci:
+                _set_ci(
+                    res,
+                    ci_method=ci_method,
+                    analytic=lambda: equalized_odds_gap_interval(
+                        [yp_f[ix].sum() for ix in pos_idx],
+                        [ix.size for ix in pos_idx],
+                        [yp_f[ix].sum() for ix in neg_idx],
+                        [ix.size for ix in neg_idx],
+                        ci_level,
+                    ),
+                    strata=lambda: pos_idx + neg_idx,
+                    stat_fn=stat_fn,
+                    ci_samples=ci_samples,
+                    ci_level=ci_level,
+                    random_state=random_state,
+                )
+            if want_p:
+                _set_pvalue(
+                    res,
+                    yp_f,
+                    idx_by_group,
+                    strata_values=yt_f.astype(np.int64),
+                    n_permutations=n_permutations,
+                    random_state=random_state,
+                )
 
         if with_effect_size:
             ratios: List[float] = []
@@ -436,10 +703,42 @@ class FairnessAnalyzer:
         columns: Optional[List[str]] = None,
         with_ci: bool = True,
         ci_level: float = 0.95,
-        ci_method: str = "percentile",
-        ci_samples: int = 1000,
+        ci_method: str = "simultaneous",
+        ci_samples: int = 2000,
         with_effect_size: bool = True,  # If desired, Cohen's d on absolute errors pairwise is possible
+        with_pvalue: Optional[bool] = None,
+        n_permutations: int = 2000,
+        random_state: Optional[int] = 42,
     ):
+        """MAE parity difference: max − min mean absolute error over groups.
+
+        CI arguments, ``with_pvalue``, ``n_permutations`` and ``random_state`` behave
+        as in :meth:`demographic_parity_difference`, with these differences:
+
+        - ``"simultaneous"`` (default) returns ``ci=None`` with
+          ``ci_note="undefined:no_calibrated_interval (...)"``. No candidate
+          interval (Bonferroni Welch-t, studentized bootstrap, Edgeworth-corrected
+          Welch) reached the required coverage of a zero gap for skewed errors in
+          small groups (issue #61). :func:`~fairness_pipeline_dev_toolkit.stats.
+          gap_intervals.welch_gap_interval` is available if you have checked it for
+          your data.
+        - ``"percentile"`` is an uncalibrated opt-in, as for DPD.
+        - The permutation ``p_value`` shuffles group labels over absolute errors; its
+          type-I error was ≤ 0.06 in the same simulation, so it is reported.
+
+        Examples
+        --------
+        >>> fa = FairnessAnalyzer(min_group_size=5, backend="native")
+        >>> r = fa.mae_parity_difference(
+        ...     [0.0] * 20, [0.1, 0.3] * 5 + [0.2, 0.5] * 5, ["a"] * 10 + ["b"] * 10
+        ... )
+        >>> r.ci is None, r.ci_note.split(" ")[0]
+        (True, 'undefined:no_calibrated_interval')
+        >>> 0 < r.p_value <= 1
+        True
+        """
+        _validate_ci_method(ci_method, ci_samples, with_ci)
+        want_p = with_ci if with_pvalue is None else with_pvalue
         if intersectional:
             if attrs_df is None:
                 raise ValueError("attrs_df is required when intersectional=True")
@@ -460,7 +759,12 @@ class FairnessAnalyzer:
             labels = self._intersectional_prep(attrs_df, columns)
             mask = min_group_mask(labels, self.min_group_size)
             if mask.sum() == 0:
-                return Result("mae_parity_difference", np.nan, n_per_group={})
+                return Result(
+                    "mae_parity_difference",
+                    np.nan,
+                    n_per_group={},
+                    ci_note=_undefined_ci_note([], np.nan) if with_ci else None,
+                )
             # Ensure mask is boolean numpy array for proper indexing
             mask = np.asarray(mask, dtype=bool)
             # Use boolean indexing - ensure labels is a proper array
@@ -490,19 +794,37 @@ class FairnessAnalyzer:
         groups = [g for g, n in (res.n_per_group or {}).items() if n >= self.min_group_size]
         abs_err = np.abs(yt - yp)
 
-        if with_ci and len(groups) >= 2 and np.isfinite(res.value):
-            if ci_samples <= 0:
-                raise ValueError(
-                    "ci_samples must be positive when requesting confidence intervals."
-                )
+        estimable = len(groups) >= 2 and np.isfinite(res.value)
+        if with_ci and not estimable:
+            res.ci_note = _undefined_ci_note(groups, res.value)
+        if estimable and (with_ci or want_p):
             group_keys = [str(g) for g in groups]
             group_of = _sens_keys(sens)
-            obs_idx = np.arange(len(yp), dtype=int)
+            idx_by_group = [np.flatnonzero(group_of == k) for k in group_keys]
+            abs_err_f = np.asarray(abs_err, dtype=float)
 
             def stat_fn(sample_idx):
-                return mae_gap_stat_from_indices(sample_idx, abs_err, group_of, group_keys)
+                return mae_gap_stat_from_indices(sample_idx, abs_err_f, group_of, group_keys)
 
-            res.ci = bootstrap_ci(obs_idx, stat_fn, B=ci_samples, level=ci_level, method=ci_method)
+            if with_ci:
+                _set_ci(
+                    res,
+                    ci_method=ci_method,
+                    analytic=_mae_no_calibrated_interval,
+                    strata=lambda: idx_by_group,
+                    stat_fn=stat_fn,
+                    ci_samples=ci_samples,
+                    ci_level=ci_level,
+                    random_state=random_state,
+                )
+            if want_p:
+                _set_pvalue(
+                    res,
+                    abs_err_f,
+                    idx_by_group,
+                    n_permutations=n_permutations,
+                    random_state=random_state,
+                )
 
         # (Optional) A continuous effect size could be Cohen's d between extreme groups' absolute errors.
         # We omit by default to avoid arbitrary group pair choices; set with_effect_size=True to compute:

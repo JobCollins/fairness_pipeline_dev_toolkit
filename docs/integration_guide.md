@@ -541,9 +541,13 @@ def test_model_fairness():
         context="Demographic parity difference"
     )
     
-    # Additional checks
+    # Equivalence-style check on the simultaneous interval:
+    # "below δ with (level) confidence" means the upper bound is < δ.
+    # Do not call this "significant" — that word is reserved for p_value.
     assert result.ci is not None, "Confidence interval should be computed"
-    assert result.ci[1] < 0.10, "Upper CI should be below 10%"
+    assert result.ci[1] < 0.10, "upper bound < 0.10 → below 0.10 with ci_level confidence"
+    # Optional: significance via the permutation p-value
+    # assert result.p_value is not None and result.p_value <= 0.05
 
 @pytest.mark.parametrize("sensitive_attr", ["gender", "race"])
 def test_multiple_attributes(sensitive_attr):

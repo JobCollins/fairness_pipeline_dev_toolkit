@@ -253,7 +253,10 @@ cache (no API key required). Select kernel **Python (fairpipe .venv)** if import
   ([BL-012](https://github.com/SvrusIO/fAIr/blob/main/docs/fairpipe-technical-backlog.md#bl-012--demographic_swap_divergence-has-no-no-effect-baseline)).
 - **§3** — Pipeline demonstration on real output, not a fairness finding: n=1/group
   (third arm **`nonbinary`**) → **`nan`** at `min_group_size=5`; n=9/group → finite
-  lexical divergence **≈ 0.196** (95% CI ≈ 0.185–0.205).
+  lexical divergence **≈ 0.196** (default CI undefined — no calibrated interval for
+  this metric yet, see
+  [#63](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63);
+  opt in with `ci_method="template_bonferroni_t"`).
 - **§4** — One model, one temperature, two domains; BL-011 refusal ceiling; hiring's
   third group is the prompt token `nonbinary`, not name-ambiguity.
 - YAML config → `run_llm_eval()` → `MetricResult` (see [`docs/llm_evals_intro.md`](https://github.com/SvrusIO/fAIr/blob/main/docs/llm_evals_intro.md)). Phase 2

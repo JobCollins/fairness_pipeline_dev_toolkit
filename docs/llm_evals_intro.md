@@ -11,12 +11,12 @@ Four evaluators historically; five with the BL-012 contrast sibling — all retu
 |---|---|---|
 | `demographic_swap_divergence` | max mean pairwise feature divergence | **Matched by template** (same prompt, swapped group). Lexical-divergence perturbation test on demographically swapped prompts (formerly `counterfactual_fairness_divergence`). **0 is not the no-effect baseline** ([BL-012](fairpipe-technical-backlog.md#bl-012--demographic_swap_divergence-has-no-no-effect-baseline)). |
 | `demographic_swap_contrast` | gated mean − control mean (signed) | Same matcher; requires `control_dimension` with same-coded values. Humanitarian recording ≈ **−0.056** (CI includes 0). Near-zero/negative ≈ null. Roughly doubles API calls; bad control coding under-reports (David→Tariq trap). Gate uses `abs(value)` while the metric is signed. |
-| `refusal_rate_disparity` | max − min group refusal rate | Unpaired group rates (DPD-style); bootstrap resamples **within group** |
-| `toxicity_sentiment_disparity` | max − min group toxicity/sentiment rate | Same unpaired group-rate design |
-| `stereotype_association_score` | max − min stereotyped-answer rate on BBQ-schema items | Unpaired; items are not template-paired |
+| `refusal_rate_disparity` | max − min group refusal rate | **Template-paired prompts** for sample balance; disparity is still max−min of **group rates** (DPD-style). Default CI is simultaneous Agresti–Caffo (pairing ignored for the interval). |
+| `toxicity_sentiment_disparity` | max − min group toxicity/sentiment rate | Same template-paired design; default CI undefined ([#63](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63)); opt in `ci_method="template_bonferroni_t"` (paired Bonferroni-t on per-template differences). |
+| `stereotype_association_score` | max − min stereotyped-answer rate on BBQ-schema items | Items are not template-paired; default CI is simultaneous Agresti–Caffo. |
 
-Naive matched pairing is **not** used for the three rate metrics. A hiring-template design still
-balances sample size across groups; the disparity is a difference of group means.
+For refusal/stereotype the **rate gap** is unpaired across groups (difference of means). Templates
+balance sample size; they do not make the CI a matched-pair interval (except toxicity’s opt-in paired-t).
 
 `refusal_rate_disparity` detects phrase-level refusal signals (`i cannot`, `i can't`,
 `cannot provide`, …). It does **not** distinguish a genuine refusal to engage from a
@@ -218,22 +218,20 @@ recordings (no API key):
   ([BL-012](fairpipe-technical-backlog.md#bl-012--demographic_swap_divergence-has-no-no-effect-baseline)).
   Hiring vs the old control was 0.196 − 0.190 ≈ 0.006. The sibling metric
   `demographic_swap_contrast` reports gated − control in-run: humanitarian recording
-  ≈ **−0.056** (gated ≈ 0.202, control ≈ 0.258; 95% CI ≈ −0.128 to 0.004, includes 0) —
-  the expected null, not a failure. Two control prompts are byte-identical to gender-arm
-  prompts and share cache entries; the difference-of-means bootstrap still treats the arms
-  as independent, so that CI is slightly optimistic on the overlap. It roughly doubles API
-  calls, and poorly chosen control names (ethnicity/region variation) inflate the baseline —
-  the same trap as David→Tariq. The CLI/REST gate uses `abs(value) > threshold` while the
-  metric is signed. With multiple gated dimensions the point uses `max(dim means)` while
-  the CI pools all gated pairs.
+  ≈ **−0.056** (gated ≈ 0.202, control ≈ 0.258) — the expected null, not a failure.
+  Default CI is undefined (no calibrated interval for this metric yet, see
+  [#63](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63));
+  opt in with `ci_method="template_bonferroni_t"`. It roughly doubles API calls, and poorly
+  chosen control names (ethnicity/region variation) inflate the baseline — the same trap as
+  David→Tariq. The CLI/REST gate uses `abs(value) > threshold` while the metric is signed.
 - **§3 What the fixtures do demonstrate.** `default_recorded_counterfactual_config()`
   (n=1/group; third arm **`nonbinary`**, the literal prompt token) → **`nan`**, empty
   eligible `n_per_group`. The three cached completions still replay; the guard fires
   afterward. `expanded_recorded_counterfactual_config()` (n=9/group, 27 Haiku texts) →
-  finite **≈ 0.196** and a percentile bootstrap CI on **27 template-level pairwise
-  values**. Pipeline demonstration (recording, replay, guards, CIs, provenance), **not** a
-  fairness finding. The same `MetricResult` (`value`, `ci`, `n_per_group`, `caveat`) is
-  what `assert_llm_fairness()`, Markdown reports, and MLflow consume.
+  finite **≈ 0.196** with default CI undefined (#63; reports render the plain-words
+  reason). Pipeline demonstration (recording, replay, guards, provenance), **not** a
+  fairness finding. The same `MetricResult` (`value`, `ci`, `ci_note`, `n_per_group`,
+  `caveat`) is what `assert_llm_fairness()`, Markdown reports, and MLflow consume.
 - **§4 Limitations.** One model, one temperature, two domains; BL-011 refusal ceiling;
   humanitarian n=5/group with zero margin on `min_group_size=5`; hiring's third group is
   the prompt token `nonbinary`, not name-ambiguity.

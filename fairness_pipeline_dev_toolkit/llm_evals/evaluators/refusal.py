@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 
 import numpy as np
 
+from fairness_pipeline_dev_toolkit.exceptions import IntervalUndefinedError
 from fairness_pipeline_dev_toolkit.metrics.base import MetricResult
 
 from .._async_utils import run_coroutine
@@ -14,7 +15,7 @@ from ..probes.counterfactual import generate_counterfactual_prompts
 from ..provenance import with_fixture_caveat
 from ..scoring import (
     apply_scorer,
-    bootstrap_rate_disparity,
+    binary_rate_gap_interval,
     n_per_group,
     rate_disparity,
     refusal_score,
@@ -84,11 +85,16 @@ class RefusalRateEvaluator:
         scored_rows = [r for r in rows if r["group"] in keep]
         scores = apply_scorer(scored_rows, refusal_score)
         value = rate_disparity(scores)
-        ci = None
+        ci = ci_kind = ci_note = None
         if with_ci and np.isfinite(value):
-            ci = bootstrap_rate_disparity(
-                scores, B=bootstrap_B, level=ci_level, random_state=random_state
-            )
+            # bootstrap_B accepted for API compatibility; simultaneous Agresti–Caffo is analytic.
+            _ = bootstrap_B
+            _ = random_state
+            try:
+                ci = binary_rate_gap_interval(scores, level=ci_level)
+                ci_kind = "simultaneous_pairwise"
+            except IntervalUndefinedError as err:
+                ci_note = err.ci_note
         reporting = counts if allow_small_samples else eligible
         return (
             with_fixture_caveat(
@@ -98,6 +104,9 @@ class RefusalRateEvaluator:
                     ci=ci,
                     effect_size=float(value) if np.isfinite(value) else float("nan"),
                     n_per_group=reporting,
+                    p_value=None,
+                    ci_kind=ci_kind,
+                    ci_note=ci_note,
                 ),
                 self.config.cache_dir,
             ),

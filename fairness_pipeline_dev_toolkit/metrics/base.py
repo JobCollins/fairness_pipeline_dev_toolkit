@@ -15,6 +15,12 @@ class MetricResult:
     """
     Unified result object returned by all adapters and by FairnessAnalyzer.
     This keeps outputs stable across libraries and easy to log into MLflow.
+
+    CI contract: ``ci`` is either a finite ``(lower, upper)`` pair or ``None``. It is
+    never ``(nan, nan)``. When a CI was requested but is undefined, ``ci`` is ``None``
+    and ``ci_note`` starts with ``"undefined:<reason>"``. ``ci_kind`` names how ``ci``
+    was built (``"simultaneous_pairwise"``, ``"template_bonferroni_t"``,
+    ``"percentile"``, ``"bca"``) and is ``None`` when there is no CI.
     """
 
     metric: str  # e.g., "demographic_parity_difference"
@@ -24,6 +30,9 @@ class MetricResult:
     n_per_group: Optional[Dict[str, int]] = None  # sample sizes by group
     caveat: Optional[str] = None  # provenance warning; None for ordinary user data
     n_dropped_nonfinite: Optional[int] = None  # rows dropped for NaN/inf in y_true/y_pred
+    p_value: Optional[float] = None  # permutation-test p-value for "all groups equal"
+    ci_kind: Optional[str] = None  # how ``ci`` was built; None when there is no CI
+    ci_note: Optional[str] = None  # why the CI is undefined, or a small-sample note
 
 
 # ---------------------------------------

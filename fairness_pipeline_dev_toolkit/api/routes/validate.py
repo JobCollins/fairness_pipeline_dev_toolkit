@@ -33,10 +33,12 @@ def _safe_float(v) -> Optional[float]:
 
 
 def _result_to_dict(r) -> Dict[str, Any]:
-    """Serialize a metrics.core.Result dataclass to a JSON-safe dict."""
+    """Serialize a ``Result`` / ``MetricResult`` dataclass to a JSON-safe dict."""
     ci = None
     if r.ci is not None:
         ci = [_safe_float(r.ci[0]), _safe_float(r.ci[1])]
+        if ci[0] is None or ci[1] is None:
+            ci = None
     n_per_group = None
     if r.n_per_group is not None:
         n_per_group = {str(k): int(v) for k, v in r.n_per_group.items()}
@@ -48,6 +50,9 @@ def _result_to_dict(r) -> Dict[str, Any]:
         "n_per_group": n_per_group,
         # Same MetricResult.caveat field as LLM eval provenance (null for classifier metrics).
         "caveat": getattr(r, "caveat", None),
+        "p_value": _safe_float(getattr(r, "p_value", None)),
+        "ci_kind": getattr(r, "ci_kind", None),
+        "ci_note": getattr(r, "ci_note", None),
     }
 
 

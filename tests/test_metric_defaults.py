@@ -56,7 +56,10 @@ def test_mae_parity_defaults_include_statistics():
         y_true=y_true, y_pred=y_pred, sensitive=sensitive, ci_samples=200
     )
 
-    assert result.ci is not None
-    assert np.all(np.isfinite(result.ci))
+    # No MAE-gap interval passed Wave 3a calibration (issue #61): the default CI is
+    # undefined with a reason, and the permutation p-value is reported instead.
+    assert result.ci is None
+    assert result.ci_note.startswith("undefined:no_calibrated_interval")
+    assert result.p_value is not None and 0 < result.p_value <= 1
     assert result.effect_size is not None
     assert np.isfinite(result.effect_size)

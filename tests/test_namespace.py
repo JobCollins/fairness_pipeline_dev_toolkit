@@ -16,10 +16,21 @@ def test_fairpipe_measurement_shim():
 
 
 def test_fairpipe_integration_exports_log_fairness_metrics():
-    from fairpipe.integration import execute_workflow, log_fairness_metrics
+    from fairpipe.integration import (
+        execute_workflow,
+        format_ci_note_plain,
+        interpret_gap_interval,
+        log_fairness_metrics,
+        to_markdown_report,
+    )
 
     assert callable(log_fairness_metrics)
     assert callable(execute_workflow)
+    assert callable(to_markdown_report)
+    assert format_ci_note_plain("undefined:no_calibrated_interval (... #63)").endswith("#63")
+    assert "at least" in interpret_gap_interval(
+        (0.1, 0.2), ci_kind="simultaneous_pairwise", level=0.95
+    )
 
 
 def test_fairpipe_stats_shim_identity():
@@ -27,6 +38,27 @@ def test_fairpipe_stats_shim_identity():
     from fairpipe.stats.bootstrap import bootstrap_ci as shim_ci
 
     assert shim_ci is src_ci
+
+
+def test_fairpipe_wave3a_names_shim_identity():
+    from fairness_pipeline_dev_toolkit import exceptions as src_exc
+    from fairness_pipeline_dev_toolkit.stats import gap_intervals as src_gap
+    from fairness_pipeline_dev_toolkit.stats import template_intervals as src_tmpl
+    from fairness_pipeline_dev_toolkit.stats.bootstrap import (
+        stratified_bootstrap_replicates,
+    )
+    from fairpipe import exceptions as shim_exc
+    from fairpipe.stats import bootstrap as shim_boot
+    from fairpipe.stats import gap_intervals as shim_gap
+    from fairpipe.stats import template_intervals as shim_tmpl
+
+    for name in src_gap.__all__:
+        assert getattr(shim_gap, name) is getattr(src_gap, name)
+    for name in src_tmpl.__all__:
+        assert getattr(shim_tmpl, name) is getattr(src_tmpl, name)
+    assert shim_boot.stratified_bootstrap_replicates is stratified_bootstrap_replicates
+    assert shim_exc.IntervalUndefinedError is src_exc.IntervalUndefinedError
+    assert shim_exc.BootstrapUndefinedError is src_exc.BootstrapUndefinedError
 
 
 def test_fairpipe_api_shim_identity():
