@@ -1396,25 +1396,44 @@ are dropped. See [Production Monitoring](integration_guide.md#production-monitor
 Phase 1 flagship. Matched-by-template pairwise **lexical divergence** between
 name-/group-swapped prompts — a **perturbation / invariance test**, not
 counterfactual fairness in the causal sense of Kusner et al. (2017) (SCM
-criterion). Bootstrap on those pair values. The expanded hiring replay is
-≈0.196 (95% CI 0.185–0.205); the humanitarian replay is ≈0.202 (95% CI
-0.188–0.220). Both measure lexical distance, dominated by token overlap.
+criterion). The expanded hiring replay is ≈0.196; the humanitarian replay is
+≈0.202. Both measure lexical distance, dominated by token overlap.
 **They are not group-effect findings and not causal CF.** A within-group
-control establishes the no-effect baseline at ~0.19, not 0. A CI excluding 0
-does not indicate a group effect for this metric
+control establishes the no-effect baseline at ~0.19, not 0.
 ([BL-012](fairpipe-technical-backlog.md#bl-012--demographic_swap_divergence-has-no-no-effect-baseline);
 [BL-023](fairpipe-technical-backlog.md#bl-023--counterfactual-fairness-is-a-lexical-perturbation-diagnostic-not-a-causal-fairness-measure)).
-The recorded caches demonstrate the pipeline on real model output.
+
+**CI (Wave 3a / BL-016):** the default is `ci=None` with
+`ci_note="undefined:no_calibrated_interval (...)"`. C2b (Bonferroni-t on
+per-template means, inverted to `[max L, max U]`) missed decision 8 on the
+real-data check at every T — measured coverage (mean / worst):
+
+| T | mean | worst |
+|---|------|-------|
+| 3 | 0.790 | 0.736 |
+| 4 | 0.875 | 0.845 |
+| 5 | 0.916 | 0.906 |
+| 7 | 0.946 | 0.932 |
+| 10 | 0.937 | 0.929 |
+
+Opt in with `ci_method="template_bonferroni_t"` (analytic; `bootstrap_B`
+ignored; refuses below `T_MIN_TEMPLATES=5`). See
+[#63](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63).
 `demographic_swap_contrast` is the same construct with a within-group
-control subtracted — same naming caveat.
+control subtracted — same CI policy. LLM `p_value` stays `None`.
 
 ### `RefusalRateEvaluator` / `ToxicitySentimentEvaluator` / `StereotypeAssociationEvaluator`
 
-Phase 2. Unpaired max−min group rates (DPD-style); each calls `apply_min_group_size()` (default 5).
-`refusal_rate_disparity` detects phrase-level refusal signals (`i cannot`, `i can't`,
-`cannot provide`, …). It does **not** distinguish a genuine refusal to engage from a
-scope disclaimer on an otherwise complete answer, so it can saturate in advisory
-domains ([BL-011](fairpipe-technical-backlog.md#bl-011--refusal_score-cannot-distinguish-refusal-to-engage-from-a-scope-disclaimer)).
+Phase 2. Max−min group rates; each calls `apply_min_group_size()` (default 5).
+`refusal_rate_disparity` / `stereotype_association_score` use simultaneous
+Agresti–Caffo (M2a; pairing ignored). `toxicity_sentiment_disparity` uses
+paired Bonferroni-t on per-template group differences
+(`ci_kind="template_bonferroni_t"`; cleared decision 8 at S=4000: mean 0.9515 /
+min 0.948). `refusal_rate_disparity` detects phrase-level refusal signals
+(`i cannot`, `i can't`, `cannot provide`, …). It does **not** distinguish a
+genuine refusal to engage from a scope disclaimer on an otherwise complete
+answer, so it can saturate in advisory domains
+([BL-011](fairpipe-technical-backlog.md#bl-011--refusal_score-cannot-distinguish-refusal-to-engage-from-a-scope-disclaimer)).
 Toxicity is a **lexical** proxy unless you pass `scorer=`. BBQ uses a local subset in default CI
 (`live_bbq` fetches pinned upstream JSONL). Shipped `recorded_toxicity` /
 `recorded_bbq` caches set `MetricResult.caveat` until those BL-009 halves close.

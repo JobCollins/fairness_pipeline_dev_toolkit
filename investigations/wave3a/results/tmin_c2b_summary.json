@@ -1,112 +1,113 @@
 {
  "by_T": {
   "3": {
-   "mean": 0.0,
-   "min": 0.0,
+   "mean": 0.7896666666666666,
+   "min": 0.7355,
    "excl_point_max": 0.0,
    "pass": false
   },
   "4": {
-   "mean": 0.0,
-   "min": 0.0,
+   "mean": 0.875,
+   "min": 0.8445,
    "excl_point_max": 0.0,
    "pass": false
   },
   "5": {
-   "mean": 0.9163333333333333,
-   "min": 0.906,
+   "mean": 0.9291666666666667,
+   "min": 0.9195,
    "excl_point_max": 0.0,
    "pass": false
   },
   "7": {
-   "mean": 0.9461666666666666,
-   "min": 0.9315,
+   "mean": 0.9441666666666667,
+   "min": 0.934,
    "excl_point_max": 0.0,
    "pass": false
   },
   "10": {
-   "mean": 0.9366666666666666,
-   "min": 0.9285,
+   "mean": 0.9445,
+   "min": 0.9385,
    "excl_point_max": 0.0,
    "pass": false
   }
  },
  "T_min": null,
  "S": 2000,
+ "raw_c2b": true,
  "rows": [
   {
    "T": 3,
    "effect": 0.0,
-   "coverage": 0.0,
-   "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
-   "population": "divergence_expanded",
-   "kind": "divergence",
-   "native_T": 9
-  },
-  {
-   "T": 3,
-   "effect": 0.05,
-   "coverage": 0.0,
-   "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
-   "population": "divergence_expanded",
-   "kind": "divergence",
-   "native_T": 9
-  },
-  {
-   "T": 3,
-   "effect": 0.1,
-   "coverage": 0.0,
-   "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
-   "population": "divergence_expanded",
-   "kind": "divergence",
-   "native_T": 9
-  },
-  {
-   "T": 4,
-   "effect": 0.0,
-   "coverage": 0.0,
-   "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
-   "population": "divergence_expanded",
-   "kind": "divergence",
-   "native_T": 9
-  },
-  {
-   "T": 4,
-   "effect": 0.05,
-   "coverage": 0.0,
-   "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
-   "population": "divergence_expanded",
-   "kind": "divergence",
-   "native_T": 9
-  },
-  {
-   "T": 4,
-   "effect": 0.1,
-   "coverage": 0.0,
-   "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
-   "population": "divergence_expanded",
-   "kind": "divergence",
-   "native_T": 9
-  },
-  {
-   "T": 5,
-   "effect": 0.0,
-   "coverage": 0.9245,
+   "coverage": 0.8895,
    "excl_point": 0.0,
    "undefined": 0.0,
-   "mcse": 0.005907611615534657,
+   "mcse": 0.007010340576605391,
+   "population": "divergence_expanded",
+   "kind": "divergence",
+   "native_T": 9
+  },
+  {
+   "T": 3,
+   "effect": 0.05,
+   "coverage": 0.883,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.007187176079657434,
+   "population": "divergence_expanded",
+   "kind": "divergence",
+   "native_T": 9
+  },
+  {
+   "T": 3,
+   "effect": 0.1,
+   "coverage": 0.8815,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.007226954752867907,
+   "population": "divergence_expanded",
+   "kind": "divergence",
+   "native_T": 9
+  },
+  {
+   "T": 4,
+   "effect": 0.0,
+   "coverage": 0.9355,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.005492711079239468,
+   "population": "divergence_expanded",
+   "kind": "divergence",
+   "native_T": 9
+  },
+  {
+   "T": 4,
+   "effect": 0.05,
+   "coverage": 0.9335,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.005571254347092763,
+   "population": "divergence_expanded",
+   "kind": "divergence",
+   "native_T": 9
+  },
+  {
+   "T": 4,
+   "effect": 0.1,
+   "coverage": 0.9405,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.005289600646551685,
+   "population": "divergence_expanded",
+   "kind": "divergence",
+   "native_T": 9
+  },
+  {
+   "T": 5,
+   "effect": 0.0,
+   "coverage": 0.9415,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.0052477495176503994,
    "population": "divergence_expanded",
    "kind": "divergence",
    "native_T": 9
@@ -114,10 +115,10 @@
   {
    "T": 5,
    "effect": 0.05,
-   "coverage": 0.933,
+   "coverage": 0.9425,
    "excl_point": 0.0,
-   "undefined": 0.0005,
-   "mcse": 0.0055906618570612885,
+   "undefined": 0.0,
+   "mcse": 0.005205465877325487,
    "population": "divergence_expanded",
    "kind": "divergence",
    "native_T": 9
@@ -125,6 +126,28 @@
   {
    "T": 5,
    "effect": 0.1,
+   "coverage": 0.9335,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.005571254347092763,
+   "population": "divergence_expanded",
+   "kind": "divergence",
+   "native_T": 9
+  },
+  {
+   "T": 7,
+   "effect": 0.0,
+   "coverage": 0.934,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.005551756478809205,
+   "population": "divergence_expanded",
+   "kind": "divergence",
+   "native_T": 9
+  },
+  {
+   "T": 7,
+   "effect": 0.05,
    "coverage": 0.9355,
    "excl_point": 0.0,
    "undefined": 0.0,
@@ -135,33 +158,11 @@
   },
   {
    "T": 7,
-   "effect": 0.0,
-   "coverage": 0.9315,
-   "excl_point": 0.0,
-   "undefined": 0.0,
-   "mcse": 0.0056483515294287415,
-   "population": "divergence_expanded",
-   "kind": "divergence",
-   "native_T": 9
-  },
-  {
-   "T": 7,
-   "effect": 0.05,
-   "coverage": 0.942,
-   "excl_point": 0.0,
-   "undefined": 0.0,
-   "mcse": 0.005226662414964259,
-   "population": "divergence_expanded",
-   "kind": "divergence",
-   "native_T": 9
-  },
-  {
-   "T": 7,
    "effect": 0.1,
-   "coverage": 0.9365,
+   "coverage": 0.9325,
    "excl_point": 0.0,
    "undefined": 0.0,
-   "mcse": 0.005452877680637995,
+   "mcse": 0.005609979946488223,
    "population": "divergence_expanded",
    "kind": "divergence",
    "native_T": 9
@@ -169,10 +170,10 @@
   {
    "T": 10,
    "effect": 0.0,
-   "coverage": 0.946,
+   "coverage": 0.952,
    "excl_point": 0.0,
    "undefined": 0.0,
-   "mcse": 0.005053909377897473,
+   "mcse": 0.004779958158812692,
    "population": "divergence_expanded",
    "kind": "divergence",
    "native_T": 9
@@ -180,10 +181,10 @@
   {
    "T": 10,
    "effect": 0.05,
-   "coverage": 0.938,
+   "coverage": 0.9415,
    "excl_point": 0.0,
    "undefined": 0.0,
-   "mcse": 0.005392402062161169,
+   "mcse": 0.0052477495176503994,
    "population": "divergence_expanded",
    "kind": "divergence",
    "native_T": 9
@@ -191,10 +192,10 @@
   {
    "T": 10,
    "effect": 0.1,
-   "coverage": 0.94,
+   "coverage": 0.9475,
    "excl_point": 0.0,
    "undefined": 0.0,
-   "mcse": 0.005310367218940704,
+   "mcse": 0.004987171041783106,
    "population": "divergence_expanded",
    "kind": "divergence",
    "native_T": 9
@@ -202,10 +203,10 @@
   {
    "T": 3,
    "effect": 0.0,
-   "coverage": 0.0,
+   "coverage": 0.744,
    "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.00975868843646522,
    "population": "divergence_humanitarian",
    "kind": "divergence",
    "native_T": 5
@@ -213,10 +214,10 @@
   {
    "T": 3,
    "effect": 0.05,
-   "coverage": 0.0,
+   "coverage": 0.734,
    "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.009880384607898621,
    "population": "divergence_humanitarian",
    "kind": "divergence",
    "native_T": 5
@@ -224,10 +225,10 @@
   {
    "T": 3,
    "effect": 0.1,
-   "coverage": 0.0,
+   "coverage": 0.743,
    "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.009771156533389485,
    "population": "divergence_humanitarian",
    "kind": "divergence",
    "native_T": 5
@@ -235,10 +236,10 @@
   {
    "T": 4,
    "effect": 0.0,
-   "coverage": 0.0,
+   "coverage": 0.845,
    "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.008092434738692676,
    "population": "divergence_humanitarian",
    "kind": "divergence",
    "native_T": 5
@@ -246,10 +247,10 @@
   {
    "T": 4,
    "effect": 0.05,
-   "coverage": 0.0,
+   "coverage": 0.8455,
    "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.008081761874739938,
    "population": "divergence_humanitarian",
    "kind": "divergence",
    "native_T": 5
@@ -257,10 +258,10 @@
   {
    "T": 4,
    "effect": 0.1,
-   "coverage": 0.0,
+   "coverage": 0.853,
    "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.007918049002121673,
    "population": "divergence_humanitarian",
    "kind": "divergence",
    "native_T": 5
@@ -268,17 +269,6 @@
   {
    "T": 5,
    "effect": 0.0,
-   "coverage": 0.9185,
-   "excl_point": 0.0,
-   "undefined": 0.0015,
-   "mcse": 0.006117914268768402,
-   "population": "divergence_humanitarian",
-   "kind": "divergence",
-   "native_T": 5
-  },
-  {
-   "T": 5,
-   "effect": 0.05,
    "coverage": 0.9195,
    "excl_point": 0.0,
    "undefined": 0.0,
@@ -289,11 +279,22 @@
   },
   {
    "T": 5,
-   "effect": 0.1,
-   "coverage": 0.908,
+   "effect": 0.05,
+   "coverage": 0.9085,
    "excl_point": 0.0,
-   "undefined": 0.003,
-   "mcse": 0.006462816723379983,
+   "undefined": 0.0,
+   "mcse": 0.006447005118657811,
+   "population": "divergence_humanitarian",
+   "kind": "divergence",
+   "native_T": 5
+  },
+  {
+   "T": 5,
+   "effect": 0.1,
+   "coverage": 0.912,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.0063346665263453285,
    "population": "divergence_humanitarian",
    "kind": "divergence",
    "native_T": 5
@@ -301,10 +302,10 @@
   {
    "T": 7,
    "effect": 0.0,
-   "coverage": 0.9555,
+   "coverage": 0.946,
    "excl_point": 0.0,
    "undefined": 0.0,
-   "mcse": 0.004610843198374891,
+   "mcse": 0.005053909377897473,
    "population": "divergence_humanitarian",
    "kind": "divergence",
    "native_T": 5
@@ -312,10 +313,10 @@
   {
    "T": 7,
    "effect": 0.05,
-   "coverage": 0.943,
+   "coverage": 0.9485,
    "excl_point": 0.0,
-   "undefined": 0.0005,
-   "mcse": 0.005184158562389852,
+   "undefined": 0.0,
+   "mcse": 0.004942051699446293,
    "population": "divergence_humanitarian",
    "kind": "divergence",
    "native_T": 5
@@ -323,10 +324,10 @@
   {
    "T": 7,
    "effect": 0.1,
-   "coverage": 0.954,
+   "coverage": 0.952,
    "excl_point": 0.0,
    "undefined": 0.0,
-   "mcse": 0.0046842288586276416,
+   "mcse": 0.004779958158812692,
    "population": "divergence_humanitarian",
    "kind": "divergence",
    "native_T": 5
@@ -334,6 +335,17 @@
   {
    "T": 10,
    "effect": 0.0,
+   "coverage": 0.9385,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.005372045699731156,
+   "population": "divergence_humanitarian",
+   "kind": "divergence",
+   "native_T": 5
+  },
+  {
+   "T": 10,
+   "effect": 0.05,
    "coverage": 0.9355,
    "excl_point": 0.0,
    "undefined": 0.0,
@@ -344,22 +356,11 @@
   },
   {
    "T": 10,
-   "effect": 0.05,
-   "coverage": 0.9375,
-   "excl_point": 0.0,
-   "undefined": 0.0,
-   "mcse": 0.005412658773652742,
-   "population": "divergence_humanitarian",
-   "kind": "divergence",
-   "native_T": 5
-  },
-  {
-   "T": 10,
    "effect": 0.1,
-   "coverage": 0.9405,
+   "coverage": 0.931,
    "excl_point": 0.0,
    "undefined": 0.0,
-   "mcse": 0.005289600646551685,
+   "mcse": 0.0056674068144081545,
    "population": "divergence_humanitarian",
    "kind": "divergence",
    "native_T": 5
@@ -367,10 +368,10 @@
   {
    "T": 3,
    "effect": 0.0,
-   "coverage": 0.0,
+   "coverage": 0.7355,
    "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.00986254911267873,
    "population": "contrast_humanitarian",
    "kind": "contrast",
    "native_T": 5
@@ -378,10 +379,10 @@
   {
    "T": 3,
    "effect": 0.05,
-   "coverage": 0.0,
+   "coverage": 0.7335,
    "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.009886297335200878,
    "population": "contrast_humanitarian",
    "kind": "contrast",
    "native_T": 5
@@ -389,120 +390,120 @@
   {
    "T": 3,
    "effect": 0.1,
-   "coverage": 0.0,
-   "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
-   "population": "contrast_humanitarian",
-   "kind": "contrast",
-   "native_T": 5
-  },
-  {
-   "T": 4,
-   "effect": 0.0,
-   "coverage": 0.0,
-   "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
-   "population": "contrast_humanitarian",
-   "kind": "contrast",
-   "native_T": 5
-  },
-  {
-   "T": 4,
-   "effect": 0.05,
-   "coverage": 0.0,
-   "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
-   "population": "contrast_humanitarian",
-   "kind": "contrast",
-   "native_T": 5
-  },
-  {
-   "T": 4,
-   "effect": 0.1,
-   "coverage": 0.0,
-   "excl_point": 0.0,
-   "undefined": 1.0,
-   "mcse": 0.0,
-   "population": "contrast_humanitarian",
-   "kind": "contrast",
-   "native_T": 5
-  },
-  {
-   "T": 5,
-   "effect": 0.0,
-   "coverage": 0.906,
-   "excl_point": 0.0,
-   "undefined": 0.0025,
-   "mcse": 0.0065254884874620675,
-   "population": "contrast_humanitarian",
-   "kind": "contrast",
-   "native_T": 5
-  },
-  {
-   "T": 5,
-   "effect": 0.05,
-   "coverage": 0.9165,
-   "excl_point": 0.0,
-   "undefined": 0.0005,
-   "mcse": 0.006185780063985464,
-   "population": "contrast_humanitarian",
-   "kind": "contrast",
-   "native_T": 5
-  },
-  {
-   "T": 5,
-   "effect": 0.1,
-   "coverage": 0.9165,
-   "excl_point": 0.0,
-   "undefined": 0.0005,
-   "mcse": 0.006185780063985464,
-   "population": "contrast_humanitarian",
-   "kind": "contrast",
-   "native_T": 5
-  },
-  {
-   "T": 7,
-   "effect": 0.0,
-   "coverage": 0.9515,
+   "coverage": 0.732,
    "excl_point": 0.0,
    "undefined": 0.0,
-   "mcse": 0.004803527349771207,
+   "mcse": 0.0099039386104721,
    "population": "contrast_humanitarian",
    "kind": "contrast",
    "native_T": 5
   },
   {
-   "T": 7,
-   "effect": 0.05,
-   "coverage": 0.956,
+   "T": 4,
+   "effect": 0.0,
+   "coverage": 0.8445,
    "excl_point": 0.0,
    "undefined": 0.0,
-   "mcse": 0.004586065852122058,
+   "mcse": 0.008103078118838543,
+   "population": "contrast_humanitarian",
+   "kind": "contrast",
+   "native_T": 5
+  },
+  {
+   "T": 4,
+   "effect": 0.05,
+   "coverage": 0.8525,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.007929178709046731,
+   "population": "contrast_humanitarian",
+   "kind": "contrast",
+   "native_T": 5
+  },
+  {
+   "T": 4,
+   "effect": 0.1,
+   "coverage": 0.855,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.007873214083206426,
+   "population": "contrast_humanitarian",
+   "kind": "contrast",
+   "native_T": 5
+  },
+  {
+   "T": 5,
+   "effect": 0.0,
+   "coverage": 0.9265,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.005835141386461857,
+   "population": "contrast_humanitarian",
+   "kind": "contrast",
+   "native_T": 5
+  },
+  {
+   "T": 5,
+   "effect": 0.05,
+   "coverage": 0.9105,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.006383171233799076,
+   "population": "contrast_humanitarian",
+   "kind": "contrast",
+   "native_T": 5
+  },
+  {
+   "T": 5,
+   "effect": 0.1,
+   "coverage": 0.9065,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.006509905913298595,
    "population": "contrast_humanitarian",
    "kind": "contrast",
    "native_T": 5
   },
   {
    "T": 7,
-   "effect": 0.1,
+   "effect": 0.0,
    "coverage": 0.9525,
    "excl_point": 0.0,
-   "undefined": 0.0005,
+   "undefined": 0.0,
    "mcse": 0.00475624589355933,
    "population": "contrast_humanitarian",
    "kind": "contrast",
    "native_T": 5
   },
   {
-   "T": 10,
-   "effect": 0.0,
-   "coverage": 0.9285,
+   "T": 7,
+   "effect": 0.05,
+   "coverage": 0.951,
    "excl_point": 0.0,
    "undefined": 0.0,
-   "mcse": 0.005761412587204635,
+   "mcse": 0.004826955562256609,
+   "population": "contrast_humanitarian",
+   "kind": "contrast",
+   "native_T": 5
+  },
+  {
+   "T": 7,
+   "effect": 0.1,
+   "coverage": 0.957,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.004536022486716751,
+   "population": "contrast_humanitarian",
+   "kind": "contrast",
+   "native_T": 5
+  },
+  {
+   "T": 10,
+   "effect": 0.0,
+   "coverage": 0.943,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.005184158562389852,
    "population": "contrast_humanitarian",
    "kind": "contrast",
    "native_T": 5
@@ -510,10 +511,10 @@
   {
    "T": 10,
    "effect": 0.05,
-   "coverage": 0.931,
+   "coverage": 0.93,
    "excl_point": 0.0,
    "undefined": 0.0,
-   "mcse": 0.0056674068144081545,
+   "mcse": 0.005705260730238364,
    "population": "contrast_humanitarian",
    "kind": "contrast",
    "native_T": 5
@@ -521,10 +522,10 @@
   {
    "T": 10,
    "effect": 0.1,
-   "coverage": 0.943,
+   "coverage": 0.9385,
    "excl_point": 0.0,
    "undefined": 0.0,
-   "mcse": 0.005184158562389852,
+   "mcse": 0.005372045699731156,
    "population": "contrast_humanitarian",
    "kind": "contrast",
    "native_T": 5

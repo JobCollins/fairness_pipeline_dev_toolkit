@@ -3,8 +3,9 @@
 Treats the shipped recorded fixtures as a finite population of template-level
 arm values (loaded through ``llm_evals.fixtures`` helpers so the path survives
 Wave 4 moves). Per arm the values are centred, a chosen effect is added to one
-arm, templates are resampled at T ∈ {3,4,5,7,10}, and C2b coverage of the true
-max-mean (or max contrast) is measured.
+arm, templates are resampled at T ∈ {3,4,5,7,10}, and **raw** C2b coverage of
+the true max-mean (or max contrast) is measured — including T=3 and T=4, which
+the package helper refuses (``T_MIN_TEMPLATES=5``).
 
 Run:  .venv/bin/python investigations/wave3a/sim_tmin_c2b.py
 """
@@ -15,8 +16,8 @@ import json
 from pathlib import Path
 
 import numpy as np
+from scipy.stats import t as student_t
 
-from fairness_pipeline_dev_toolkit.exceptions import IntervalUndefinedError
 from fairness_pipeline_dev_toolkit.llm_evals._async_utils import run_coroutine
 from fairness_pipeline_dev_toolkit.llm_evals.cache import ResponseCache
 from fairness_pipeline_dev_toolkit.llm_evals.evaluators.demographic_swap import (
@@ -32,15 +33,40 @@ from fairness_pipeline_dev_toolkit.llm_evals.template_ci import (
     contrast_template_arms,
     divergence_template_arms,
 )
-from fairness_pipeline_dev_toolkit.stats.template_intervals import (
-    template_bonferroni_t_max_mean,
-)
 
 OUT = Path(__file__).resolve().parent / "results"
 TS = (3, 4, 5, 7, 10)
 EFFECTS = (0.0, 0.05, 0.10)
 S = 2000
 TOL = 1e-12
+
+
+def _raw_c2b(arm_values: dict, level: float = 0.95) -> tuple[float, float]:
+    """C2b without the package ``T_MIN_TEMPLATES`` floor (needs T ≥ 2 for df)."""
+    arrays = {k: np.asarray(v, float) for k, v in arm_values.items()}
+    T = next(iter(arrays.values())).size
+    if T < 2:
+        raise ValueError("need T >= 2")
+    D = len(arrays)
+    a_tail = (1.0 - level) / (2.0 * D)
+    crit = float(student_t.ppf(1.0 - a_tail, T - 1))
+    lowers, uppers = [], []
+    all_zero = True
+    for v in arrays.values():
+        mean = float(v.mean())
+        sd = float(v.std(ddof=1))
+        if sd > 0.0:
+            all_zero = False
+            se = sd / np.sqrt(T)
+            lowers.append(mean - crit * se)
+            uppers.append(mean + crit * se)
+        else:
+            lowers.append(mean)
+            uppers.append(mean)
+    if all_zero:
+        m = max(lowers)
+        return m, m
+    return float(max(lowers)), float(max(uppers))
 
 
 def _load_arms(cfg_fn, kind: str):
@@ -73,9 +99,9 @@ def _coverage(pop_arms: dict, T: int, effect: float, s: int, rng):
         sample = {k: true_arms[k][idx] for k in names}
         point = max(float(v.mean()) for v in sample.values())
         try:
-            lo, hi = template_bonferroni_t_max_mean(sample, level=0.95)
+            lo, hi = _raw_c2b(sample, level=0.95)
             lo, hi = min(lo, point), max(hi, point)
-        except IntervalUndefinedError:
+        except Exception:
             undef += 1
             continue
         cov += lo - TOL <= true <= hi + TOL
@@ -105,7 +131,6 @@ def main():
             continue
         for T in TS:
             for effect in EFFECTS:
-                # With T > native population size we sample with replacement (already).
                 rng = np.random.default_rng([abs(hash(label)) % 10_000, T, int(effect * 100), 7])
                 row = _coverage(arms, T, effect, S, rng)
                 row.update(population=label, kind=kind, native_T=T_nat)
@@ -126,7 +151,7 @@ def main():
         }
     passing = [int(T) for T, v in by_T.items() if v["pass"] and int(T) >= 3]
     T_min = min(passing) if passing else None
-    summary = {"by_T": by_T, "T_min": T_min, "S": S, "rows": rows}
+    summary = {"by_T": by_T, "T_min": T_min, "S": S, "raw_c2b": True, "rows": rows}
     (OUT / "tmin_c2b_summary.json").write_text(json.dumps(summary, indent=1, default=float))
     print("SUMMARY", json.dumps({"by_T": by_T, "T_min": T_min}, indent=1))
 

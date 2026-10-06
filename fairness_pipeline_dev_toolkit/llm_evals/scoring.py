@@ -3,19 +3,18 @@
 from __future__ import annotations
 
 import warnings
-from typing import Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
+from scipy.stats import t as student_t
 
 from fairness_pipeline_dev_toolkit.exceptions import IntervalUndefinedError
-from fairness_pipeline_dev_toolkit.stats.gap_intervals import binary_gap_interval
+from fairness_pipeline_dev_toolkit.stats.gap_intervals import (
+    binary_gap_interval,
+    simultaneous_gap_bounds,
+)
 
 from .probes.counterfactual import NEGATIVE_WORDS, REFUSAL_PHRASES
-
-TOXICITY_CI_NOTE = (
-    "undefined:no_calibrated_interval (no toxicity-gap interval passed Wave 3a "
-    "calibration; see https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63)"
-)
 
 
 def refusal_score(text: str) -> float:
@@ -51,8 +50,7 @@ def binary_rate_gap_interval(
     """Simultaneous M2a interval for a max−min gap of binary group rates.
 
     Ignores template pairing (Wave 3a: M2a passed decision 8 on the
-    rate-disparity grid; the paired-t candidate did not). Analytic: ``bootstrap_B``
-    is irrelevant.
+    rate-disparity grid). Analytic: ``bootstrap_B`` is irrelevant.
     """
     groups = [g for g, vals in scores.items() if vals]
     if len(groups) < 2:
@@ -72,6 +70,46 @@ def binary_rate_gap_interval(
     return float(lo), float(hi)
 
 
+def paired_template_gap_interval(
+    scores_by_template: Dict[str, Dict[Any, float]],
+    *,
+    level: float = 0.95,
+) -> Tuple[float, float]:
+    """Bonferroni-t on per-template group differences, inverted to a gap interval.
+
+    Used for ``toxicity_sentiment_disparity``. ``scores_by_template`` maps
+    group → ``{replicate_id: score}``. Only templates complete for every group
+    are kept. Passed decision 8 at S=4000 (mean coverage 0.9515, min 0.948).
+    """
+    groups = [g for g, m in scores_by_template.items() if m]
+    if len(groups) < 2:
+        raise IntervalUndefinedError("too_few_groups", f"K={len(groups)} < 2")
+    complete = set.intersection(*(set(scores_by_template[g]) for g in groups))
+    if len(complete) < 2:
+        raise IntervalUndefinedError(
+            "too_few_templates", f"T={len(complete)} < 2 complete templates"
+        )
+    reps = sorted(complete)
+    mat = np.column_stack([[scores_by_template[g][r] for r in reps] for g in groups])  # (T, K)
+    T, k = mat.shape
+    pairs = [(i, j) for i in range(k) for j in range(i + 1, k)]
+    a_tail = (1.0 - level) / (2.0 * len(pairs))
+    crit = float(student_t.ppf(1.0 - a_tail, T - 1))
+    lo, hi = [], []
+    for i, j in pairs:
+        d = mat[:, i] - mat[:, j]
+        sd = float(d.std(ddof=1))
+        if sd <= 0.0:
+            raise IntervalUndefinedError("zero_variance", "all template diffs equal")
+        se = sd / np.sqrt(T)
+        m = float(d.mean())
+        lo.append(m - crit * se)
+        hi.append(m + crit * se)
+    bounds = simultaneous_gap_bounds(lo, hi, max_gap=1.0)
+    point = float(mat.mean(axis=0).max() - mat.mean(axis=0).min())
+    return min(bounds[0], point), max(bounds[1], point)
+
+
 def bootstrap_rate_disparity(
     scores: Dict[str, List[float]],
     *,
@@ -87,7 +125,7 @@ def bootstrap_rate_disparity(
     warnings.warn(
         "bootstrap_rate_disparity is deprecated and will be removed in a future "
         "release; for binary rates use binary_rate_gap_interval (simultaneous "
-        "Agresti–Caffo). Toxicity has no calibrated default CI "
+        "Agresti–Caffo). For toxicity use paired_template_gap_interval "
         "(https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63).",
         FutureWarning,
         stacklevel=2,

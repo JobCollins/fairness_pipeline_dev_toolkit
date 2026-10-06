@@ -1,12 +1,31 @@
 """Bonferroni-t intervals on template-level means (Wave 3a method C2b).
 
-Used for LLM demographic-swap divergence and contrast. Each *arm* (a gated
-dimension, or a gated−control contrast) contributes one mean per complete
-template; a Student-t interval is formed for each arm at a Bonferroni-adjusted
-level, and the reported interval is ``[max L_d, max U_d]`` over arms. That
-bounds the max-over-arms mean when each arm's interval is valid.
+Opt-in helper for LLM demographic-swap divergence/contrast
+(``ci_method="template_bonferroni_t"``). The default for those metrics is an
+undefined CI: the real-data check missed decision 8 at every T (issue #63).
+
+Each *arm* (a gated dimension, or a gated−control contrast) contributes one
+mean per complete template; a Student-t interval is formed for each arm at a
+Bonferroni-adjusted level, and the reported interval is ``[max L_d, max U_d]``
+over arms.
 
 ``bootstrap_B`` is ignored: the method is analytic.
+
+Real-data coverage (recorded fixture template means as a finite population,
+centred, resampled; S=2000; raw C2b at T=3,4 and the package floor T≥5 for
+T=5,7,10):
+
+=======  ===========  ==========
+T        mean cov     worst cov
+=======  ===========  ==========
+3        0.790        0.736
+4        0.875        0.845
+5        0.916        0.906
+7        0.946        0.932
+10       0.937        0.929
+=======  ===========  ==========
+
+None of these cells clear decision 8 (mean ≥ 0.95 and min ≥ 0.93).
 """
 
 from __future__ import annotations
@@ -25,14 +44,11 @@ __all__ = [
     "small_template_note",
 ]
 
-#: Smallest number of complete templates at which C2b is defined. The Wave 3a
-#: real-data check (recorded fixture template means as a finite population,
-#: centred, resampled at T ∈ {3,4,5,7,10}, S=2000) did **not** clear decision 8
-#: at any T: at T=5 mean coverage was 0.916 (min 0.906) across the three
-#: fixture populations; at T=7 mean 0.946. We still set the floor to 5 — the
-#: design assumption in the Wave 3a brief — and ship C2b with that floor, with
-#: the weak calibration called out in the PR B report and tracked in the
-#: follow-up issue. Never below 3 by design.
+#: Smallest number of complete templates at which the C2b *opt-in* is defined.
+#: Below this the helper raises ``too_few_templates``. The real-data check
+#: (see module docstring) did not clear decision 8 at any T, so divergence /
+#: contrast default to an undefined CI; this floor only gates the opt-in.
+#: Never below 3 by design.
 T_MIN_TEMPLATES = 5
 
 #: Inclusive upper end of the "small-T" band. From ``T_MIN_TEMPLATES`` through
@@ -78,10 +94,13 @@ def template_bonferroni_t_max_mean(
 
     Notes
     -----
+    **Not the default** for demographic-swap metrics: real-data coverage at
+    T=5 / 7 / 10 was 0.916 / 0.946 / 0.937 (worst 0.906 / 0.932 / 0.929), and
+    raw C2b at T=3 / 4 was 0.790 / 0.875 (worst 0.736 / 0.845) — all below
+    decision 8. Opt in via ``ci_method="template_bonferroni_t"``.
+
     If every arm has zero sample SD (identical template values), the interval
-    collapses to ``[m, m]`` where ``m = max_d mean_d`` — the mean is known
-    exactly under that sample. Callers that want a soft warning should check
-    for ``lo == hi``.
+    collapses to ``[m, m]`` where ``m = max_d mean_d``.
     """
     if not 0.0 < level < 1.0:
         raise ValueError(f"level must be in (0, 1); got {level!r}")
