@@ -144,6 +144,7 @@ jobs:
         run: |
           /tmp/fairpipe-wheel-smoke/bin/python <<'PY'
           import importlib
+          import importlib.util
           import sys
 
           # MLflow must not ship with a core install.
