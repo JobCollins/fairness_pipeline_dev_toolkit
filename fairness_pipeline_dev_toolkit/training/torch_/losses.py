@@ -2,8 +2,20 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-import torch
-import torch.nn as nn
+from fairness_pipeline_dev_toolkit._extras import require_dependency
+
+torch = require_dependency(
+    "torch",
+    dependency_name="torch",
+    extra_name="training",
+    purpose="FairnessRegularizerLoss requires PyTorch",
+)
+nn = require_dependency(
+    "torch.nn",
+    dependency_name="torch",
+    extra_name="training",
+    purpose="FairnessRegularizerLoss requires PyTorch",
+)
 
 
 class FairnessRegularizerLoss(nn.Module):

@@ -1,26 +1,44 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fairness_pipeline_dev_toolkit._extras import require_dependency
 
-from .routes import (
-    health_router,
-    llm_eval_router,
-    pipeline_router,
-    validate_router,
-    workflow_router,
-)
-from .routes.validate import get_store
-from .store import ResultStore
+if TYPE_CHECKING:
+    from fastapi import FastAPI
 
 logger = logging.getLogger(__name__)
 
 
-def create_app() -> FastAPI:
+def create_app() -> "FastAPI":
     """Factory that creates and configures the FastAPI application."""
+    _fastapi = require_dependency(
+        "fastapi",
+        dependency_name="fastapi",
+        extra_name="api",
+        purpose="REST API requires FastAPI",
+    )
+    FastAPI = _fastapi.FastAPI
+    Request = _fastapi.Request
+    JSONResponse = require_dependency(
+        "fastapi.responses",
+        dependency_name="fastapi",
+        extra_name="api",
+        purpose="REST API requires FastAPI",
+    ).JSONResponse
+
     from fairness_pipeline_dev_toolkit import __version__ as _pkg_version
+
+    from .routes import (
+        health_router,
+        llm_eval_router,
+        pipeline_router,
+        validate_router,
+        workflow_router,
+    )
+    from .routes.validate import get_store
+    from .store import ResultStore
 
     app = FastAPI(
         title="fairpipe API",

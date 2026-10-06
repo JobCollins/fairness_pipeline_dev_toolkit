@@ -646,16 +646,21 @@ def cmd_run_pipeline(args: argparse.Namespace) -> int:
 
         # MLflow logging if requested
         if args.mlflow_experiment:
+            from fairness_pipeline_dev_toolkit.exceptions import DependencyError
             from fairness_pipeline_dev_toolkit.integration.mlflow_logger import (
                 log_workflow_results,
             )
 
-            logged = log_workflow_results(
-                result,
-                config_path=args.config,
-                experiment_name=args.mlflow_experiment,
-                run_name=args.mlflow_run_name,
-            )
+            try:
+                logged = log_workflow_results(
+                    result,
+                    config_path=args.config,
+                    experiment_name=args.mlflow_experiment,
+                    run_name=args.mlflow_run_name,
+                )
+            except DependencyError as exc:
+                print(f"\nError: {exc}")
+                return 1
             if logged:
                 print(f"\nResults logged to MLflow experiment: {args.mlflow_experiment}")
 

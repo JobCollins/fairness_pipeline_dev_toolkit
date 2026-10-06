@@ -2,13 +2,31 @@ from __future__ import annotations
 
 import json
 import os
-from typing import List, Optional, Sequence, Union
+from typing import Any, List, Optional, Sequence, Union
 
 import pandas as pd
-import plotly.graph_objects as go
-from jinja2 import Template
+
+from fairness_pipeline_dev_toolkit._extras import require_dependency
 
 from .config import MonitoringSettings, ReportConfig
+
+
+def _load_plotly_go() -> Any:
+    return require_dependency(
+        "plotly.graph_objects",
+        dependency_name="plotly",
+        extra_name="monitoring",
+        purpose="FairnessReportingDashboard requires plotly",
+    )
+
+
+def _load_jinja2_template() -> Any:
+    return require_dependency(
+        "jinja2",
+        dependency_name="jinja2",
+        extra_name="monitoring",
+        purpose="FairnessReportingDashboard requires jinja2",
+    ).Template
 
 
 class FairnessReportingDashboard:
@@ -22,6 +40,8 @@ class FairnessReportingDashboard:
         *,
         artifacts_dir: Optional[str] = None,
     ):
+        self._go = _load_plotly_go()
+        self._Template = _load_jinja2_template()
         if settings is None:
             base = MonitoringSettings()
         elif isinstance(settings, ReportConfig):
@@ -44,7 +64,7 @@ class FairnessReportingDashboard:
         metrics_ts: pd.DataFrame,
         metric_prefix: str,
         groups: Optional[Sequence[str]] = None,
-    ) -> go.Figure:
+    ) -> Any:
         """
         Line chart over time for a chosen fairness metric (e.g., "DP[gender]" or "EO[race]").
         """
@@ -67,10 +87,10 @@ class FairnessReportingDashboard:
         df = df[df["metric"].str.startswith(metric_prefix)]
         if groups:
             df = df[df["group_key"].isin(groups)]
-        fig = go.Figure()
+        fig = self._go.Figure()
         for gk, sub in df.groupby("group_key"):
             fig.add_trace(
-                go.Scatter(
+                self._go.Scatter(
                     x=sub["timestamp"],
                     y=sub["value"],
                     mode="lines+markers",
@@ -89,7 +109,7 @@ class FairnessReportingDashboard:
 
     def plot_intersectional(
         self, metrics_ts: pd.DataFrame, metric_prefix: str, latest_only: bool = True
-    ) -> go.Figure:
+    ) -> Any:
         """
         Heatmap visualization across intersectional subgroups.
         We show the latest timestamp per (metric, group_key), with k-anonymity suppression.
@@ -120,7 +140,7 @@ class FairnessReportingDashboard:
 
         if df.empty:
             # Return empty figure if no data
-            return go.Figure()
+            return self._go.Figure()
 
         # Create pivot table for heatmap: metric as rows, group_key as columns
         pivot_df = df.pivot_table(
@@ -128,8 +148,8 @@ class FairnessReportingDashboard:
         )
 
         # Create heatmap
-        fig = go.Figure(
-            data=go.Heatmap(
+        fig = self._go.Figure(
+            data=self._go.Heatmap(
                 z=pivot_df.values,
                 x=pivot_df.columns.tolist(),
                 y=pivot_df.index.tolist(),
@@ -166,7 +186,7 @@ class FairnessReportingDashboard:
         """
         Simple, human-readable Markdown report.
         """
-        tpl = Template(
+        tpl = self._Template(
             """# {{ title }}
 
 _This report summarizes fairness metrics, recent drift, and active alerts._

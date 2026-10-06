@@ -3,6 +3,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from fairness_pipeline_dev_toolkit.exceptions import DependencyError
+
 from .base import MetricResult
 from .input_validation import (
     nonfinite_drop_caveat,
@@ -33,6 +35,15 @@ class FairlearnAdapter:
     def available(self) -> bool:
         return bool(self._ok)
 
+    def _require_available(self) -> None:
+        if self.available():
+            return
+        raise DependencyError(
+            "Fairlearn adapter requires fairlearn.",
+            dependency_name="fairlearn",
+            extra_name="adapters",
+        )
+
     def _mask_small_groups(self, sensitive, min_group_size: int):
         s = pd.Series(sensitive)
         counts = s.value_counts()
@@ -42,8 +53,7 @@ class FairlearnAdapter:
     def demographic_parity_difference(
         self, y_true, y_pred, sensitive, *, min_group_size: int = 30
     ) -> MetricResult:
-        if not self.available():
-            raise RuntimeError("Fairlearn not available")
+        self._require_available()
         prepared = prepare_binary_classifier_inputs(
             y_pred=y_pred, sensitive=sensitive, y_true=y_true, require_y_true=False
         )
@@ -90,8 +100,7 @@ class FairlearnAdapter:
     def equalized_odds_difference(
         self, y_true, y_pred, sensitive, *, min_group_size: int = 30
     ) -> MetricResult:
-        if not self.available():
-            raise RuntimeError("Fairlearn not available")
+        self._require_available()
         prepared = prepare_binary_classifier_inputs(
             y_pred=y_pred, sensitive=sensitive, y_true=y_true, require_y_true=True
         )
@@ -140,8 +149,7 @@ class FairlearnAdapter:
     def mae_parity_difference(
         self, y_true, y_pred, sensitive, *, min_group_size: int = 30
     ) -> MetricResult:
-        if not self.available():
-            raise RuntimeError("Fairlearn not available")
+        self._require_available()
         prepared = prepare_regression_metric_inputs(
             y_true=y_true, y_pred=y_pred, sensitive=sensitive
         )

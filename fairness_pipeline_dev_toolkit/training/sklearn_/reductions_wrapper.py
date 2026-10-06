@@ -4,8 +4,16 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 import numpy as np
-from fairlearn.reductions import ExponentiatedGradient
 from sklearn.base import BaseEstimator, ClassifierMixin, clone
+
+from fairness_pipeline_dev_toolkit._extras import require_dependency
+
+ExponentiatedGradient = require_dependency(
+    "fairlearn.reductions",
+    dependency_name="fairlearn",
+    extra_name="adapters",
+    purpose="ReductionsWrapper requires fairlearn",
+).ExponentiatedGradient
 
 
 @dataclass

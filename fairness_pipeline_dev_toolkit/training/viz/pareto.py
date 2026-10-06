@@ -3,11 +3,29 @@ from __future__ import annotations
 from typing import Dict, Iterable, List, Optional
 
 import numpy as np
-import torch
-import torch.nn as nn
-import torch.optim as optim
 
-from ..torch_.losses import FairnessRegularizerLoss
+from fairness_pipeline_dev_toolkit._extras import require_dependency
+
+torch = require_dependency(
+    "torch",
+    dependency_name="torch",
+    extra_name="training",
+    purpose="Pareto sweep utilities require PyTorch",
+)
+nn = require_dependency(
+    "torch.nn",
+    dependency_name="torch",
+    extra_name="training",
+    purpose="Pareto sweep utilities require PyTorch",
+)
+optim = require_dependency(
+    "torch.optim",
+    dependency_name="torch",
+    extra_name="training",
+    purpose="Pareto sweep utilities require PyTorch",
+)
+
+from ..torch_.losses import FairnessRegularizerLoss  # noqa: E402
 
 
 def _demo_net(d_in: int) -> nn.Module:

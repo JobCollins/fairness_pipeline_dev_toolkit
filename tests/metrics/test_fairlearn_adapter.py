@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
+from fairness_pipeline_dev_toolkit.exceptions import DependencyError
 from fairness_pipeline_dev_toolkit.metrics.base import MetricResult
 from fairness_pipeline_dev_toolkit.metrics.fairlearn_adapter import FairlearnAdapter
 
@@ -155,7 +156,7 @@ class TestMAEParityDifference:
             y_pred = np.array([2.8, 2.3])
             sensitive = np.array(["A", "B"])
 
-            with pytest.raises(RuntimeError, match="Fairlearn not available"):
+            with pytest.raises(DependencyError, match="fairlearn"):
                 adapter.mae_parity_difference(y_true, y_pred, sensitive)
 
     def test_mae_n_per_group_counts(self, adapter):
