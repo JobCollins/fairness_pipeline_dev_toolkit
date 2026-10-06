@@ -214,4 +214,4 @@ jobs:
       - name: mypy public API
         run: |
           mapfile -t FILES < <(grep -v '^#' mypy-public.txt | grep -v '^$')
-          mypy --follow-imports=skip --ignore-missing-imports --no-incremental "${FILES[@]}"
+          mypy --follow-imports=silent --ignore-missing-imports --no-incremental "${FILES[@]}"

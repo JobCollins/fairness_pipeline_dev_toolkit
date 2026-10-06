@@ -65,3 +65,12 @@ class MetricAdapter(Protocol):
         *,
         min_group_size: int = 30,
     ) -> MetricResult: ...
+
+    def mae_parity_difference(
+        self,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+        sensitive: np.ndarray | pd.Series,
+        *,
+        min_group_size: int = 30,
+    ) -> MetricResult: ...

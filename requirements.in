@@ -9,23 +9,23 @@ joblib>=1.3
 PyYAML>=6.0
 # pandas parquet I/O (fairpipe.io.load_data)
 pyarrow>=14.0
-# Security-critical transitive dependencies pinned to secure versions
-filelock>=3.20.3  # CVE-2025-68146, CVE-2026-22701
-urllib3>=2.6.3  # CVE-2025-66418, CVE-2025-66471, CVE-2026-21441
-# Medium-priority indirect dependencies with security fixes
-fonttools>=4.60.2  # CVE-2025-66034 (indirect via matplotlib/plotly)
 # Note: virtualenv>=20.36.2 (CVE-2026-22702) is a dev tool, not a runtime dependency
 # Developers should update it manually: pip install --upgrade virtualenv>=20.36.2
+# CVE pins for filelock / urllib3 / fonttools live on the extras that pull them
+# (training / monitoring / tracking / adapters / api) — not core.
 
 # tracking extra (mlflow + CVE pins that exist only for its transitive graph)
 mlflow>=2.10
 starlette>=0.49.1  # CVE-2025-62727 (via mlflow-skinny / fastapi)
 werkzeug>=3.1.5  # CVE-2025-66221, CVE-2026-21860 (via Flask)
+urllib3>=2.6.3  # CVE-2025-66418, CVE-2025-66471, CVE-2026-21441
+fonttools>=4.60.2  # CVE-2025-66034 (via matplotlib)
 
 # Optional extras (training/monitoring/adapters)
 torch>=2.2
 matplotlib>=3.8
 plotly>=5.22
+filelock>=3.20.3  # CVE-2025-68146, CVE-2026-22701 (via torch / training)
 streamlit>=1.37
 dash>=2.16
 PyWavelets>=1.5

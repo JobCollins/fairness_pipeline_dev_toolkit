@@ -7,6 +7,8 @@ fairness_pipeline_dev_toolkit/stats/__init__.py
 fairness_pipeline_dev_toolkit/stats/bootstrap.py
 fairness_pipeline_dev_toolkit/stats/bayesian.py
 fairness_pipeline_dev_toolkit/stats/effect_size.py
+fairness_pipeline_dev_toolkit/stats/gap_intervals.py
+fairness_pipeline_dev_toolkit/stats/template_intervals.py
 fairness_pipeline_dev_toolkit/llm_evals/__init__.py
 fairness_pipeline_dev_toolkit/io.py
 fairpipe/__init__.py
