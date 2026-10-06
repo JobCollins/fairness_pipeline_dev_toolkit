@@ -79,8 +79,12 @@ def log_fairness_metrics(
         ):
             mlflow.log_metric(f"{prefix}.{name}.value", float(res_dict["value"]))
 
+        p_value = res_dict.get("p_value")
+        if isinstance(p_value, (int, float)) and p_value == p_value:
+            mlflow.log_metric(f"{prefix}.{name}.p_value", float(p_value))
+
         # confidence interval, effect sizes, counts, etc. go to params (stringified) and artifact blob
-        for key in ("ci", "effect_size", "n_per_group"):
+        for key in ("ci", "effect_size", "n_per_group", "ci_kind", "ci_note"):
             if key in res_dict and res_dict[key] is not None:
                 mlflow.log_param(
                     f"{prefix}.{name}.{key}",

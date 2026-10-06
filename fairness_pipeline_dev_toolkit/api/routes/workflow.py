@@ -5,7 +5,7 @@ import os
 import tempfile
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
@@ -15,7 +15,7 @@ from fairness_pipeline_dev_toolkit.pipeline.config import load_config
 
 from ..models.responses import WorkflowResponse
 from ..store import ResultStore
-from .validate import _safe_float, get_store
+from .validate import _result_to_dict, _safe_float, get_store
 
 router = APIRouter()
 
@@ -29,22 +29,7 @@ def _serialize_metrics(metrics: Dict[str, Any]) -> Dict[str, Any]:
     out: Dict[str, Any] = {}
     for key, val in metrics.items():
         if hasattr(val, "value") and hasattr(val, "metric"):
-            # metrics.core.Result dataclass
-            ci: Optional[list] = None
-            if val.ci is not None:
-                ci = [_safe_float(val.ci[0]), _safe_float(val.ci[1])]
-            n_per_group: Optional[dict] = None
-            if val.n_per_group is not None:
-                n_per_group = {str(k): int(v) for k, v in val.n_per_group.items()}
-            out[key] = {
-                "metric": val.metric,
-                "value": _safe_float(val.value),
-                "ci": ci,
-                "effect_size": _safe_float(val.effect_size),
-                "n_per_group": n_per_group,
-                # Same MetricResult.caveat field as LLM eval provenance (null for classifier metrics).
-                "caveat": getattr(val, "caveat", None),
-            }
+            out[key] = _result_to_dict(val)
         else:
             try:
                 f = float(val)

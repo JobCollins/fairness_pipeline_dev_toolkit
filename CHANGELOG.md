@@ -13,6 +13,57 @@ Wave 1 trustworthy-measurement + train-once transforms (BL-013, BL-015, BL-017,
 BL-020, BL-025) plus the LLM metric rename below. Behaviour-changing; intended
 next release is a **minor** (0.12.0), not a patch. No version bump in this commit.
 
+### Confidence intervals changed (BL-014, BL-016, BL-031) — read before quoting a CI
+
+Every CI that ≤0.11.0 printed for a gap metric is **superseded**. The old
+percentile bootstrap on a max−min gap under-covered badly at small gaps (it
+almost never contained 0 when groups were equal); old BCa intervals could be
+`NaN` or crash for small groups. Re-run and re-quote.
+
+- **`demographic_parity_difference` and `equalized_odds_difference` default to
+  `ci_method="simultaneous"`**: Bonferroni pairwise intervals inverted into
+  bounds for the largest gap — Agresti–Caffo for DPD rates, Agresti–Caffo over
+  the TPR *and* FPR pair families (one Bonferroni) for EOD. Analytic, so
+  `ci_samples` is ignored. Wider than before, by design: the lower bound is a
+  "largest gap is at least L" claim at the stated level, simultaneously over all
+  group pairs, and the interval always contains the reported value.
+- **`mae_parity_difference` no longer reports a default CI.** No candidate
+  (Bonferroni Welch-t, studentized bootstrap, Edgeworth-corrected Welch) covered
+  a zero gap well enough for skewed errors in small groups (worst 0.88 at 95%),
+  so `ci=None` with `ci_note="undefined:no_calibrated_interval (…)"`
+  ([#61](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/61)).
+  Its permutation `p_value` is reported. `stats.gap_intervals.welch_gap_interval`
+  is available if you have checked it for your data.
+- **New `p_value`** (permutation test of "no gap", group labels shuffled — within
+  `y_true` strata for EOD; 2000 shuffles seeded by `random_state`) on all three
+  classifier gaps. Computed whenever `with_ci=True`, or set `with_pvalue=True/False`.
+  `n_permutations` controls the count. Only this p-value backs the word
+  "significant".
+- **New result fields** `p_value`, `ci_kind` (`"simultaneous_pairwise"`,
+  `"percentile"`, `"bca"`, …) and `ci_note` (`"undefined:<reason> (…)"` or a
+  note) on `MetricResult` / `Result`, REST metric envelopes, MLflow logging and
+  the pytest plugin. All default to `None`; old serialized results still load.
+  **An undefined CI is `ci=None` with a `ci_note`, never `(nan, nan)`.**
+- **`ci_method="percentile"`** remains as an opt-in, now with replicates
+  resampled within each group (group × `y_true` for EOD, which also fixes the
+  EOD `nanmax` bug where a replicate could silently lose a group). It is still
+  **not calibrated** for gaps; the docstring says so.
+- **`ci_method="bca"` is deprecated for gap metrics** (`FutureWarning`). It now
+  refuses rather than returning `NaN` or raising: when any stratum has fewer
+  than 10 rows, or the replicates / jackknife / bias-correction are non-finite,
+  the CI is undefined with a reason. `stats.bca_ci` itself raises
+  `BootstrapUndefinedError` in those cases (the old silent fallback to
+  percentile and the `n<5` guard are gone). BCa stays available in the generic
+  `bootstrap_ci`.
+- **`bootstrap_ci` / `_percentile_ci` refuse non-finite replicates** with
+  `BootstrapUndefinedError` instead of silently dropping them; empty input
+  raises instead of returning `(nan, nan)`.
+- New public helpers in `fairness_pipeline_dev_toolkit.stats.gap_intervals`
+  (`simultaneous_gap_bounds`, `binary_gap_interval`,
+  `equalized_odds_gap_interval`, `welch_gap_interval`, `permutation_gap_pvalue`),
+  `stats.bootstrap.stratified_bootstrap_replicates`, and the exceptions
+  `IntervalUndefinedError` / `BootstrapUndefinedError`.
+
 ### Added
 
 - **`KamiranCaldersReweighing`** ([JobCollins#44](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/44)):

@@ -8,9 +8,11 @@ helping catch edge cases and ensure correctness across a wide range of inputs.
 from __future__ import annotations
 
 import numpy as np
+import pytest
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
+from fairness_pipeline_dev_toolkit.exceptions import BootstrapUndefinedError
 from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
 from fairness_pipeline_dev_toolkit.stats.bootstrap import bootstrap_ci
 from fairness_pipeline_dev_toolkit.stats.effect_size import cohens_d, risk_ratio
@@ -369,8 +371,8 @@ class TestEdgeCasesProperties:
         """Property: Functions should handle empty data gracefully."""
         if size == 0:
             data = np.array([])
-            lower, upper = bootstrap_ci(data, np.mean, B=10, random_state=42)
-            assert np.isnan(lower) and np.isnan(upper)
+            with pytest.raises(BootstrapUndefinedError):
+                bootstrap_ci(data, np.mean, B=10, random_state=42)
 
     @given(
         value=st.one_of(

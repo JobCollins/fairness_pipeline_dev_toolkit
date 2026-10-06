@@ -1,0 +1,36 @@
+{
+ "dpd": {
+  "gap0_coverage_mean": 0.95975,
+  "gap0_coverage_min": 0.93,
+  "coverage_min_all_gaps": 0.916,
+  "excl_point_max": 0.0,
+  "undefined_max": 0.0,
+  "type1_max": 0.0505,
+  "type1_mean": 0.037208333333333336,
+  "type1_mcse": 0.004873397172404482,
+  "pass_decision8": true
+ },
+ "eod": {
+  "gap0_coverage_mean": 0.9621666666666666,
+  "gap0_coverage_min": 0.928,
+  "coverage_min_all_gaps": 0.928,
+  "excl_point_max": 0.0,
+  "undefined_max": 0.0,
+  "type1_max": 0.0515,
+  "type1_mean": 0.041666666666666664,
+  "type1_mcse": 0.004873397172404482,
+  "pass_decision8": false
+ },
+ "mae": {
+  "gap0_coverage_mean": 0.9487777777777777,
+  "gap0_coverage_min": 0.876,
+  "coverage_min_all_gaps": 0.876,
+  "excl_point_max": 0.0,
+  "undefined_max": 0.0,
+  "type1_max": 0.0575,
+  "type1_mean": 0.048125,
+  "type1_mcse": 0.004873397172404482,
+  "pass_decision8": false
+ },
+ "runtime_s": 1559.491488749998
+}
