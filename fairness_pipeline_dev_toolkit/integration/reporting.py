@@ -11,15 +11,87 @@ from __future__ import annotations
 
 import datetime
 import json
+import re
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 
-def _fmt_ci(ci):
-    if not ci or ci[0] is None or ci[1] is None:
-        return "—"
-    return f"[{ci[0]:.4f}, {ci[1]:.4f}]"
+def format_ci_note_plain(ci_note: Optional[str]) -> Optional[str]:
+    """Turn a machine-readable ``ci_note`` into plain words for reports/CLI.
+
+    ``undefined:no_calibrated_interval (... #63)`` becomes
+    ``no calibrated interval for this metric yet, see #63``.
+    """
+    if not ci_note:
+        return None
+    issue_m = re.search(r"(?:#|issues/)(\d+)", ci_note)
+    issue = f"#{issue_m.group(1)}" if issue_m else None
+    if ci_note.startswith("undefined:no_calibrated_interval"):
+        base = "no calibrated interval for this metric yet"
+        return f"{base}, see {issue}" if issue else base
+    if ci_note.startswith("undefined:"):
+        rest = ci_note[len("undefined:") :]
+        # Keep parenthetical detail; soften underscores in the reason token.
+        if " (" in rest:
+            reason, detail = rest.split(" (", 1)
+            plain = f"{reason.replace('_', ' ')} ({detail}"
+        else:
+            plain = rest.replace("_", " ")
+        return f"{plain} (see {issue})" if issue and issue not in plain else plain
+    return ci_note
+
+
+def interpret_gap_interval(
+    ci: Optional[Sequence[float]],
+    *,
+    level: float = 0.95,
+    delta: Optional[float] = None,
+    p_value: Optional[float] = None,
+) -> str:
+    """Plain-language reading of a simultaneous gap interval (Wave 3a).
+
+    - ``L > 0``: largest gap is at least L at the stated level.
+    - ``L = 0``: consistent with no gap; could be as large as U.
+    - ``U < δ``: below δ with (level) confidence (equivalence wording).
+    - ``significant`` only when ``p_value`` is provided and ≤ 0.05.
+    """
+    if ci is None or len(ci) < 2 or ci[0] is None or ci[1] is None:
+        return ""
+    lo, hi = float(ci[0]), float(ci[1])
+    pct = f"{level * 100:.0f}%"
+    parts: List[str] = []
+    if lo > 0:
+        parts.append(
+            f"the largest gap is at least {lo:.4f} ({pct} simultaneous interval [{lo:.4f}, {hi:.4f}])"
+        )
+    else:
+        parts.append(
+            f"consistent with no gap; could be as large as {hi:.4f} "
+            f"({pct} simultaneous interval [{lo:.4f}, {hi:.4f}])"
+        )
+    if delta is not None and hi < delta:
+        parts.append(f"below {delta:g} with {pct} confidence")
+    if p_value is not None:
+        if p_value <= 0.05:
+            parts.append(f"permutation p-value {p_value:.4g} (significant at 0.05)")
+        else:
+            parts.append(f"permutation p-value {p_value:.4g} (not significant at 0.05)")
+    return "; ".join(parts)
+
+
+def _fmt_ci(ci, ci_note: Optional[str] = None, *, level: float = 0.95) -> str:
+    """Format a CI cell: numeric bounds, or the plain-words ``ci_note`` reason."""
+    _ = level  # reserved for callers that label the column with the level
+    if ci is not None and len(ci) >= 2 and ci[0] is not None and ci[1] is not None:
+        try:
+            return f"[{float(ci[0]):.4f}, {float(ci[1]):.4f}]"
+        except (TypeError, ValueError):
+            pass
+    plain = format_ci_note_plain(ci_note)
+    if plain:
+        return plain
+    return "—"
 
 
 def _coerce(val: Any) -> Dict[str, Any]:
@@ -30,9 +102,16 @@ def _coerce(val: Any) -> Dict[str, Any]:
     return {"value": val}
 
 
-def to_markdown_report(results: Mapping[str, Any], *, title: str = "Fairness Report") -> str:
+def to_markdown_report(
+    results: Mapping[str, Any],
+    *,
+    title: str = "Fairness Report",
+    ci_level: float = 0.95,
+) -> str:
     """
     Convert a metrics mapping into a Markdown document with a summary table.
+
+    Undefined CIs render the plain-words ``ci_note`` (never the literal ``None``).
 
     Returns
     -------
@@ -42,28 +121,40 @@ def to_markdown_report(results: Mapping[str, Any], *, title: str = "Fairness Rep
     ts = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
     lines = [f"# {title}", "", f"_Generated: {ts}_", ""]
 
+    level_label = f"{ci_level * 100:.0f}%"
     # Summary table
-    lines.append("| Metric | Value | CI (95%) | Effect Size | n_per_group |")
-    lines.append("|---|---:|---|---:|---|")
+    lines.append(f"| Metric | Value | CI ({level_label}) | Effect Size | p_value | n_per_group |")
+    lines.append("|---|---:|---|---:|---:|---|")
 
     for name, val in results.items():
         item = _coerce(val)
         value = item.get("value", "—")
         if isinstance(value, float):
             value = f"{value:.6f}"
-        ci = _fmt_ci(item.get("ci"))
-        eff = item.get("effect_size", "—")
+        ci = _fmt_ci(item.get("ci"), item.get("ci_note"), level=ci_level)
+        eff = item.get("effect_size")
         if isinstance(eff, float):
             eff = f"{eff:.6f}"
+        elif eff is None:
+            eff = "—"
+        p_val = item.get("p_value")
+        if isinstance(p_val, float):
+            p_display = f"{p_val:.4g}"
+        else:
+            p_display = "—"
         n_per_group = item.get("n_per_group")
         n_display = json.dumps(n_per_group) if n_per_group else "—"
         caveat = item.get("caveat")
         if caveat:
             value = f"{value}*"
-        lines.append(f"| `{name}` | {value} | {ci} | {eff} | {n_display} |")
+        lines.append(f"| `{name}` | {value} | {ci} | {eff} | {p_display} | {n_display} |")
 
     lines.append("")
-    lines.append("> Note: `—` indicates unavailable due to insufficient data or configuration.")
+    lines.append(
+        "> Note: when a CI is undefined, the CI column shows the reason "
+        "(e.g. “no calibrated interval for this metric yet, see #63”), never `None`. "
+        "`—` means the field was not computed. Use `p_value` for significance claims."
+    )
 
     caveats = []
     for name, val in results.items():
@@ -268,14 +359,21 @@ def _generate_recommendations(report_data: Dict[str, Any]) -> Dict[str, List[str
                 "tightening `dp_tolerance` to enforce constraints more strongly."
             )
 
-    # Evaluation stage recommendations
-    if dp_result and hasattr(dp_result, "ci") and dp_result.ci:
-        ci_lower, ci_upper = dp_result.ci
-        if ci_lower <= 0 <= ci_upper:
-            recommendations["evaluation_stage"].append(
-                "Confidence interval includes zero. Larger sample size needed for conclusive "
-                "fairness assessment."
-            )
+    # Evaluation stage recommendations (Wave 3a simultaneous intervals)
+    if dp_result is not None:
+        ci = getattr(dp_result, "ci", None)
+        ci_note = getattr(dp_result, "ci_note", None)
+        p_value = getattr(dp_result, "p_value", None)
+        if ci is None and ci_note:
+            plain = format_ci_note_plain(ci_note)
+            if plain:
+                recommendations["evaluation_stage"].append(
+                    f"Confidence interval undefined: {plain}."
+                )
+        elif ci is not None and len(ci) >= 2 and ci[0] is not None and ci[1] is not None:
+            reading = interpret_gap_interval(ci, level=0.95, delta=threshold, p_value=p_value)
+            if reading:
+                recommendations["evaluation_stage"].append(reading + ".")
 
     if dp_result and hasattr(dp_result, "effect_size") and dp_result.effect_size:
         if dp_result.effect_size > 1.5:
@@ -595,11 +693,17 @@ def generate_training_fairness_report(
                 lines.append("")
 
             if hasattr(result, "ci") and result.ci:
-                ci_lower, ci_upper = result.ci
-                lines.append(
-                    f"**Confidence Interval:** 95% confident the true difference is between "
-                    f"{ci_lower:.4f} and {ci_upper:.4f}."
+                reading = interpret_gap_interval(
+                    result.ci,
+                    level=0.95,
+                    delta=threshold,
+                    p_value=getattr(result, "p_value", None),
                 )
+                lines.append(f"**Confidence Interval:** {reading}.")
+                lines.append("")
+            elif getattr(result, "ci_note", None):
+                plain = format_ci_note_plain(result.ci_note)
+                lines.append(f"**Confidence Interval:** {plain}.")
                 lines.append("")
 
     lines.append("---")
@@ -685,8 +789,16 @@ def generate_training_fairness_report(
             lines.append("")
 
         if hasattr(dp_result, "ci") and dp_result.ci:
-            ci_lower, ci_upper = dp_result.ci
-            lines.append(f"**95% Confidence Interval:** [{ci_lower:.4f}, {ci_upper:.4f}]")
+            reading = interpret_gap_interval(
+                dp_result.ci,
+                level=0.95,
+                delta=threshold,
+                p_value=getattr(dp_result, "p_value", None),
+            )
+            lines.append(f"**Confidence Interval:** {reading}.")
+            lines.append("")
+        elif getattr(dp_result, "ci_note", None):
+            lines.append(f"**Confidence Interval:** {format_ci_note_plain(dp_result.ci_note)}.")
             lines.append("")
 
         if hasattr(dp_result, "effect_size") and dp_result.effect_size:
@@ -700,8 +812,16 @@ def generate_training_fairness_report(
         lines.append("")
 
         if hasattr(eo_result, "ci") and eo_result.ci:
-            ci_lower, ci_upper = eo_result.ci
-            lines.append(f"**95% Confidence Interval:** [{ci_lower:.4f}, {ci_upper:.4f}]")
+            reading = interpret_gap_interval(
+                eo_result.ci,
+                level=0.95,
+                delta=threshold,
+                p_value=getattr(eo_result, "p_value", None),
+            )
+            lines.append(f"**Confidence Interval:** {reading}.")
+            lines.append("")
+        elif getattr(eo_result, "ci_note", None):
+            lines.append(f"**Confidence Interval:** {format_ci_note_plain(eo_result.ci_note)}.")
             lines.append("")
 
     # Comparison to baseline

@@ -16,10 +16,19 @@ def test_fairpipe_measurement_shim():
 
 
 def test_fairpipe_integration_exports_log_fairness_metrics():
-    from fairpipe.integration import execute_workflow, log_fairness_metrics
+    from fairpipe.integration import (
+        execute_workflow,
+        format_ci_note_plain,
+        interpret_gap_interval,
+        log_fairness_metrics,
+        to_markdown_report,
+    )
 
     assert callable(log_fairness_metrics)
     assert callable(execute_workflow)
+    assert callable(to_markdown_report)
+    assert format_ci_note_plain("undefined:no_calibrated_interval (... #63)").endswith("#63")
+    assert "at least" in interpret_gap_interval((0.1, 0.2), level=0.95)
 
 
 def test_fairpipe_stats_shim_identity():

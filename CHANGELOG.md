@@ -80,6 +80,14 @@ almost never contained 0 when groups were equal); old BCa intervals could be
   `equalized_odds_gap_interval`, `welch_gap_interval`, `permutation_gap_pvalue`),
   `stats.bootstrap.stratified_bootstrap_replicates`, and the exceptions
   `IntervalUndefinedError` / `BootstrapUndefinedError`.
+- **Reports / CLI / REST consumers:** `to_markdown_report` renders undefined CIs
+  as plain words from `ci_note` (e.g. “no calibrated interval for this metric
+  yet, see #63”), never the literal `None`, and adds a `p_value` column.
+  `format_ci_note_plain` / `interpret_gap_interval` are public helpers for the
+  simultaneous-interval wording (L>0 / L=0 / U<δ; “significant” only with
+  `p_value`). Example outputs that quoted old percentile LLM CIs (hiring
+  0.185–0.205, contrast −0.128–0.004) are superseded — defaults are undefined
+  (#63) or simultaneous classifier intervals.
 
 ### Added
 

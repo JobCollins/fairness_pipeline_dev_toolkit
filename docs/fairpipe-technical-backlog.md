@@ -25,9 +25,9 @@
 | BL-011 | `refusal_score` cannot distinguish refusal-to-engage from a scope disclaimer | P1 | open |
 | BL-012 | `demographic_swap_divergence` has no no-effect baseline | P1 | open |
 | BL-013 | BCa intervals are mathematically wrong | P0 | open ([JobCollins#23](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/23) · [SvrusIO#23](https://github.com/SvrusIO/fAIr/issues/23)) |
-| BL-014 | Default percentile DPD intervals are not calibrated at equality | P0 | open ([JobCollins#24](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/24) · [SvrusIO#24](https://github.com/SvrusIO/fAIr/issues/24)) |
+| BL-014 | Default percentile DPD intervals are not calibrated at equality | P0 | **closed (Wave 3a)** — simultaneous default; [#24](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/24) · PR stack `wave3a` |
 | BL-015 | Invalid classifier inputs produce plausible or impossible numbers | P0 | open ([JobCollins#25](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/25) · [SvrusIO#25](https://github.com/SvrusIO/fAIr/issues/25)) |
-| BL-016 | LLM CIs can describe a different statistic from the reported value | P0 | open ([JobCollins#26](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/26) · [SvrusIO#26](https://github.com/SvrusIO/fAIr/issues/26)) |
+| BL-016 | LLM CIs can describe a different statistic from the reported value | P0 | **closed (Wave 3a)** for estimand mismatch; divergence/contrast/toxicity default CI undefined ([#63](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63)); refusal/stereotype → M2a |
 | BL-017 | Python and CLI fairness gates disagree | P0 | open ([JobCollins#27](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/27) · [SvrusIO#27](https://github.com/SvrusIO/fAIr/issues/27)) |
 | BL-018 | Published quickstart fails to produce its intended first result | P1 | open ([JobCollins#28](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/28) · [SvrusIO#28](https://github.com/SvrusIO/fAIr/issues/28)) |
 | BL-019 | Small or unsupported groups disappear; incomplete EO can look perfectly fair | P1 | open ([JobCollins#29](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/29) · [SvrusIO#29](https://github.com/SvrusIO/fAIr/issues/29)) |
@@ -42,7 +42,7 @@
 | BL-028 | Sensitive-label dtype breaks ancillary results | P2 | open ([JobCollins#38](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/38) · [SvrusIO#38](https://github.com/SvrusIO/fAIr/issues/38)) |
 | BL-029 | Install and engineering guarantees are weaker than the product framing | P2 | open ([JobCollins#39](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/39) · [SvrusIO#39](https://github.com/SvrusIO/fAIr/issues/39)) |
 | BL-030 | Identity, typing and API contracts need consolidation | P2 | open ([JobCollins#40](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/40) · [SvrusIO#40](https://github.com/SvrusIO/fAIr/issues/40)) |
-| BL-031 | BCa has no policy for NaN bootstrap replicates from analyzer stats | P1 | open ([JobCollins#41](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/41) · [SvrusIO#41](https://github.com/SvrusIO/fAIr/issues/41)) |
+| BL-031 | BCa has no policy for NaN bootstrap replicates from analyzer stats | P1 | **closed (Wave 3a)** — refuse policy + `BootstrapUndefinedError`; BCa deprecated for gaps ([#41](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/41)) |
 
 ---
 
@@ -818,9 +818,11 @@ simulations.
 
 ## BL-014 — Default percentile DPD intervals are not calibrated at equality
 
-**Status: open.** GitHub: [JobCollins#24](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/24) · [SvrusIO#24](https://github.com/SvrusIO/fAIr/issues/24).
-Blocker for production adoption (review severity: Blocker — RUN).
-P0. Finite simulation of one relevant setting, not a proof about all settings.
+**Status: closed (Wave 3a).** Default is now simultaneous pairwise Agresti–Caffo
+inversion (`ci_kind="simultaneous_pairwise"`) with a permutation `p_value`.
+GitHub: [JobCollins#24](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/24) · [SvrusIO#24](https://github.com/SvrusIO/fAIr/issues/24).
+PRs: `wave3a-stats-core` / `wave3a` stack. Remaining open calibration work for
+metrics that failed decision 8: [#61](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/61) (MAE).
 
 ### Where Discovered
 Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 2).
@@ -885,10 +887,12 @@ computation; offer an explicit multiclass definition or reject the input.
 
 ## BL-016 — LLM CIs can describe a different statistic from the reported value
 
-**Status: open.** GitHub: [JobCollins#26](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/26) · [SvrusIO#26](https://github.com/SvrusIO/fAIr/issues/26).
-Blocker for production adoption (review severity: Blocker — RUN + READ).
-P0. Distinct from BL-012 (wrong no-effect *baseline* for a correctly computed
-distance). Here the CI is attached to the wrong *estimand*.
+**Status: closed (Wave 3a) for the estimand mismatch.** Divergence/contrast use
+template-level C2b when opted in; defaults are undefined after the real-data
+check ([#63](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63)).
+Refusal/stereotype use simultaneous M2a. Toxicity default undefined (#63).
+LLM `p_value` follow-up: [#66](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/66).
+GitHub: [JobCollins#26](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/26) · [SvrusIO#26](https://github.com/SvrusIO/fAIr/issues/26).
 
 ### Where Discovered
 Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, row 4).
@@ -1446,9 +1450,10 @@ unambiguous pre-1.0 policy; check and distribute typing deliberately.
 
 ## BL-031 — BCa has no policy for NaN bootstrap replicates from analyzer stats
 
-**Status: open.** GitHub: [JobCollins#41](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/41) · [SvrusIO#41](https://github.com/SvrusIO/fAIr/issues/41).
-P1. Follow-on created by Wave 1a + Wave 1b together — not part of the original
-0.11.0 review table.
+**Status: closed (Wave 3a).** Gap metrics refuse BCa when unsafe
+(`ci=None` + `ci_note`); `stats.bca_ci` raises `BootstrapUndefinedError`.
+BCa is deprecated for gap metrics. GitHub:
+[JobCollins#41](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/41) · [SvrusIO#41](https://github.com/SvrusIO/fAIr/issues/41).
 
 ### Where Discovered
 Wave 1b BCa units fix (branch `fix/bl-013-bca-percentile-units`), after Wave 1a
