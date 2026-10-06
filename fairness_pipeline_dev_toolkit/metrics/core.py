@@ -18,6 +18,10 @@ from ..stats.gap_intervals import (
 from ..utils.array_utils import to_numpy_1d
 from ..utils.intersectional import build_intersectional_labels, min_group_mask
 from .aequitas_adapter import AequitasAdapter
+from .eod_undefined import (
+    analysed_groups_have_empty_label_stratum,
+    empty_label_stratum_ci_note,
+)
 from .fairlearn_adapter import FairlearnAdapter
 from .input_validation import (
     LengthMismatchError,
@@ -249,6 +253,10 @@ class FairnessAnalyzer:
     - min_group_size filtering
     - Optional bootstrap CIs (percentile/BCa)
     - Optional effect sizes (risk ratio for rates, Cohen's d for errors)
+
+    The default ``backend`` is always ``"native"`` (``backend=None`` means native).
+    Fairlearn and Aequitas are explicit opt-ins via ``backend="fairlearn"`` /
+    ``backend="aequitas"`` (requires ``pip install fairpipe[adapters]``).
     """
 
     def __init__(
@@ -266,20 +274,17 @@ class FairnessAnalyzer:
             "aequitas": AequitasAdapter(),
             "native": NativeAdapter(),
         }
+        # Default backend is always native (BL-027). Fairlearn / Aequitas are
+        # explicit opt-ins only — installing an optional extra must not change results.
         if backend is None:
-            for k, a in self._adapters.items():
-                if hasattr(a, "available") and a.available():
-                    self._backend = k
-                    self._adapter = a
-                    break
-        else:
-            if backend not in self._adapters:
-                raise ValueError(f"Unknown backend: {backend}")
-            a = self._adapters[backend]
-            if hasattr(a, "available") and not a.available():
-                raise RuntimeError(f"Requested backend '{backend}' is not available")
-            self._backend = backend
-            self._adapter = a
+            backend = "native"
+        if backend not in self._adapters:
+            raise ValueError(f"Unknown backend: {backend}")
+        a = self._adapters[backend]
+        if hasattr(a, "available") and not a.available():
+            raise RuntimeError(f"Requested backend '{backend}' is not available")
+        self._backend = backend
+        self._adapter = a
 
         self._cache: Dict[str, Any] = {}
 
@@ -541,9 +546,10 @@ class FairnessAnalyzer:
         - Bootstrap methods resample within group × ``y_true`` strata, so every
           replicate keeps each group's positives and negatives.
         - The permutation test shuffles group labels within ``y_true`` strata.
-        - If an analysed group has no positives or no negatives, its TPR or FPR is
-          undefined: ``ci`` is ``None`` with
-          ``ci_note="undefined:empty_label_stratum (...)"`` and ``p_value`` is ``None``.
+        - If an analysed group has no positives or no negatives, equalized odds is
+          **undefined** on every backend: ``value`` is NaN, ``ci`` is ``None`` with
+          ``ci_note="undefined:empty_label_stratum (...)"``, and ``p_value`` is ``None``.
+          Gating reports this as undefined (not pass or fail).
 
         Examples
         --------
@@ -610,14 +616,26 @@ class FairnessAnalyzer:
             n_dropped_nonfinite=prepared.n_dropped_nonfinite,
         )
 
-        # For CI, we need to recompute TPR/FPR per resample
+        # For CI / undefined detection we use string group keys matching n_per_group.
         groups = [g for g, n in (res.n_per_group or {}).items() if n >= self.min_group_size]
+        group_of = _sens_keys(sens)
+        empty_stratum = (
+            analysed_groups_have_empty_label_stratum(yt, group_of, groups) if groups else False
+        )
+        if empty_stratum:
+            res.value = float("nan")
+            res.ci = None
+            res.ci_kind = None
+            res.ci_note = empty_label_stratum_ci_note()
+            res.p_value = None
+            if with_effect_size:
+                res.effect_size = None
+            return res
+
         tprs: List[float] = []
         fprs: List[float] = []
         for g in groups:
-            idx = np.where(
-                (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
-            )[0]
+            idx = np.where(group_of == g)[0]
             if idx.size == 0:
                 continue
             yt_g = yt[idx]
@@ -634,7 +652,6 @@ class FairnessAnalyzer:
             res.ci_note = _undefined_ci_note(groups, res.value)
         if estimable and (with_ci or want_p):
             group_keys = [str(g) for g in groups]
-            group_of = _sens_keys(sens)
             idx_by_group = [np.flatnonzero(group_of == k) for k in group_keys]
             yt_f = np.asarray(yt, dtype=float)
             yp_f = np.asarray(yp, dtype=float)

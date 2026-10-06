@@ -224,6 +224,7 @@ def test_eod_group_without_positives_gives_undefined_ci():
     y_pred = np.tile([1.0, 0.0, 0.0, 1.0], 20)
     fa = FairnessAnalyzer(min_group_size=10, backend="native")
     res = fa.equalized_odds_difference(y_true, y_pred, sensitive)
+    assert np.isnan(res.value)
     assert res.ci is None
     assert res.ci_note.startswith("undefined:empty_label_stratum")
     assert res.p_value is None

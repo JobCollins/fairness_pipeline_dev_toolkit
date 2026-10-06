@@ -70,7 +70,7 @@ df = load_data("data/holdout.csv")  # or .parquet / .pq
 
 ### Backends
 
-Constructor argument `backend=None` (auto-select), or **`"native"`**, **`"fairlearn"`**, **`"aequitas"`**. Fairlearn/Aequitas require **`pip install fairpipe[adapters]`** where applicable.
+Constructor argument **`backend="native"`** (default; ``backend=None`` means the same), or **`"fairlearn"`** / **`"aequitas"`** as explicit opt-ins. Fairlearn/Aequitas require **`pip install fairpipe[adapters]`**. Installing Fairlearn no longer changes the default backend.
 
 ### Methods on `FairnessAnalyzer` (and the dataframe proxy, where columns allow)
 
