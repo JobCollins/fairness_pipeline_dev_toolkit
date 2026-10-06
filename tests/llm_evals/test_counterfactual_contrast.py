@@ -111,8 +111,18 @@ def test_contrast_positive_engineered_local():
     )
     assert result.metric == "demographic_swap_contrast"
     assert result.value > 0.05
-    assert result.ci is not None
-    assert result.ci[0] < result.ci[1]
+    # Default undefined; opt-in C2b.
+    assert result.ci is None
+    opted, _ = asyncio.run(
+        evaluator.run_contrast_async(
+            allow_small_samples=True,
+            with_ci=True,
+            ci_method="template_bonferroni_t",
+        )
+    )
+    assert opted.ci is not None
+    assert opted.ci_kind == "template_bonferroni_t"
+    assert opted.ci[0] <= opted.value <= opted.ci[1]
 
 
 def test_contrast_negative_sign_survives():
@@ -176,8 +186,21 @@ def test_contrast_difference_of_means_ci_sane():
             random_state=7,
         )
     )
-    assert result.ci is not None
-    assert result.ci[0] < result.ci[1]
+    assert result.ci is None
+    assert result.ci_note is not None and result.ci_note.startswith(
+        "undefined:no_calibrated_interval"
+    )
+    opted, _ = asyncio.run(
+        evaluator.run_contrast_async(
+            allow_small_samples=True,
+            with_ci=True,
+            ci_method="template_bonferroni_t",
+        )
+    )
+    assert opted.ci is not None
+    assert opted.ci_kind == "template_bonferroni_t"
+    assert opted.ci[0] <= opted.value <= opted.ci[1]
+    assert opted.p_value is None
 
 
 def _contrast_yaml(**counterfactual_extra):
@@ -253,9 +276,18 @@ def test_divergence_hiring_regression_unchanged(assert_no_live_llm_calls):
     metric = result.metrics["demographic_swap_divergence"]
     assert math.isfinite(metric.value)
     assert metric.value == pytest.approx(0.196, abs=5e-4)
-    assert metric.ci is not None
-    assert metric.ci[0] == pytest.approx(0.185, abs=5e-4)
-    assert metric.ci[1] == pytest.approx(0.205, abs=5e-4)
+    # Default CI undefined; C2b is opt-in.
+    assert metric.ci is None
+    assert metric.ci_note is not None and metric.ci_note.startswith(
+        "undefined:no_calibrated_interval"
+    )
+    opted = run_llm_eval(config, with_ci=True, ci_method="template_bonferroni_t").metrics[
+        "demographic_swap_divergence"
+    ]
+    assert opted.ci_kind == "template_bonferroni_t"
+    assert opted.ci[0] == pytest.approx(0.1842, abs=5e-4)
+    assert opted.ci[1] == pytest.approx(0.2070, abs=5e-4)
+    assert opted.ci[0] <= opted.value <= opted.ci[1]
 
 
 def test_stub_protocol_includes_contrast():

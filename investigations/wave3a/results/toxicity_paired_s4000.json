@@ -1,0 +1,41 @@
+{
+ "mean": 0.9515,
+ "min": 0.948,
+ "excl_max": 0.0,
+ "pass_decision8": true,
+ "runtime_s": 2.6571028329999535,
+ "rows": [
+  {
+   "T": 3,
+   "S": 4000,
+   "coverage": 0.94975,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.0034541618918342556
+  },
+  {
+   "T": 5,
+   "S": 4000,
+   "coverage": 0.95325,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.0033378300398612254
+  },
+  {
+   "T": 10,
+   "S": 4000,
+   "coverage": 0.948,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.0035105555115964213
+  },
+  {
+   "T": 30,
+   "S": 4000,
+   "coverage": 0.955,
+   "excl_point": 0.0,
+   "undefined": 0.0,
+   "mcse": 0.003277766007511825
+  }
+ ]
+}

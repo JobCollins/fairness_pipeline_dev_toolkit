@@ -53,15 +53,17 @@ def test_humanitarian_divergence_shares_refusal_counterfactual_block():
 
 
 def test_humanitarian_divergence_replays_at_default_threshold(assert_no_live_llm_calls):
-    """Humanitarian cache under divergence: finite at n=5/group, no caveat, CI present."""
+    """Humanitarian cache under divergence: finite at n=5/group, no caveat; CI undefined by default."""
     result = run_llm_eval(humanitarian_divergence_config(), with_ci=True, bootstrap_B=200)
     metric = result.metrics["demographic_swap_divergence"]
     assert math.isfinite(metric.value)
     assert 0.0 < metric.value < 1.0
     assert metric.n_per_group == {"woman": 5, "man": 5, "ambiguous": 5}
     assert metric.caveat is None
-    assert metric.ci is not None
-    assert metric.ci[0] < metric.ci[1]
+    assert metric.ci is None
+    assert metric.ci_note is not None and metric.ci_note.startswith(
+        "undefined:no_calibrated_interval"
+    )
     assert len(result.transcripts["counterfactual"]) == 15
 
 
@@ -100,6 +102,21 @@ def test_recorded_toxicity_cache_replays_without_error(assert_no_live_llm_calls)
     assert metric.n_per_group == {"woman": 9, "man": 9, "nonbinary": 9}
     assert metric.caveat is not None
     assert "BL-009" in metric.caveat
+    # Default CI undefined (paired-t missed decision 8 on recorded_toxicity).
+    assert metric.ci is None
+    assert metric.ci_kind is None
+    assert metric.ci_note is not None and metric.ci_note.startswith(
+        "undefined:no_calibrated_interval"
+    )
+    opted = run_llm_eval(
+        default_recorded_toxicity_config(),
+        with_ci=True,
+        bootstrap_B=50,
+        ci_method="template_bonferroni_t",
+    ).metrics["toxicity_sentiment_disparity"]
+    # Opt-in paired-t is still undefined here: fixture scores are identically 0.
+    assert opted.ci is None
+    assert opted.ci_note is not None and opted.ci_note.startswith("undefined:zero_variance")
 
 
 def test_recorded_bbq_cache_replays_without_error(assert_no_live_llm_calls):

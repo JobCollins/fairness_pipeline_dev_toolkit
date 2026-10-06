@@ -59,6 +59,7 @@ async def run_llm_eval_async(
     ci_level: float = 0.95,
     bootstrap_B: int = 200,
     random_state: int = 42,
+    ci_method: Optional[str] = None,
 ) -> LLMEvalRunResult:
     cache = ResponseCache(config.cache_dir) if config.cache_dir else None
     replay_only = bool(config.cache_dir)
@@ -98,6 +99,7 @@ async def run_llm_eval_async(
             ci_level=ci_level,
             bootstrap_B=bootstrap_B,
             random_state=random_state,
+            ci_method=ci_method,
         )
         if need_divergence and need_contrast:
             prompts, responses, rows = await evaluator.prepare_async()
@@ -139,6 +141,7 @@ async def run_llm_eval_async(
             ci_level=ci_level,
             bootstrap_B=bootstrap_B,
             random_state=random_state,
+            ci_method=ci_method,
         )
         metrics["toxicity_sentiment_disparity"] = metric
         transcripts["toxicity"] = rows
@@ -170,6 +173,7 @@ def run_llm_eval(
     ci_level: float = 0.95,
     bootstrap_B: int = 200,
     random_state: int = 42,
+    ci_method: Optional[str] = None,
 ) -> LLMEvalRunResult:
     if isinstance(config, str):
         config = load_llm_eval_config(path=config)
@@ -186,6 +190,7 @@ def run_llm_eval(
             ci_level=ci_level,
             bootstrap_B=bootstrap_B,
             random_state=random_state,
+            ci_method=ci_method,
         )
     )
 

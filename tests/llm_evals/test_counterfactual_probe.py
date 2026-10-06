@@ -65,9 +65,13 @@ def test_counterfactual_probe_bootstrap_ci_matches_expected():
     )
 
     assert result.value == pytest.approx(0.5497685185185185, rel=1e-3)
-    assert result.ci is not None
-    assert result.ci[0] == pytest.approx(0.45601851851851843, rel=1e-3)
-    assert result.ci[1] == pytest.approx(0.6440972222222223, rel=1e-3)
+    # Default CI undefined (no calibrated interval).
+    assert result.ci is None
+    assert result.ci_note is not None and result.ci_note.startswith(
+        "undefined:no_calibrated_interval"
+    )
+    assert result.ci_kind is None
+    assert result.p_value is None
 
 
 def test_bootstrap_resamples_matched_template_pairs_not_all_pairs():
@@ -112,8 +116,13 @@ def test_bootstrap_resamples_matched_template_pairs_not_all_pairs():
     n_group_pairs = 3  # C(3, 2)
     assert len(pair_values) == n_templates * n_group_pairs
     assert result.n_per_group == {"woman": 9, "man": 9, "nonbinary": 9}
-    assert result.ci is not None
-    assert result.ci[0] < result.ci[1]
+    assert result.ci is None
+    assert result.ci_note is not None and result.ci_note.startswith(
+        "undefined:no_calibrated_interval"
+    )
+    opted, _ = asyncio.run(evaluator.run_async(with_ci=True, ci_method="template_bonferroni_t"))
+    assert opted.ci_kind == "template_bonferroni_t"
+    assert opted.ci[0] <= opted.value <= opted.ci[1]
     assert math.isfinite(result.value)
 
 

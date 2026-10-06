@@ -1,0 +1,106 @@
+{
+ "compas": {
+  "before": {
+   "dpd": {
+    "value": 0.245107,
+    "ci": [
+     0.2184,
+     0.2699
+    ]
+   },
+   "eod": {
+    "value": 0.211582,
+    "ci": [
+     0.1881,
+     0.2493
+    ]
+   }
+  },
+  "after": {
+   "dpd": {
+    "value": 0.2451072146652139,
+    "ci": [
+     0.21845102900760116,
+     0.27134640908103624
+    ],
+    "p_value": 0.0004997501249375312,
+    "ci_kind": "simultaneous_pairwise"
+   },
+   "eod": {
+    "value": 0.2115821530429738,
+    "ci": [
+     0.16507428432939544,
+     0.2575900432106098
+    ],
+    "p_value": 0.0004997501249375312,
+    "ci_kind": "simultaneous_pairwise"
+   }
+  }
+ },
+ "acs_notebook_before": {
+  "dpd": {
+   "value": 0.1046,
+   "ci": [
+    0.0852,
+    0.124
+   ]
+  },
+  "eod": {
+   "value": 0.1022,
+   "ci": [
+    0.0847,
+    0.1361
+   ]
+  }
+ },
+ "acs_note": "Notebook outputs stripped; after numbers need a notebook re-run. Point estimates below are a best-effort local reproduction (ACSEmployment filter + POBP) and do not match the notebook markdown values.",
+ "llm": {
+  "hiring_divergence": {
+   "value": 0.19559226006117256,
+   "ci": [
+    0.1842244292962891,
+    0.20696009082605601
+   ],
+   "ci_kind": "template_bonferroni_t",
+   "ci_note": "small_T:T=9 (C2b with df=8; prefer T>10)"
+  },
+  "humanitarian_divergence": {
+   "value": 0.20168768671305004,
+   "ci": [
+    0.16779560987949144,
+    0.2355797635466086
+   ],
+   "ci_kind": "template_bonferroni_t",
+   "ci_note": "small_T:T=5 (C2b with df=4; prefer T>10)"
+  },
+  "humanitarian_contrast": {
+   "value": -0.056290506524300954,
+   "ci": [
+    -0.1684414572694687,
+    0.05586044422086671
+   ],
+   "ci_kind": "template_bonferroni_t",
+   "ci_note": "small_T:T=5 (C2b with df=4; prefer T>10)"
+  },
+  "refusal": {
+   "value": 0.0,
+   "ci": [
+    0.0,
+    0.4477793324434104
+   ],
+   "ci_kind": "simultaneous_pairwise",
+   "ci_note": null
+  }
+ },
+ "llm_before_pins": {
+  "hiring_divergence": {
+   "value": 0.196,
+   "ci": [
+    0.185,
+    0.205
+   ]
+  },
+  "compas_validation_report": "see compas.before"
+ },
+ "eod_weak_spot": "K=5 groups \u00d7 n=30, gap 0: coverage 0.932 (S=4000); not retuned."
+}

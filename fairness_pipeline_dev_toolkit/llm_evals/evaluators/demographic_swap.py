@@ -4,10 +4,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
+from fairness_pipeline_dev_toolkit.exceptions import IntervalUndefinedError
 from fairness_pipeline_dev_toolkit.metrics.base import MetricResult
-from fairness_pipeline_dev_toolkit.stats.bootstrap import (
-    bootstrap_ci,
-    bootstrap_difference_of_means,
+from fairness_pipeline_dev_toolkit.stats.template_intervals import (
+    T_MIN_TEMPLATES,
+    small_template_note,
+    template_bonferroni_t_max_mean,
 )
 
 from .._async_utils import run_coroutine
@@ -22,12 +24,59 @@ from ..probes.counterfactual import (
     CounterfactualPrompt,
     divergence_by_dimension,
     generate_counterfactual_prompts,
-    matched_pairwise_divergences,
     n_per_group_by_dimension,
     pairwise_divergences_by_dimension,
     response_key,
 )
 from ..provenance import with_fixture_caveat
+from ..template_ci import contrast_template_arms, divergence_template_arms
+
+#: Default when ``with_ci`` and ``ci_method`` is unset. C2b missed decision 8 on
+#: the real-data check (issue #63); opt in with ``ci_method="template_bonferroni_t"``.
+C2B_UNCALIBRATED_NOTE = (
+    "undefined:no_calibrated_interval (C2b real-data coverage missed decision 8 "
+    "at every T; see https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63)"
+)
+
+
+def _apply_c2b(arms, T: int, *, level: float, value: float) -> tuple:
+    """Return (ci, ci_kind, ci_note) for C2b, or (None, None, note) when undefined."""
+    if T < T_MIN_TEMPLATES:
+        return (
+            None,
+            None,
+            f"undefined:too_few_templates (T={T} < {T_MIN_TEMPLATES})",
+        )
+    try:
+        lo, hi = template_bonferroni_t_max_mean(arms, level=level)
+    except IntervalUndefinedError as err:
+        return None, None, err.ci_note
+    # Containment of the reported point (same hull idea as classifier gaps).
+    lo, hi = min(lo, value), max(hi, value)
+    return (float(lo), float(hi)), "template_bonferroni_t", small_template_note(T)
+
+
+def _resolve_llm_ci(
+    *,
+    with_ci: bool,
+    ci_method: Optional[str],
+    arms,
+    T: int,
+    level: float,
+    value: float,
+    bootstrap_B: int,
+) -> tuple:
+    """Default CI is undefined; C2b is an explicit opt-in."""
+    _ = bootstrap_B  # accepted for API compatibility; C2b is analytic
+    if not with_ci:
+        return None, None, None
+    if ci_method is not None and ci_method not in ("template_bonferroni_t",):
+        raise ValueError(
+            f"Unknown ci_method {ci_method!r}; expected None or 'template_bonferroni_t'"
+        )
+    if ci_method is None:
+        return None, None, C2B_UNCALIBRATED_NOTE
+    return _apply_c2b(arms, T, level=level, value=value)
 
 
 class DemographicSwapEvaluator:
@@ -116,7 +165,9 @@ class DemographicSwapEvaluator:
         ci_level: float,
         bootstrap_B: int,
         random_state: int,
+        ci_method: Optional[str] = None,
     ) -> MetricResult:
+        _ = random_state
         n_per_group: Dict[str, int] = {}
         for item in prompts:
             n_per_group[item.group] = n_per_group.get(item.group, 0) + 1
@@ -135,6 +186,7 @@ class DemographicSwapEvaluator:
                     ci=None,
                     effect_size=float("nan"),
                     n_per_group=eligible_n_per_group,
+                    ci_note=C2B_UNCALIBRATED_NOTE if with_ci else None,
                 ),
                 self.config.cache_dir,
             )
@@ -151,19 +203,20 @@ class DemographicSwapEvaluator:
         exclude = self._exclude_dimensions()
         value, _ = divergence_by_dimension(analysis_prompts, responses, exclude_dimensions=exclude)
 
-        ci = None
-        if exclude:
-            gated_prompts = [p for p in analysis_prompts if p.dimension not in exclude]
-            pair_values = matched_pairwise_divergences(gated_prompts, responses)
-        else:
-            pair_values = matched_pairwise_divergences(analysis_prompts, responses)
-        if with_ci and len(pair_values) >= 2 and np.isfinite(value):
-            ci = bootstrap_ci(
-                np.asarray(pair_values, dtype=float),
-                stat_fn=np.mean,
-                B=bootstrap_B,
+        dims = sorted(
+            {p.dimension for p in analysis_prompts if exclude is None or p.dimension not in exclude}
+        )
+        ci = ci_kind = ci_note = None
+        if with_ci and np.isfinite(value):
+            arms, T = divergence_template_arms(analysis_prompts, responses, dimensions=dims)
+            ci, ci_kind, ci_note = _resolve_llm_ci(
+                with_ci=with_ci,
+                ci_method=ci_method,
+                arms=arms,
+                T=T,
                 level=ci_level,
-                random_state=random_state,
+                value=float(value),
+                bootstrap_B=bootstrap_B,
             )
 
         return with_fixture_caveat(
@@ -173,6 +226,9 @@ class DemographicSwapEvaluator:
                 ci=ci,
                 effect_size=float(value) if np.isfinite(value) else float("nan"),
                 n_per_group=reporting_n_per_group,
+                p_value=None,
+                ci_kind=ci_kind,
+                ci_note=ci_note,
             ),
             self.config.cache_dir,
         )
@@ -188,7 +244,9 @@ class DemographicSwapEvaluator:
         ci_level: float,
         bootstrap_B: int,
         random_state: int,
+        ci_method: Optional[str] = None,
     ) -> MetricResult:
+        _ = random_state
         if self.counterfactual is None:
             raise ValueError("counterfactual config is required.")
         control_dim = self.counterfactual.control_dimension
@@ -260,14 +318,22 @@ class DemographicSwapEvaluator:
         # Signed: negative means cross-group ≤ within-group baseline (null reading).
         contrast = float(gated_value - control_value)
 
-        ci = None
-        if with_ci and len(gated_pairs) >= 2 and len(control_pairs) >= 2:
-            ci = bootstrap_difference_of_means(
-                np.asarray(gated_pairs, dtype=float),
-                np.asarray(control_pairs, dtype=float),
-                B=bootstrap_B,
+        ci = ci_kind = ci_note = None
+        if with_ci and np.isfinite(contrast):
+            arms, T = contrast_template_arms(
+                analysis_prompts,
+                responses,
+                gated_dimensions=gated_dims,
+                control_dimension=control_dim,
+            )
+            ci, ci_kind, ci_note = _resolve_llm_ci(
+                with_ci=with_ci,
+                ci_method=ci_method,
+                arms=arms,
+                T=T,
                 level=ci_level,
-                random_state=random_state,
+                value=contrast,
+                bootstrap_B=bootstrap_B,
             )
 
         return with_fixture_caveat(
@@ -277,6 +343,9 @@ class DemographicSwapEvaluator:
                 ci=ci,
                 effect_size=contrast if np.isfinite(contrast) else float("nan"),
                 n_per_group=reporting_n,
+                p_value=None,
+                ci_kind=ci_kind,
+                ci_note=ci_note,
             ),
             self.config.cache_dir,
         )
@@ -298,6 +367,7 @@ class DemographicSwapEvaluator:
         ci_level: float = 0.95,
         bootstrap_B: int = 200,
         random_state: int = 42,
+        ci_method: Optional[str] = None,
     ) -> tuple[MetricResult, List[Dict[str, str]]]:
         prompts, responses, transcript_rows = await self.prepare_async()
         result = self._compute_divergence(
@@ -309,6 +379,7 @@ class DemographicSwapEvaluator:
             ci_level=ci_level,
             bootstrap_B=bootstrap_B,
             random_state=random_state,
+            ci_method=ci_method,
         )
         return result, transcript_rows
 
@@ -321,6 +392,7 @@ class DemographicSwapEvaluator:
         ci_level: float = 0.95,
         bootstrap_B: int = 200,
         random_state: int = 42,
+        ci_method: Optional[str] = None,
     ) -> tuple[MetricResult, List[Dict[str, str]]]:
         prompts, responses, transcript_rows = await self.prepare_async()
         result = self._compute_contrast(
@@ -332,6 +404,7 @@ class DemographicSwapEvaluator:
             ci_level=ci_level,
             bootstrap_B=bootstrap_B,
             random_state=random_state,
+            ci_method=ci_method,
         )
         return result, transcript_rows
 
@@ -344,8 +417,18 @@ class DemographicSwapEvaluator:
         ci_level: float = 0.95,
         bootstrap_B: int = 200,
         random_state: int = 42,
+        ci_method: Optional[str] = None,
         **kwargs: Any,
     ) -> MetricResult:
+        """Max mean matched-template divergence across dimensions.
+
+        Default CI is undefined (``ci=None`` +
+        ``ci_note="undefined:no_calibrated_interval (...)"``): C2b missed
+        decision 8 on the real-data check (issue #63). Opt in with
+        ``ci_method="template_bonferroni_t"`` (analytic; ``bootstrap_B``
+        ignored; refuses below ``T_MIN_TEMPLATES=5``). ``p_value`` is always
+        ``None``.
+        """
         return run_coroutine(
             self.run_async(
                 min_group_size=min_group_size,
@@ -354,6 +437,7 @@ class DemographicSwapEvaluator:
                 ci_level=ci_level,
                 bootstrap_B=bootstrap_B,
                 random_state=random_state,
+                ci_method=ci_method,
             )
         )[0]
 
@@ -366,8 +450,15 @@ class DemographicSwapEvaluator:
         ci_level: float = 0.95,
         bootstrap_B: int = 200,
         random_state: int = 42,
+        ci_method: Optional[str] = None,
         **kwargs: Any,
     ) -> MetricResult:
+        """Signed gated−control contrast of matched-template divergences.
+
+        Default CI is undefined (same as :meth:`demographic_swap_divergence`).
+        Opt in with ``ci_method="template_bonferroni_t"``. ``p_value`` is always
+        ``None``.
+        """
         return run_coroutine(
             self.run_contrast_async(
                 min_group_size=min_group_size,
@@ -376,6 +467,7 @@ class DemographicSwapEvaluator:
                 ci_level=ci_level,
                 bootstrap_B=bootstrap_B,
                 random_state=random_state,
+                ci_method=ci_method,
             )
         )[0]
 
