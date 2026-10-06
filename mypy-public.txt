@@ -1,0 +1,14 @@
+# Explicit public-API module list for the non-required mypy CI job (Wave 4 / BL-030).
+# Do not widen to the whole package without a separate decision.
+fairness_pipeline_dev_toolkit/metrics/base.py
+fairness_pipeline_dev_toolkit/metrics/core.py
+fairness_pipeline_dev_toolkit/metrics/__init__.py
+fairness_pipeline_dev_toolkit/stats/__init__.py
+fairness_pipeline_dev_toolkit/stats/bootstrap.py
+fairness_pipeline_dev_toolkit/stats/bayesian.py
+fairness_pipeline_dev_toolkit/stats/effect_size.py
+fairness_pipeline_dev_toolkit/llm_evals/__init__.py
+fairness_pipeline_dev_toolkit/io.py
+fairpipe/__init__.py
+fairpipe/io.py
+fairpipe/metrics/__init__.py

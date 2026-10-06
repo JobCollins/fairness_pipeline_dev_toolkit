@@ -195,3 +195,23 @@ jobs:
           assert result is not None
           print("wheel-smoke OK", fairpipe.__version__, "dpd", dpd.value, "eod", eod.value)
           PY
+
+  # Non-required: mypy on the explicit public-API module list (mypy-public.txt).
+  mypy-public:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package + mypy
+        run: |
+          python -m pip install --upgrade "pip>=25.3"
+          python -m pip install -e ".[dev]" -r requirements.txt
+
+      - name: mypy public API
+        run: |
+          mapfile -t FILES < <(grep -v '^#' mypy-public.txt | grep -v '^$')
+          mypy --follow-imports=skip --ignore-missing-imports --no-incremental "${FILES[@]}"

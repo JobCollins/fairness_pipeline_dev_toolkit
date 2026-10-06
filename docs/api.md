@@ -333,8 +333,7 @@ mae = proxy.mae_parity_difference()
 
 Load a tabular data file into a DataFrame with automatic format detection.
 
-**Location:** `fairpipe.load_data` (implemented in `fairness_pipeline_dev_toolkit.io`;
-there is no `fairpipe.io` submodule)
+**Location:** `fairpipe.io.load_data` (also re-exported as `fairpipe.load_data`)
 
 ```python
 def load_data(path: str | Path) -> pd.DataFrame

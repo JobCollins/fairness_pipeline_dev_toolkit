@@ -92,6 +92,7 @@ Built from this repo’s Sphinx sources; includes getting started, user guide, A
 | Integration guide | [docs/integration_guide.md](https://github.com/SvrusIO/fAIr/blob/main/docs/integration_guide.md) |
 | Architecture / ADR | [docs/ADR-001-architecture.md](https://github.com/SvrusIO/fAIr/blob/main/docs/ADR-001-architecture.md) |
 | Versioning | [docs/VERSIONING.md](https://github.com/SvrusIO/fAIr/blob/main/docs/VERSIONING.md) |
+| Package / import identity | [docs/identity.md](docs/identity.md) |
 | Changelog | [CHANGELOG.md](https://github.com/SvrusIO/fAIr/blob/main/CHANGELOG.md) |
 
 ---

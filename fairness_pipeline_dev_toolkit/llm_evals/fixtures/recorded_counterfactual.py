@@ -53,7 +53,16 @@ RECORDED_PARAMS = {"temperature": 0.0, "max_tokens": 256}
 
 
 def default_recorded_counterfactual_config() -> LLMEvalConfig:
-    """Config that replays committed live-recorded responses (zero API calls on cache hit)."""
+    """Config that replays committed live-recorded responses (zero API calls on cache hit).
+
+    .. deprecated::
+        Will be removed in the next release (packaged fixture helper).
+    """
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures._deprecation import (
+        warn_fixture_helper_deprecated,
+    )
+
+    warn_fixture_helper_deprecated("default_recorded_counterfactual_config")
     return LLMEvalConfig(
         provider=RECORDED_PROVIDER,
         model=RECORDED_MODEL,
@@ -69,7 +78,16 @@ def default_recorded_counterfactual_config() -> LLMEvalConfig:
 
 
 def expanded_recorded_counterfactual_config() -> LLMEvalConfig:
-    """Config that replays the expanded live-recorded fixture (n=9 per group)."""
+    """Config that replays the expanded live-recorded fixture (n=9 per group).
+
+    .. deprecated::
+        Will be removed in the next release (packaged fixture helper).
+    """
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures._deprecation import (
+        warn_fixture_helper_deprecated,
+    )
+
+    warn_fixture_helper_deprecated("expanded_recorded_counterfactual_config")
     return LLMEvalConfig(
         provider=RECORDED_PROVIDER,
         model=RECORDED_MODEL,
@@ -85,6 +103,11 @@ def expanded_recorded_counterfactual_config() -> LLMEvalConfig:
 
 
 def load_recorded_manifest() -> Dict[str, Any]:
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures._deprecation import (
+        warn_fixture_helper_deprecated,
+    )
+
+    warn_fixture_helper_deprecated("load_recorded_manifest")
     if not RECORDED_COUNTERFACTUAL_MANIFEST_PATH.exists():
         raise FileNotFoundError(
             f"Recorded cache manifest not found at {RECORDED_COUNTERFACTUAL_MANIFEST_PATH}. "
@@ -95,6 +118,11 @@ def load_recorded_manifest() -> Dict[str, Any]:
 
 
 def load_expanded_recorded_manifest() -> Dict[str, Any]:
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures._deprecation import (
+        warn_fixture_helper_deprecated,
+    )
+
+    warn_fixture_helper_deprecated("load_expanded_recorded_manifest")
     if not EXPANDED_COUNTERFACTUAL_MANIFEST_PATH.exists():
         raise FileNotFoundError(
             f"Expanded recorded cache manifest not found at {EXPANDED_COUNTERFACTUAL_MANIFEST_PATH}. "
@@ -131,7 +159,15 @@ async def populate_recorded_counterfactual_cache(
     """
     One-time live recording: call the real provider for each counterfactual prompt and
     persist responses under ``fixtures/recorded_counterfactual/cache/``.
+
+    .. deprecated::
+        Will be removed in the next release (packaged fixture helper).
     """
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures._deprecation import (
+        warn_fixture_helper_deprecated,
+    )
+
+    warn_fixture_helper_deprecated("populate_recorded_counterfactual_cache")
     with allow_live_llm_calls():
         return await _populate_recorded_counterfactual_cache(
             provider=provider, model=model, params=params
@@ -201,7 +237,16 @@ async def populate_expanded_recorded_counterfactual_cache(
     model: str = RECORDED_MODEL,
     params: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
-    """Live-record the expanded 9-template × 3-group fixture."""
+    """Live-record the expanded 9-template × 3-group fixture.
+
+    .. deprecated::
+        Will be removed in the next release (packaged fixture helper).
+    """
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures._deprecation import (
+        warn_fixture_helper_deprecated,
+    )
+
+    warn_fixture_helper_deprecated("populate_expanded_recorded_counterfactual_cache")
     with allow_live_llm_calls():
         return await _populate_expanded_recorded_counterfactual_cache(
             provider=provider, model=model, params=params

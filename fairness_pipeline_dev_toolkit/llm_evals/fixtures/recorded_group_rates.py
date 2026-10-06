@@ -122,6 +122,11 @@ def _refusal_config(cache_dir: Path) -> LLMEvalConfig:
 
 
 def default_recorded_refusal_config() -> LLMEvalConfig:
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures._deprecation import (
+        warn_fixture_helper_deprecated,
+    )
+
+    warn_fixture_helper_deprecated("default_recorded_refusal_config")
     return _refusal_config(RECORDED_REFUSAL_CACHE_DIR)
 
 
@@ -130,7 +135,15 @@ def humanitarian_divergence_config() -> LLMEvalConfig:
 
     Same templates, ``name_pools``, params, and ``cache_dir`` as
     ``default_recorded_refusal_config()`` so cache keys stay byte-identical.
+
+    .. deprecated::
+        Will be removed in the next release (packaged fixture helper).
     """
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures._deprecation import (
+        warn_fixture_helper_deprecated,
+    )
+
+    warn_fixture_helper_deprecated("humanitarian_divergence_config")
     return LLMEvalConfig(
         provider=RECORDED_PROVIDER,
         model=RECORDED_MODEL,
@@ -149,7 +162,15 @@ def humanitarian_contrast_config() -> LLMEvalConfig:
     copied from the refusal cache (byte-identical prompts/params); control-arm
     texts are live-recorded. Two control prompts collide with existing gender
     keys and are reused rather than overwritten.
+
+    .. deprecated::
+        Will be removed in the next release (packaged fixture helper).
     """
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures._deprecation import (
+        warn_fixture_helper_deprecated,
+    )
+
+    warn_fixture_helper_deprecated("humanitarian_contrast_config")
     return LLMEvalConfig(
         provider=RECORDED_PROVIDER,
         model=RECORDED_MODEL,
@@ -176,6 +197,19 @@ def _toxicity_config(cache_dir: Path) -> LLMEvalConfig:
 
 
 def default_recorded_toxicity_config() -> LLMEvalConfig:
+    """Replay the zero-variance toxicity fixture (all scores 0).
+
+    Not a toxicity demo: use only to exercise the zero-variance → undefined path.
+    Do not cite results as evidence of toxicity disparity.
+
+    .. deprecated::
+        Will be removed in the next release (packaged fixture helper).
+    """
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures._deprecation import (
+        warn_fixture_helper_deprecated,
+    )
+
+    warn_fixture_helper_deprecated("default_recorded_toxicity_config")
     return _toxicity_config(RECORDED_TOXICITY_CACHE_DIR)
 
 
@@ -239,7 +273,15 @@ async def populate_recorded_refusal_cache(
     Five templates × three groups (woman / man / ambiguous), ``max_tokens=512``.
     Does **not** copy the hiring cache. Writes ``manifest.json`` without
     ``illustrative`` so ``caveat_for_cache_dir()`` returns ``None``.
+
+    .. deprecated::
+        Will be removed in the next release (packaged fixture helper).
     """
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures._deprecation import (
+        warn_fixture_helper_deprecated,
+    )
+
+    warn_fixture_helper_deprecated("populate_recorded_refusal_cache")
     with allow_live_llm_calls():
         return await _populate_recorded_refusal_cache(provider=provider, model=model, params=params)
 
@@ -312,7 +354,15 @@ async def populate_humanitarian_contrast_cache(
     then records control-arm prompts (Fatima / Amina / Leyla × 5 templates). Keys
     that already exist (byte-identical to a gender-arm prompt) are reused — never
     overwritten in the refusal fixture. Manifest omits ``illustrative``.
+
+    .. deprecated::
+        Will be removed in the next release (packaged fixture helper).
     """
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures._deprecation import (
+        warn_fixture_helper_deprecated,
+    )
+
+    warn_fixture_helper_deprecated("populate_humanitarian_contrast_cache")
     with allow_live_llm_calls():
         return await _populate_humanitarian_contrast_cache(
             provider=provider, model=model, params=params
@@ -413,6 +463,15 @@ def populate_humanitarian_contrast_cache_sync(**kwargs: Any) -> Dict[str, Any]:
 
 
 def populate_recorded_toxicity_cache() -> Dict[str, Any]:
-    """Copy expanded hiring-response cache (n=9/group) into the toxicity fixture dir."""
+    """Copy expanded hiring-response cache (n=9/group) into the toxicity fixture dir.
+
+    .. deprecated::
+        Will be removed in the next release (packaged fixture helper).
+    """
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures._deprecation import (
+        warn_fixture_helper_deprecated,
+    )
+
+    warn_fixture_helper_deprecated("populate_recorded_toxicity_cache")
     _seed_from_expanded(RECORDED_TOXICITY_CACHE_DIR)
     return _write_toxicity_manifest(RECORDED_TOXICITY_MANIFEST_PATH, RECORDED_TOXICITY_CACHE_DIR)

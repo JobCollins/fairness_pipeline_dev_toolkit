@@ -35,6 +35,7 @@ Thumbs.db
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+.mypy_cache_public/
 
 # Test / coverage outputs (partially present today)
 coverage.xml
