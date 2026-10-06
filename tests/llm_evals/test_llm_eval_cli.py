@@ -154,7 +154,7 @@ def test_llm_eval_cli_threshold_fail_exit_one(tmp_path, capsys, assert_no_live_l
 def test_llm_eval_cli_recorded_illustrative_exit_three_even_if_threshold_would_pass(
     tmp_path, capsys, assert_no_live_llm_calls, factory, metric
 ):
-    """BL-009 demo fixtures: caveat wins over a threshold the number would pass."""
+    """Illustrative demo fixtures: caveat wins over a threshold the number would pass."""
     cfg = write_llm_eval_yaml(tmp_path / "llm_eval.yml", factory())
     exit_code = main(
         [

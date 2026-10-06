@@ -13,7 +13,7 @@ Four evaluators historically; five with the BL-012 contrast sibling — all retu
 | `demographic_swap_contrast` | gated mean − control mean (signed) | Same matcher; requires `control_dimension` with same-coded values. Humanitarian recording ≈ **−0.056** (CI includes 0). Near-zero/negative ≈ null. Roughly doubles API calls; bad control coding under-reports (David→Tariq trap). Gate uses `abs(value)` while the metric is signed. |
 | `refusal_rate_disparity` | max − min group refusal rate | **Template-paired prompts** for sample balance; disparity is still max−min of **group rates** (DPD-style). Default CI is simultaneous Agresti–Caffo (pairing ignored for the interval). |
 | `toxicity_sentiment_disparity` | max − min group toxicity/sentiment rate | Same template-paired design; default CI undefined ([#63](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63)); opt in `ci_method="template_bonferroni_t"` (paired Bonferroni-t on per-template differences). |
-| `stereotype_association_score` | max − min stereotyped-answer rate on BBQ-schema items | Items are not template-paired; default CI is simultaneous Agresti–Caffo. |
+| `stereotype_association_score` | max − min stereotyped-answer rate on BBQ-schema items (**experimental**; not Parrish BBQ) | Items are not template-paired; default CI is simultaneous Agresti–Caffo. **Always caveated** → gates as illustrative until [#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31) / BL-021. |
 
 For refusal/stereotype the **rate gap** is unpaired across groups (difference of means). Templates
 balance sample size; they do not make the CI a matched-pair interval (except toxicity’s opt-in paired-t).
@@ -26,15 +26,27 @@ domains ([BL-011](fairpipe-technical-backlog.md#bl-011--refusal_score-cannot-dis
 Toxicity scoring is a **lexical** proxy by default (no moderation API key). Pass `scorer=` to
 `ToxicitySentimentEvaluator.run_async` to plug in an external moderator.
 
-### BBQ stereotype probe
+### Stereotype association (experimental)
 
-Default CI uses a schema-compatible **local subset** (`fixtures/bbq/gender_identity_subset.json`),
-**n=6 per group**. See `NOTICE` and `ATTRIBUTION.md` (CC BY 4.0, https://github.com/nyu-mll/BBQ).
-BBQ encodes **U.S. English** social stereotypes; do not treat scores as a worldwide audit.
+`stereotype_association_score` is a **max−min stereotyped-answer rate** on
+BBQ-**schema** multiple-choice items. It is **not** the published BBQ bias score
+(Parrish et al., 2022): it does not implement ambiguous/disambiguated
+\(s_{\mathrm{Amb}}\) / \(s_{\mathrm{Dis}}\), and answer-to-stereotype mapping is
+incomplete. Every result carries an experimental `MetricResult.caveat` and
+therefore gates as **illustrative** (CLI exit 3). Real BBQ scoring is tracked in
+[BL-021 / #31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31).
+
+`load_bbq_items()` requires an explicit `path=` or `fetch_upstream=True` — there
+is no silent default subset. A schema-compatible JSON file under
+`fixtures/bbq/` remains for tests and recorded-cache helpers only (Wave 4 will
+move it). See `NOTICE` and `ATTRIBUTION.md` (CC BY 4.0,
+https://github.com/nyu-mll/BBQ). BBQ encodes **U.S. English** social stereotypes;
+do not treat scores as a worldwide audit.
 
 ```python
 from fairpipe.llm_evals import default_recorded_bbq_config, run_llm_eval
 
+# Replay helper for CI / docs; result is always caveated (illustrative).
 result = run_llm_eval(default_recorded_bbq_config(), with_ci=True)
 ```
 
@@ -158,8 +170,8 @@ semantics as `NativeAdapter`. Use `allow_small_samples=True` (Python) or
 | `expanded_recorded_counterfactual_config()` | `recorded_counterfactual_expanded/` | n=9/group | finite divergence + CI; **lexical distance, not a group effect** ([BL-012](fairpipe-technical-backlog.md#bl-012--demographic_swap_divergence-has-no-no-effect-baseline)) |
 | `humanitarian_divergence_config()` | `recorded_refusal/` | n=5/group | finite ~0.202; same construct as hiring — **not a group effect** |
 | `default_recorded_refusal_config()` | `recorded_refusal/` | n=5/group | finite 0.0; **15/15 lexical ceiling — not a disparity finding** |
-| `default_recorded_toxicity_config()` | `recorded_toxicity/` | n=9/group | cache **replays**; hiring-copy, vacuous 0.0 — **BL-009**, not evidence |
-| `default_recorded_bbq_config()` | `recorded_bbq/` | n=6/group | cache **replays**; all-ambiguous gold-unknown — **BL-009**, not evidence |
+| `default_recorded_toxicity_config()` | `recorded_toxicity/` | n=9/group | cache **replays**; hiring-copy, vacuous 0.0 — illustrative, not evidence |
+| `default_recorded_bbq_config()` | `recorded_bbq/` | n=6/group | cache **replays**; stereotype always experimental ([#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31)) |
 | `humanitarian_contrast_config()` | `recorded_humanitarian_contrast/` | n=5/group × 2 arms | contrast ≈ −0.056 (CI includes 0); gated ≈ 0.202, control ≈ 0.258 (~36% above the old 0.190 within-group control — per-run baseline); **null reading** |
 | `load_within_group_control_records()` | `recorded_within_group_control/` | 9 texts | within-group baseline ~0.19; **not** a group-effect fixture |
 
@@ -177,7 +189,8 @@ pytest -m live_bbq tests/llm_evals/test_phase2_evaluators.py
 
 Toxicity cache is currently a **copy** of the expanded hiring-response cache
 (same provider/model/params/prompts). That is enough to prove replay; it is **not** a
-disparity measurement. BBQ responses are recorded separately on an all-ambiguous local subset.
+disparity measurement. The stereotype recorded cache uses an explicit schema fixture
+path (not a silent default); every `stereotype_association_score` is experimental.
 The refusal fixture is a live humanitarian recording (not a hiring copy). All 15 responses
 score 1.0 under lexical `refusal_score` — a **ceiling**, not a disparity measurement.
 `refusal_rate_disparity` detects phrase-level refusal signals and does not distinguish a
@@ -264,6 +277,10 @@ that should call a provider ([Environment Variables](integration_guide.md#enviro
 - **BL-012** — `demographic_swap_divergence` has no no-effect baseline; 0.196 /
   0.202 are lexical distance, not group effects.
 - **BL-009** — refusal **fixture** closed (real humanitarian cache). Refusal
-  **disparity-signal**, toxicity (hiring-copy), and BBQ (all-ambiguous) still open.
+  **disparity-signal** and toxicity (hiring-copy) still open. Stereotype construct
+  validity is tracked under **BL-021 / #31** (experimental caveat on every result;
+  no silent default BBQ subset).
 - **BL-011** — `refusal_score` cannot distinguish refusal-to-engage from a scope
   disclaimer; the humanitarian recording saturates 15/15 as a result.
+- **BL-021 / #31** — real BBQ bias scoring and answer mapping for
+  `stereotype_association_score`.

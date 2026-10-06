@@ -173,5 +173,5 @@
     }
   ],
   "illustrative": true,
-  "caveat": "Demo fixture (BL-009): recorded_toxicity is a hiring-cache copy; this value is not evidence of toxicity/sentiment disparity."
+  "caveat": "Demo fixture: recorded_toxicity is a hiring-cache copy; this value is not evidence of toxicity/sentiment disparity."
 }

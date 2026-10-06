@@ -589,10 +589,11 @@ def test_counterfactual_replay():
 ```
 
 Do not gate production on shipped `recorded_toxicity` / `recorded_bbq`
-values until those BL-009 halves close (`MetricResult.caveat` is set — the assertion
-will fail as illustrative). Humanitarian
-`recorded_refusal` is live data but **not** a disparity finding (15/15 lexical ceiling).
-See [docs/llm_evals_intro.md](llm_evals_intro.md).
+values while illustrative (`MetricResult.caveat` is set — the assertion
+will fail as illustrative). `stereotype_association_score` is always
+experimental ([#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31)).
+Humanitarian `recorded_refusal` is live data but **not** a disparity finding
+(15/15 lexical ceiling). See [docs/llm_evals_intro.md](llm_evals_intro.md).
 #### Use Case: Pre-commit Hook
 
 ```python

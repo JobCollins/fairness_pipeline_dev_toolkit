@@ -77,7 +77,11 @@ async def run_llm_eval_async(
         counterfactual_dimensions=cf_dims,
         n_templates=n_templates,
         bbq_item_count=(
-            len(load_bbq_items(config.bbq_path))
+            (
+                len(load_bbq_items(config.bbq_path))
+                if config.bbq_path
+                else None  # dry-run falls back to 12 when path unset
+            )
             if "stereotype_association_score" in config.evaluators
             else None
         ),

@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Stereotype association is experimental (not BBQ bias score)
+
+- **`load_bbq_items()` no longer loads a silent default subset.** Pass an explicit
+  `path=` or `fetch_upstream=True`. The schema-compatible JSON under
+  `llm_evals/fixtures/bbq/` remains for tests / recorded-cache helpers only
+  (Wave 4 will relocate it).
+- **Every `stereotype_association_score` result is caveated**
+  (`Experimental: this is not the BBQ bias score…`; see
+  [#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31)).
+  Existing gates treat any caveat as **illustrative** (CLI exit 3), so the metric
+  cannot pass or fail a CI threshold until real Parrish BBQ scoring lands (BL-021).
+- User-facing caveat strings no longer embed internal backlog ids (`BL-009`).
+- Metric name and public API are unchanged.
+
 Wave 1 trustworthy-measurement + train-once transforms (BL-013, BL-015, BL-017,
 BL-020, BL-025) plus the LLM metric rename below. Behaviour-changing; intended
 next release is a **minor** (0.12.0), not a patch. No version bump in this commit.

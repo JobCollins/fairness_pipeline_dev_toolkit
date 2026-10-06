@@ -260,8 +260,8 @@ cache (no API key required). Select kernel **Python (fairpipe .venv)** if import
 - **§4** — One model, one temperature, two domains; BL-011 refusal ceiling; hiring's
   third group is the prompt token `nonbinary`, not name-ambiguity.
 - YAML config → `run_llm_eval()` → `MetricResult` (see [`docs/llm_evals_intro.md`](https://github.com/SvrusIO/fAIr/blob/main/docs/llm_evals_intro.md)). Phase 2
-  toxicity/BBQ demo caches are labeled via `MetricResult.caveat` until those BL-009 halves
-  close; they are **not** part of this notebook. Humanitarian refusal is a separate fixture.
+  toxicity demo cache is labeled via `MetricResult.caveat`; `stereotype_association_score` is always experimental ([#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31)) — neither
+  is part of this notebook. Humanitarian refusal is a separate fixture.
 
 ---
 

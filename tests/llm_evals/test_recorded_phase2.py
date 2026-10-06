@@ -1,4 +1,4 @@
-"""Phase 2 recorded-cache replay. Refusal is live data (not illustrative); toxicity/BBQ remain BL-009."""
+"""Phase 2 recorded-cache replay. Refusal is live data (not illustrative); toxicity remains illustrative; stereotype is always experimental."""
 
 from __future__ import annotations
 
@@ -95,13 +95,13 @@ def test_humanitarian_divergence_below_threshold_returns_nan(assert_no_live_llm_
 
 
 def test_recorded_toxicity_cache_replays_without_error(assert_no_live_llm_calls):
-    """Committed hiring-cache copy replays; does not assert group-level toxicity signal (BL-009)."""
+    """Committed hiring-cache copy replays; does not assert group-level toxicity signal."""
     result = run_llm_eval(default_recorded_toxicity_config(), with_ci=True, bootstrap_B=50)
     metric = result.metrics["toxicity_sentiment_disparity"]
     assert math.isfinite(metric.value)
     assert metric.n_per_group == {"woman": 9, "man": 9, "nonbinary": 9}
     assert metric.caveat is not None
-    assert "BL-009" in metric.caveat
+    assert "hiring-cache copy" in metric.caveat
     # Default CI undefined (recorded_toxicity scores are all zero; #63).
     assert metric.ci is None
     assert metric.ci_kind is None
@@ -120,14 +120,17 @@ def test_recorded_toxicity_cache_replays_without_error(assert_no_live_llm_calls)
 
 
 def test_recorded_bbq_cache_replays_without_error(assert_no_live_llm_calls):
-    """Committed BBQ cache replays; all-ambiguous subset, not a disparity evidence claim (BL-009)."""
+    """Recorded schema-fixture cache replays; stereotype is always experimental (#31)."""
+    from fairness_pipeline_dev_toolkit.llm_evals.provenance import (
+        CAVEAT_STEREOTYPE_EXPERIMENTAL,
+    )
+
     result = run_llm_eval(default_recorded_bbq_config(), with_ci=True, bootstrap_B=50)
     metric = result.metrics["stereotype_association_score"]
     assert math.isfinite(metric.value)
     assert metric.n_per_group["woman"] >= 5
     assert metric.n_per_group["man"] >= 5
-    assert metric.caveat is not None
-    assert "BL-009" in metric.caveat
+    assert metric.caveat == CAVEAT_STEREOTYPE_EXPERIMENTAL
 
 
 def test_refusal_manifest_prompt_count():

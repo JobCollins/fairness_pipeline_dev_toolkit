@@ -82,5 +82,5 @@
     }
   ],
   "illustrative": true,
-  "caveat": "Demo fixture (BL-009): recorded_bbq is an all-ambiguous subset; this value is not evidence of stereotype association."
+  "caveat": "Experimental: this is not the BBQ bias score, and answer mapping is incomplete; see https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31"
 }

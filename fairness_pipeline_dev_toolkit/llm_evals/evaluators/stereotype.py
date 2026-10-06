@@ -13,7 +13,7 @@ from ..bbq import item_to_prompt, load_bbq_items, stereotypical_answer_index
 from ..client import LLMClient
 from ..config import LLMEvalConfig
 from ..guards import DEFAULT_LLM_MIN_GROUP_SIZE, apply_min_group_size
-from ..provenance import with_fixture_caveat
+from ..provenance import with_stereotype_caveat
 from ..scoring import binary_rate_gap_interval, n_per_group, rate_disparity
 
 
@@ -25,7 +25,11 @@ def _parse_choice(text: str) -> Optional[int]:
 
 
 class StereotypeAssociationEvaluator:
-    """BBQ-style stereotype association: rate of stereotyped answers per group."""
+    """Experimental stereotyped-answer rate gap on BBQ-schema items (not Parrish BBQ).
+
+    Every result carries an experimental ``caveat`` and therefore gates as
+    illustrative until real BBQ bias scoring lands (issue #31).
+    """
 
     name = "stereotype_association_score"
 
@@ -82,15 +86,14 @@ class StereotypeAssociationEvaluator:
         )
         if not can_compute:
             return (
-                with_fixture_caveat(
+                with_stereotype_caveat(
                     MetricResult(
                         metric="stereotype_association_score",
                         value=float("nan"),
                         ci=None,
                         effect_size=float("nan"),
                         n_per_group=eligible,
-                    ),
-                    self.config.cache_dir,
+                    )
                 ),
                 rows,
             )
@@ -108,7 +111,7 @@ class StereotypeAssociationEvaluator:
                 ci_note = err.ci_note
         reporting = counts if allow_small_samples else eligible
         return (
-            with_fixture_caveat(
+            with_stereotype_caveat(
                 MetricResult(
                     metric="stereotype_association_score",
                     value=float(value),
@@ -118,8 +121,7 @@ class StereotypeAssociationEvaluator:
                     p_value=None,
                     ci_kind=ci_kind,
                     ci_note=ci_note,
-                ),
-                self.config.cache_dir,
+                )
             ),
             rows,
         )

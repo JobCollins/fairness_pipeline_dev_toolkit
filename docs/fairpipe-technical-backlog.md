@@ -1080,13 +1080,23 @@ Same review ([`docs/fairpipe-review.md`](fairpipe-review.md), Findings ranked, r
 
 ### Evidence
 - Review evidence: `extra.log`, `llm.log`
-- Source: `llm_evals/bbq.py:38–39,63–75`, `evaluators/stereotype.py:66–69`
+- Source: `llm_evals/bbq.py`, `evaluators/stereotype.py`
 - Twelve rows are six identical prompts duplicated under woman/man labels.
   A responder choosing the package’s stereotyped option for every item scores
-  0 with CI [0,0].
+  gap 0 (CI shape depends on method; simultaneous Agresti–Caffo is wide).
 - Upstream first-24 loading yields one category and NaN; upstream
-  `stereotyped_groups=['F']` fails the answer-token match and falls back to
-  the gold label, sometimes unknown.
+  `stereotyped_groups=['F']` / `['M']` fails the answer-token match and falls
+  back to the gold label, sometimes unknown.
+- **Answer-mapping bugs (Wave 3b investigation, 2026-10-06):**
+  - Possessive options such as `"The man's"` tokenize to `man's`, so exact-token
+    match for `"man"` fails and the scorer falls back to gold `label` (often
+    Unknown / 2) — treating Unknown as the “stereotyped” answer on four of the
+    twelve schema-fixture rows.
+  - Upstream Gender_identity codes `F` / `M` never appear as answer tokens, so
+    the same gold-label fallback applies to real BBQ JSONL.
+- **Wave 3b mitigation (not a fix):** no silent default `load_bbq_items()` path;
+  every `stereotype_association_score` is caveated as experimental and gates as
+  illustrative. Real scoring remains this issue.
 
 ### Impact
 **High.** Duplicated artificial group tags force equality under replay. Gold

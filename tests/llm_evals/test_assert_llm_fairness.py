@@ -47,7 +47,7 @@ def test_assert_llm_fairness_caveated_raises_even_if_value_would_pass():
             _metric(
                 "toxicity_sentiment_disparity",
                 0.0,
-                caveat="Demo fixture (BL-009): not evidence.",
+                caveat="Demo fixture: not evidence.",
             ),
             0.05,
         )
@@ -88,7 +88,7 @@ def test_assert_llm_fairness_caveated_nan_raises_illustrative():
             _metric(
                 "toxicity_sentiment_disparity",
                 float("nan"),
-                caveat="Demo fixture (BL-009): not evidence.",
+                caveat="Demo fixture: not evidence.",
             ),
             0.05,
         )

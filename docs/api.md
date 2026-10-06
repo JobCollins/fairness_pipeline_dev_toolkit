@@ -877,9 +877,10 @@ comparison of `.value` alone):
   such as `demographic_swap_contrast` are gated on absolute size — calibrate
   thresholds accordingly.
 Do not treat shipped `recorded_toxicity` / `recorded_bbq` replay values as production
-evidence (`MetricResult.caveat` will be set). Humanitarian `recorded_refusal` is live
-data (`caveat` is `None`) but **not** a disparity finding: all 15 responses score 1.0
-under the lexical scorer (ceiling).
+evidence (`MetricResult.caveat` will be set; stereotype is always experimental —
+[#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31)).
+Humanitarian `recorded_refusal` is live data (`caveat` is `None`) but **not** a
+disparity finding: all 15 responses score 1.0 under the lexical scorer (ceiling).
 
 ```python
 from fairpipe.integration import assert_llm_fairness
@@ -1387,9 +1388,10 @@ metric = result.metrics["demographic_swap_divergence"]
 `POST /llm-eval` serializes each metric with the same keys as
 `api/routes/validate.py::_result_to_dict` (`metric`, `value`, `ci`, `effect_size`,
 `n_per_group`, `caveat`). That `caveat` key **is** `MetricResult.caveat` (non-null on
-shipped BL-009 toxicity/BBQ demo fixtures; `null` on expanded counterfactual, humanitarian
-refusal / humanitarian divergence, user configs, and on
-classifier `/validate` / `/workflow`) — not a separate REST envelope. Gating is
+shipped illustrative toxicity demo fixtures and on every stereotype result;
+`null` on expanded counterfactual, humanitarian refusal / humanitarian divergence,
+user configs, and on classifier `/validate` / `/workflow`) — not a separate REST
+envelope. Gating is
 four-state: `gate_status` is `pass` | `fail` | `illustrative` | `undefined`, and `passed` is
 `true` | `false` | `null` aligned 1:1. See [REST API](#rest-api) below.
 
@@ -1451,12 +1453,15 @@ detects phrase-level refusal signals (`i cannot`, `i can't`, `cannot provide`,
 disclaimer on an otherwise complete answer, so it can saturate in advisory
 domains
 ([BL-011](fairpipe-technical-backlog.md#bl-011--refusal_score-cannot-distinguish-refusal-to-engage-from-a-scope-disclaimer)).
-Toxicity is a **lexical** proxy unless you pass `scorer=`. BBQ uses a local subset in default CI
-(`live_bbq` fetches pinned upstream JSONL). Shipped `recorded_toxicity` /
-`recorded_bbq` caches set `MetricResult.caveat` until those BL-009 halves close.
-Humanitarian `recorded_refusal` is live data (`caveat` is `None`) but all 15
-responses saturate `refusal_score` — do not cite as a disparity finding
-(BL-009 disparity-signal half; BL-011).
+Toxicity is a **lexical** proxy unless you pass `scorer=`. Stereotype association
+is experimental: not the Parrish BBQ bias score; `load_bbq_items` requires an
+explicit path or `fetch_upstream=True` (no silent default subset);
+`live_bbq` fetches pinned upstream JSONL. Every `stereotype_association_score`
+carries an experimental `MetricResult.caveat` ([#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31)).
+Shipped `recorded_toxicity` is illustrative (hiring-cache copy). Humanitarian
+`recorded_refusal` is live data (`caveat` is `None`) but all 15 responses
+saturate `refusal_score` — do not cite as a disparity finding
+(disparity-signal half of BL-009; BL-011).
 
 ### `LLMEvalAdapter`
 
@@ -1661,8 +1666,8 @@ lexical scorer; does not distinguish refusal-to-engage from a scope disclaimer �
 [BL-011](fairpipe-technical-backlog.md#bl-011--refusal_score-cannot-distinguish-refusal-to-engage-from-a-scope-disclaimer);
 humanitarian cache is live data, not a hiring copy, but **not** a disparity finding:
 15/15 lexical ceiling), `toxicity_sentiment_disparity`, and
-`stereotype_association_score`. Shipped demo caches for toxicity/BBQ self-label via
-`MetricResult.caveat` until BL-009 re-records them. Divergence now also attaches
+`stereotype_association_score`. Shipped demo caches for toxicity self-label via
+`MetricResult.caveat`. Every stereotype result is experimental ([#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31)). Divergence now also attaches
 `MetricResult.caveat` when the cache manifest has `illustrative: true`; the expanded
 Phase 1 fixture, the humanitarian refusal fixture, and
 `humanitarian_divergence_config()` have no such flag and stay `caveat is None`.
@@ -1895,8 +1900,10 @@ The default response is aggregated metrics and CIs only — **no raw transcripts
 }
 ```
 
-Shipped `recorded_toxicity` / `recorded_bbq` fixtures set
-`caveat` (text includes `BL-009`) and therefore `gate_status: "illustrative"`,
+Shipped `recorded_toxicity` fixtures set
+`caveat` and therefore `gate_status: "illustrative"`.
+Every `stereotype_association_score` (including `recorded_bbq`) is experimental
+and likewise illustrative ([#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31)).
 `passed: null`. The expanded counterfactual fixture has `caveat: null` but is **not**
 a group-effect finding: 0.196 is lexical distance against a ~0.19 within-group
 baseline ([BL-012](fairpipe-technical-backlog.md#bl-012--demographic_swap_divergence-has-no-no-effect-baseline)).
