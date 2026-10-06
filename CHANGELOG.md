@@ -1,10 +1,11 @@
 ## [Unreleased]
 
+## [v0.12.0] — 2026-10-06
+
 ### Upgrade notes (breaking)
 
 Read this before upgrading from ≤0.11.0. In 0.x a MINOR may break the API;
 every break is listed here. Stability promises apply from 1.0 (`docs/VERSIONING.md`).
-No version number is chosen in this branch — maintainers decide the next tag.
 
 **Packaging / backends / identity**
 
@@ -209,12 +210,12 @@ almost never contained 0 when groups were equal); old BCa intervals could be
   (``is_string_dtype`` / categorical / object) and hardened absolute Pearson
   via ``np.corrcoef`` with zero-variance / NaN guards. Min paired sample
   count remains **3** (unchanged numeric contract).
-- **Analyzer bootstrap stats were non-deterministic (Wave 1a / BL-013).** Classifier
+- **Analyzer bootstrap stats were non-deterministic ([#23](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/23) / BL-013).** Classifier
   CI stats ignored the bootstrap resample and redrew via global `np.random`,
   invalidating BCa and distorting percentile intervals. Index-based stats now drive
   DPD/EOD/MAE CIs.
 - **BCa percentile units were wrong in every release from v0.2.0 through v0.11.0
-  (Wave 1b / BL-013).** Accel/bias-corrected probabilities were passed to
+  ([#23](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/23) / BL-013).** Accel/bias-corrected probabilities were passed to
   `np.percentile` unscaled (fraction vs percent). BCa is **opt-in**; the **default
   percentile CI path was unaffected** — published figures that used the default are
   not automatically suspect. Only callers who set BCa need to recompute.

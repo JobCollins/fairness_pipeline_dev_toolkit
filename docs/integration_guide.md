@@ -57,7 +57,7 @@ pip install fairpipe[llm]
 
 ```python
 import fairpipe
-print(fairpipe.__version__)  # Should match installed fairpipe (e.g. "0.11.0")
+print(fairpipe.__version__)  # Should match installed fairpipe (e.g. "0.12.0")
 
 # Test CLI
 import subprocess

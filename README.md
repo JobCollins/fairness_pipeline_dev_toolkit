@@ -3,6 +3,11 @@
 **Fairness measurement, mitigation, monitoring, and pipeline tooling** for ML workflows.  
 PyPI package: **[fairpipe](https://pypi.org/project/fairpipe/)** · License: **Apache-2.0** · Python **3.10+**
 
+**Upgrading from 0.11:** this release includes breaking behaviour changes (default
+backend, optional MLflow, equalized-odds undefined strata, CI overhaul, LLM metric
+rename). Read **[Upgrade notes](CHANGELOG.md#upgrade-notes-breaking)** in the
+CHANGELOG before upgrading.
+
 | | Fairlearn | AIF360 | **fairpipe** |
 |---|---|---|---|
 | Metrics library | ✅ | ✅ | ✅ |
