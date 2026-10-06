@@ -2,47 +2,66 @@
 **Document ID:** BACKLOG-001
 **Version:** 1.1
 **Created:** 2026-05-13
-**Updated:** 2026-09-21
+**Updated:** 2026-10-06 (Wave 4 readiness: table reconciled with code + GitHub)
 **Owner:** Svrus LLC
-**Source:** Issues identified during COMPAS recidivism case study development (BL-001–BL-006); LLM evals phases (BL-007–BL-012); independent PyPI 0.11.0 production adoption review 2026-09-21 (BL-013–BL-030), tracked from [`docs/fairpipe-review.md`](fairpipe-review.md). Tracking only — no patches from that review.
+**Source:** Issues identified during COMPAS recidivism case study development (BL-001–BL-006); LLM evals phases (BL-007–BL-012); independent PyPI 0.11.0 production adoption review 2026-09-21 (BL-013–BL-030), tracked from [`docs/fairpipe-review.md`](fairpipe-review.md).
 
 ---
 
 ## Summary
 
-| ID | Title | Priority | Target Version |
-|----|-------|----------|---------------|
-| BL-001 | `fairpipe validate` missing `--threshold` flag | P0 | v0.7.3 |
-| BL-002 | `execute_workflow` fails on mixed-type DataFrames | P0 | v0.7.3 |
-| BL-003 | `execute_workflow` does not apply sample weights to model training | P0 | v0.7.3 |
-| BL-004 | `apply_pipeline` returns weights in opaque tuple — easy to discard silently | P1 | v0.8.0 |
-| BL-005 | CLI log output pollutes stdout alongside report content | P1 | v0.7.3 |
-| BL-006 | `test_risk_ratio_identity` Hypothesis flakiness under float edge cases | P2 | backlog |
+| ID | Title | Priority | Status |
+|----|-------|----------|--------|
+| BL-001 | `fairpipe validate` missing `--threshold` flag | P0 | **closed** (v0.8.0) |
+| BL-002 | `execute_workflow` fails on mixed-type DataFrames | P0 | **closed** (v0.8.0) |
+| BL-003 | `execute_workflow` does not apply sample weights to model training | P0 | **closed** (v0.8.0) |
+| BL-004 | `apply_pipeline` returns weights in opaque tuple — easy to discard silently | P1 | **closed** (v0.8.0 / `PipelineResult`) |
+| BL-005 | CLI log output pollutes stdout alongside report content | P1 | **closed** (v0.8.0) |
+| BL-006 | `test_risk_ratio_identity` Hypothesis flakiness under float edge cases | P2 | open |
 | BL-007 | Expand LLM counterfactual recorded-cache fixture to clear `min_group_size=5` | P1 | **closed (Phase 1)** |
-| BL-008 | Phase 2 LLM evaluators: per-evaluator recorded-cache fixtures (≥5/group) | P1 | v0.8.0 |
-| BL-009 | Re-record Phase 2 fixtures so they can produce group-level disparity | P1 | **refusal fixture closed** (real data); **disparity-signal still open**; toxicity + BBQ still open |
+| BL-008 | Phase 2 LLM evaluators: per-evaluator recorded-cache fixtures (≥5/group) | P1 | **closed** (recorded fixtures shipped) |
+| BL-009 | Re-record Phase 2 fixtures so they can produce group-level disparity | P1 | **partial** — refusal fixture closed; disparity-signal / toxicity / BBQ still open |
 | BL-010 | Wire `llm-fairness-check` mode into `SvrusIO/fairpipe-action` | P1 | **closed** (`@v2` / `b629800`) |
 | BL-011 | `refusal_score` cannot distinguish refusal-to-engage from a scope disclaimer | P1 | open |
-| BL-012 | `demographic_swap_divergence` has no no-effect baseline | P1 | open |
-| BL-013 | BCa intervals are mathematically wrong | P0 | open ([JobCollins#23](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/23) · [SvrusIO#23](https://github.com/SvrusIO/fAIr/issues/23)) |
-| BL-014 | Default percentile DPD intervals are not calibrated at equality | P0 | **closed (Wave 3a)** — simultaneous default; [#24](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/24) · PR stack `wave3a` |
-| BL-015 | Invalid classifier inputs produce plausible or impossible numbers | P0 | open ([JobCollins#25](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/25) · [SvrusIO#25](https://github.com/SvrusIO/fAIr/issues/25)) |
-| BL-016 | LLM CIs can describe a different statistic from the reported value | P0 | **closed (Wave 3a)** for estimand mismatch; divergence/contrast/toxicity default CI undefined ([#63](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/63)); refusal/stereotype → M2a |
-| BL-017 | Python and CLI fairness gates disagree | P0 | open ([JobCollins#27](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/27) · [SvrusIO#27](https://github.com/SvrusIO/fAIr/issues/27)) |
-| BL-018 | Published quickstart fails to produce its intended first result | P1 | open ([JobCollins#28](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/28) · [SvrusIO#28](https://github.com/SvrusIO/fAIr/issues/28)) |
-| BL-019 | Small or unsupported groups disappear; incomplete EO can look perfectly fair | P1 | open ([JobCollins#29](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/29) · [SvrusIO#29](https://github.com/SvrusIO/fAIr/issues/29)) |
-| BL-020 | Pandas index mismatch silently changes the question | P1 | open ([JobCollins#30](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/30) · [SvrusIO#30](https://github.com/SvrusIO/fAIr/issues/30)) |
-| BL-021 | The BBQ default cannot detect the behavior its name suggests | P1 | open ([JobCollins#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31) · [SvrusIO#31](https://github.com/SvrusIO/fAIr/issues/31)) |
-| BL-022 | Lexical toxicity/sentiment/refusal is easy to defeat accidentally | P1 | open ([JobCollins#32](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/32) · [SvrusIO#32](https://github.com/SvrusIO/fAIr/issues/32)) |
-| BL-023 | “Counterfactual fairness” is a lexical perturbation diagnostic, not a causal fairness measure | P1 | open ([JobCollins#33](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/33) · [SvrusIO#33](https://github.com/SvrusIO/fAIr/issues/33)) |
-| BL-024 | Mitigation attribution is unsupported | P1 | open ([JobCollins#34](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/34) · [SvrusIO#34](https://github.com/SvrusIO/fAIr/issues/34)) |
-| BL-025 | Transformation semantics are unsuitable for ordinary held-out/deployment use | P1 | **closed (Wave 1f)** ([JobCollins#35](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/35) · [SvrusIO#35](https://github.com/SvrusIO/fAIr/issues/35)) |
-| BL-026 | Statistical and compliance language overstates evidence | P1 | open ([JobCollins#36](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/36) · [SvrusIO#36](https://github.com/SvrusIO/fAIr/issues/36)) |
-| BL-027 | Default backend behavior changes with environment | P1 | open ([JobCollins#37](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/37) · [SvrusIO#37](https://github.com/SvrusIO/fAIr/issues/37)) |
-| BL-028 | Sensitive-label dtype breaks ancillary results | P2 | open ([JobCollins#38](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/38) · [SvrusIO#38](https://github.com/SvrusIO/fAIr/issues/38)) |
-| BL-029 | Install and engineering guarantees are weaker than the product framing | P2 | open ([JobCollins#39](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/39) · [SvrusIO#39](https://github.com/SvrusIO/fAIr/issues/39)) |
-| BL-030 | Identity, typing and API contracts need consolidation | P2 | open ([JobCollins#40](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/40) · [SvrusIO#40](https://github.com/SvrusIO/fAIr/issues/40)) |
-| BL-031 | BCa has no policy for NaN bootstrap replicates from analyzer stats | P1 | **closed (Wave 3a)** — refuse policy + `BootstrapUndefinedError`; BCa deprecated for gaps ([#41](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/41)) |
+| BL-012 | `demographic_swap_divergence` has no no-effect baseline | P1 | **partial** — contrast sibling shipped; divergence construct still open |
+| BL-013 | BCa intervals are mathematically wrong | P0 | **closed (Wave 1)** ([JobCollins#23](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/23) CLOSED) |
+| BL-014 | Default percentile DPD intervals are not calibrated at equality | P0 | **closed (Wave 3a)** in code — simultaneous default; GitHub [#24](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/24) still OPEN |
+| BL-015 | Invalid classifier inputs produce plausible or impossible numbers | P0 | **closed (Wave 1)** ([JobCollins#25](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/25) CLOSED) |
+| BL-016 | LLM CIs can describe a different statistic from the reported value | P0 | **closed (Wave 3a)** estimand mismatch in code; GitHub [#26](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/26) still OPEN; refusal/stereotype → M2a |
+| BL-017 | Python and CLI fairness gates disagree | P0 | **closed (Wave 1)** ([JobCollins#27](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/27) CLOSED) |
+| BL-018 | Published quickstart fails to produce its intended first result | P1 | **closed (Wave 4)** in code (`fairpipe.io` + README test); GitHub [#28](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/28) still OPEN |
+| BL-019 | Small or unsupported groups disappear; incomplete EO can look perfectly fair | P1 | **partial (Wave 4)** — EO undefined rule closed; excluded-group disclosure still open; GitHub [#29](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/29) OPEN |
+| BL-020 | Pandas index mismatch silently changes the question | P1 | **closed (Wave 1)** ([JobCollins#30](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/30) CLOSED) |
+| BL-021 | The BBQ default cannot detect the behavior its name suggests | P1 | **partial (Wave 3b)** — no silent default + always caveated; real Parrish BBQ still open ([#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31) OPEN) |
+| BL-022 | Lexical toxicity/sentiment/refusal is easy to defeat accidentally | P1 | open ([#32](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/32)) |
+| BL-023 | “Counterfactual fairness” is a lexical perturbation diagnostic, not a causal fairness measure | P1 | **partial** — rename to `demographic_swap_*` (Wave 1 / #45); construct docs still open ([#33](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/33)) |
+| BL-024 | Mitigation attribution is unsupported | P1 | open ([#34](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/34)) |
+| BL-025 | Transformation semantics are unsuitable for ordinary held-out/deployment use | P1 | **closed (Wave 1f)** ([JobCollins#35](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/35) CLOSED) |
+| BL-026 | Statistical and compliance language overstates evidence | P1 | open ([#36](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/36)) |
+| BL-027 | Default backend behavior changes with environment | P1 | **closed (Wave 4)** in code; GitHub [#37](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/37) still OPEN |
+| BL-028 | Sensitive-label dtype breaks ancillary results | P2 | open ([#38](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/38)) |
+| BL-029 | Install and engineering guarantees are weaker than the product framing | P2 | **closed (Wave 4)** in code; GitHub [#39](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/39) still OPEN |
+| BL-030 | Identity, typing and API contracts need consolidation | P2 | **closed (Wave 4)** in code; GitHub [#40](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/40) still OPEN |
+| BL-031 | BCa has no policy for NaN bootstrap replicates from analyzer stats | P1 | **closed (Wave 3a)** in code; GitHub [#41](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/41) still OPEN |
+
+### GitHub ↔ code mismatches (do not auto-close)
+
+**Open on GitHub but fixed (or mostly fixed) in code — close manually after review:**
+
+| Issue | BL | Notes |
+|---|---|---|
+| JobCollins#24 / SvrusIO#24 | BL-014 | Wave 3a simultaneous default |
+| JobCollins#26 / SvrusIO#26 | BL-016 | Wave 3a estimand / undefined defaults |
+| JobCollins#28 / SvrusIO#28 | BL-018 | Wave 4 `fairpipe.io` + quickstart test |
+| JobCollins#29 / SvrusIO#29 | BL-019 | EO half fixed; disclosure half still open |
+| JobCollins#37 / SvrusIO#37 | BL-027 | Wave 4 native default |
+| JobCollins#39 / SvrusIO#39 | BL-029 | Wave 4 `tracking` extra |
+| JobCollins#40 / SvrusIO#40 | BL-030 | Wave 4 identity / typing / shims |
+| JobCollins#41 / SvrusIO#41 | BL-031 | Wave 3a BCa refuse policy |
+
+**Closed on GitHub and matching code:** #23 (BL-013), #25 (BL-015), #27 (BL-017), #30 (BL-020), #35 (BL-025).
+
+**Reverse (table previously closed / code closed, GitHub still open):** see list above for BL-014, BL-016, BL-031.
 
 ---
 
