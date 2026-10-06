@@ -1,0 +1,27 @@
+{
+ "n_pairs": 27,
+ "B=200": {
+  "lower_mean": 0.18433883458836156,
+  "lower_sd_across_seeds": 0.001092848714263846,
+  "upper_sd_across_seeds": 0.0009578111460395039,
+  "sd_as_share_of_width": 0.04689835631896438
+ },
+ "B=1000": {
+  "lower_mean": 0.1841043807733817,
+  "lower_sd_across_seeds": 0.000489143110748063,
+  "upper_sd_across_seeds": 0.0004476190051736876,
+  "sd_as_share_of_width": 0.020879290389074524
+ },
+ "B=2000": {
+  "lower_mean": 0.18404464988960342,
+  "lower_sd_across_seeds": 0.000364720578836809,
+  "upper_sd_across_seeds": 0.00030423014713300224,
+  "sd_as_share_of_width": 0.014841015101828314
+ },
+ "B=5000": {
+  "lower_mean": 0.18403596917915574,
+  "lower_sd_across_seeds": 0.00023220671867974654,
+  "upper_sd_across_seeds": 0.0001896772356697451,
+  "sd_as_share_of_width": 0.009346685215685815
+ }
+}

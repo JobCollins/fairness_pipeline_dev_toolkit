@@ -1,0 +1,44 @@
+{
+ "bca": {
+  "finite": {
+   "gapsim": [
+    0.009544257267761577,
+    0.19747469132894085
+   ],
+   "package": [
+    0.009544257267761574,
+    0.19747469132894083
+   ],
+   "agree": true
+  },
+  "with NaN": {
+   "gapsim": [
+    NaN,
+    NaN
+   ],
+   "package": [
+    NaN,
+    NaN
+   ],
+   "agree": true
+  }
+ },
+ "m0": [
+  {
+   "cell": "K=3 n=100 base=0.5 gap=0.0",
+   "package_coverage": 0.0,
+   "vectorised_coverage": 0.0,
+   "mc_se_bound": 0.02886751345948129,
+   "package_median_lower": 0.0223330439319052,
+   "vectorised_median_lower": 0.02173229399252951
+  },
+  {
+   "cell": "K=2 n=100 base=0.1 gap=0.1",
+   "package_coverage": 0.96,
+   "vectorised_coverage": 0.9566666666666667,
+   "mc_se_bound": 0.02886751345948129,
+   "package_median_lower": 0.010419510236852676,
+   "vectorised_median_lower": 0.010704890941532817
+  }
+ ]
+}

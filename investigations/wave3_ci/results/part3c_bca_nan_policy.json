@@ -1,0 +1,126 @@
+{
+ "A": {
+  "minor=1": {
+   "value": 0.5366666666666666,
+   "nan_share": 0.377,
+   "accel_finite": false,
+   "P0 as-is": [
+    NaN,
+    NaN
+   ],
+   "P1 fallback pct": [
+    0.4849,
+    0.5948
+   ],
+   "P2 drop>= 0.99": [
+    NaN,
+    NaN
+   ],
+   "P2 drop>= 0.9": [
+    NaN,
+    NaN
+   ],
+   "P3 refuse": [
+    NaN,
+    NaN
+   ],
+   "S-BCa (stratified)": [
+    NaN,
+    NaN
+   ]
+  },
+  "minor=2": {
+   "value": 0.036666666666666625,
+   "nan_share": 0.138,
+   "accel_finite": true,
+   "P0 as-is": [
+    NaN,
+    NaN
+   ],
+   "P1 fallback pct": [
+    0.0133,
+    0.5781
+   ],
+   "P2 drop>= 0.99": [
+    NaN,
+    NaN
+   ],
+   "P2 drop>= 0.9": [
+    NaN,
+    NaN
+   ],
+   "P3 refuse": [
+    NaN,
+    NaN
+   ],
+   "S-BCa (stratified)": [
+    0.0,
+    0.4633
+   ]
+  },
+  "minor=3": {
+   "value": 0.2033333333333333,
+   "nan_share": 0.06499999999999995,
+   "accel_finite": true,
+   "P0 as-is": [
+    NaN,
+    NaN
+   ],
+   "P1 fallback pct": [
+    0.0116,
+    0.5762
+   ],
+   "P2 drop>= 0.99": [
+    NaN,
+    NaN
+   ],
+   "P2 drop>= 0.9": [
+    0.0017,
+    0.5404
+   ],
+   "P3 refuse": [
+    NaN,
+    NaN
+   ],
+   "S-BCa (stratified)": [
+    0.0788,
+    0.5533
+   ]
+  },
+  "minor=5": {
+   "value": 0.06333333333333335,
+   "nan_share": 0.0050000000000000044,
+   "accel_finite": true,
+   "P0 as-is": [
+    NaN,
+    NaN
+   ],
+   "P1 fallback pct": [
+    0.0106,
+    0.5186
+   ],
+   "P2 drop>= 0.99": [
+    0.0017,
+    0.2085
+   ],
+   "P2 drop>= 0.9": [
+    0.0017,
+    0.2085
+   ],
+   "P3 refuse": [
+    NaN,
+    NaN
+   ],
+   "S-BCa (stratified)": [
+    0.0,
+    0.1433
+   ]
+  }
+ },
+ "C": {
+  "design": "group b: 30 rows, 2 positives; group-stratified resample",
+  "share_replicates_group_b_has_no_positives": 0.136,
+  "share_nan_returned": 0.0,
+  "behaviour": "eod_stat_from_indices returns the FPR gap only (TPR gap silently undefined, nanmax picks FPR); no NaN, no flag. Stratifying by (group, y_true) keeps every cell non-empty and removes this."
+ }
+}

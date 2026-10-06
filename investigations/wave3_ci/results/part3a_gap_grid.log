@@ -1,0 +1,13 @@
+K=2 n=30 done (6s)
+K=2 n=100 done (12s)
+K=2 n=1000 done (17s)
+K=2 n=unequal done (22s)
+K=3 n=30 done (30s)
+K=3 n=100 done (38s)
+K=3 n=1000 done (45s)
+K=3 n=unequal done (53s)
+K=5 n=30 done (68s)
+K=5 n=100 done (82s)
+K=5 n=1000 done (94s)
+K=5 n=unequal done (107s)
+wrote 1200 rows in 107s

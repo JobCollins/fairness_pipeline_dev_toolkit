@@ -1,0 +1,33 @@
+{
+ "classical": [
+  {
+   "dataset": "COMPAS (real)",
+   "rows": 5278,
+   "groups": 2,
+   "analyzer DPD no CI (s)": 0.0037626660014211666,
+   "analyzer DPD percentile B=1000 (s) [today]": 0.21701695899901097,
+   "M1 stratified pct B=1000 (s)": 0.03478895900116186,
+   "M2a Bonferroni-AC (s)": 8.295899897348136e-05,
+   "M3 permutation B=1000 (s)": 0.07083691700245254,
+   "M3 permutation B=2000 (s)": 0.14114433400027337,
+   "analyzer DPD BCa B=1000 (s) [today, O(N^2) jackknife]": 1.1207930000018678
+  },
+  {
+   "dataset": "ACS-like (synthetic size proxy)",
+   "rows": 39321,
+   "groups": 5,
+   "analyzer DPD no CI (s)": 0.014407916998607107,
+   "analyzer DPD percentile B=1000 (s) [today]": 1.2363904159974481,
+   "M1 stratified pct B=1000 (s)": 0.22653770800025086,
+   "M2a Bonferroni-AC (s)": 0.0004047500005981419,
+   "M3 permutation B=1000 (s)": 0.5080647499999031,
+   "M3 permutation B=2000 (s)": 1.0645278340016375
+  }
+ ],
+ "llm": {
+  "shape": "T=9, D=1 gated + control, 3 pairs per bucket",
+  "C0 today: bootstrap_ci(np.mean) B=200 (s)": 0.0011954580004385207,
+  "C1 cluster B=2000 (s)": 0.0008129170018946752,
+  "C2b Bonferroni-t (s)": 7.545799962827004e-05
+ }
+}

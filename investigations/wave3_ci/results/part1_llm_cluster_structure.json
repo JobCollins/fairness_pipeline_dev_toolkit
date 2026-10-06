@@ -1,0 +1,187 @@
+[
+ {
+  "fixture": "recorded_counterfactual (n=1)",
+  "evaluator": "demographic_swap_divergence",
+  "n_prompts": 3,
+  "dimensions": {
+   "gender": {
+    "templates_T": 1,
+    "groups": [
+     "man",
+     "nonbinary",
+     "woman"
+    ],
+    "prompts": 3
+   }
+  },
+  "pairs_per_dim_template_bucket": [
+   3
+  ],
+  "pairs_reusing_each_response": [
+   2
+  ],
+  "byte_identical_prompts_across_response_keys": []
+ },
+ {
+  "fixture": "recorded_counterfactual_expanded (hiring)",
+  "evaluator": "demographic_swap_divergence",
+  "n_prompts": 27,
+  "dimensions": {
+   "gender": {
+    "templates_T": 9,
+    "groups": [
+     "man",
+     "nonbinary",
+     "woman"
+    ],
+    "prompts": 27
+   }
+  },
+  "pairs_per_dim_template_bucket": [
+   3
+  ],
+  "pairs_reusing_each_response": [
+   2
+  ],
+  "byte_identical_prompts_across_response_keys": []
+ },
+ {
+  "fixture": "recorded_toxicity (hiring copy)",
+  "evaluator": "toxicity_sentiment_disparity",
+  "n_prompts": 27,
+  "dimensions": {
+   "gender": {
+    "templates_T": 9,
+    "groups": [
+     "man",
+     "nonbinary",
+     "woman"
+    ],
+    "prompts": 27
+   }
+  },
+  "pairs_per_dim_template_bucket": [
+   3
+  ],
+  "pairs_reusing_each_response": [
+   2
+  ],
+  "byte_identical_prompts_across_response_keys": []
+ },
+ {
+  "fixture": "recorded_refusal (humanitarian)",
+  "evaluator": "refusal_rate_disparity",
+  "n_prompts": 15,
+  "dimensions": {
+   "gender": {
+    "templates_T": 5,
+    "groups": [
+     "ambiguous",
+     "man",
+     "woman"
+    ],
+    "prompts": 15
+   }
+  },
+  "pairs_per_dim_template_bucket": [
+   3
+  ],
+  "pairs_reusing_each_response": [
+   2
+  ],
+  "byte_identical_prompts_across_response_keys": []
+ },
+ {
+  "fixture": "humanitarian_divergence (refusal cache)",
+  "evaluator": "demographic_swap_divergence",
+  "n_prompts": 15,
+  "dimensions": {
+   "gender": {
+    "templates_T": 5,
+    "groups": [
+     "ambiguous",
+     "man",
+     "woman"
+    ],
+    "prompts": 15
+   }
+  },
+  "pairs_per_dim_template_bucket": [
+   3
+  ],
+  "pairs_reusing_each_response": [
+   2
+  ],
+  "byte_identical_prompts_across_response_keys": []
+ },
+ {
+  "fixture": "recorded_humanitarian_contrast",
+  "evaluator": "demographic_swap_contrast",
+  "n_prompts": 30,
+  "dimensions": {
+   "gender": {
+    "templates_T": 5,
+    "groups": [
+     "ambiguous",
+     "man",
+     "woman"
+    ],
+    "prompts": 15
+   },
+   "control": {
+    "templates_T": 5,
+    "groups": [
+     "Amina",
+     "Fatima",
+     "Leyla"
+    ],
+    "prompts": 15
+   }
+  },
+  "pairs_per_dim_template_bucket": [
+   3
+  ],
+  "pairs_reusing_each_response": [
+   2
+  ],
+  "byte_identical_prompts_across_response_keys": [
+   [
+    [
+     "gender",
+     "woman",
+     0
+    ],
+    [
+     "control",
+     "Amina",
+     0
+    ]
+   ],
+   [
+    [
+     "gender",
+     "woman",
+     1
+    ],
+    [
+     "control",
+     "Fatima",
+     1
+    ]
+   ]
+  ]
+ },
+ {
+  "fixture": "recorded_bbq",
+  "evaluator": "stereotype_association_score",
+  "n_items": 12,
+  "items_per_group": {
+   "woman": 6,
+   "man": 6
+  },
+  "distinct_prompts": 6,
+  "items_per_distinct_prompt": [
+   2
+  ]
+ }
+]

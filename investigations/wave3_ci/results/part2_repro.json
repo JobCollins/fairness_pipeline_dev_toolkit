@@ -1,0 +1,130 @@
+{
+ "BL-016": {
+  "divergence": {
+   "value": 0.81875,
+   "ci": [
+    0.28656250000000005,
+    0.5321875
+   ],
+   "ci_excludes_point": true
+  },
+  "contrast": {
+   "value": 0.81875,
+   "ci": [
+    0.26609375,
+    0.5526562500000001
+   ],
+   "ci_excludes_point": true
+  },
+  "note": "20 templates, each template yields identical responses, so any template-cluster bootstrap that recomputes max-over-dimensions returns the degenerate CI [value, value]."
+ },
+ "BL-031": {
+  "minor=1": {
+   "n_major": 300,
+   "n_minor": 1,
+   "bca_ci_package": "ValueError: Percentiles must be in the range [0, 100]",
+   "percentile_ci_package": [
+    0.48494983277591974,
+    0.5948333333333331
+   ],
+   "nan_replicate_share": 0.377,
+   "theoretical_nan_share": 0.3672674984225063,
+   "z0_package (NaN counted as not-less)": -0.5015273989777081,
+   "z0_finite_only": -0.014082646784930647,
+   "jackknife_nan_count": 1,
+   "np.percentile_on_boot_with_nan": NaN,
+   "fallback_guard_fires": false
+  },
+  "minor=2": {
+   "n_major": 300,
+   "n_minor": 2,
+   "value": 0.036666666666666625,
+   "bca_ci_package": [
+    NaN,
+    NaN
+   ],
+   "percentile_ci_package": [
+    0.013333333333333308,
+    0.5780730897009967
+   ],
+   "nan_replicate_share": 0.138,
+   "theoretical_nan_share": 0.13443803384111558,
+   "z0_package (NaN counted as not-less)": -1.391743779396325,
+   "z0_finite_only": -1.3098244778672967,
+   "jackknife_nan_count": 0,
+   "np.percentile_on_boot_with_nan": NaN,
+   "fallback_guard_fires": false
+  },
+  "minor=3": {
+   "n_major": 300,
+   "n_minor": 3,
+   "value": 0.2033333333333333,
+   "bca_ci_package": [
+    NaN,
+    NaN
+   ],
+   "percentile_ci_package": [
+    0.011627906976744207,
+    0.5761589403973509
+   ],
+   "nan_replicate_share": 0.065,
+   "theoretical_nan_share": 0.049048275651114255,
+   "z0_package (NaN counted as not-less)": -0.4151938507784267,
+   "z0_finite_only": -0.35160610000696313,
+   "jackknife_nan_count": 0,
+   "np.percentile_on_boot_with_nan": NaN,
+   "fallback_guard_fires": false
+  },
+  "minor=5": {
+   "n_major": 300,
+   "n_minor": 5,
+   "value": 0.06333333333333335,
+   "bca_ci_package": [
+    NaN,
+    NaN
+   ],
+   "percentile_ci_package": [
+    0.010626184437097785,
+    0.5186468646864686
+   ],
+   "nan_replicate_share": 0.005,
+   "theoretical_nan_share": 0.006464451607906638,
+   "z0_package (NaN counted as not-less)": -0.8064212470182404,
+   "z0_finite_only": -0.8027650391870773,
+   "jackknife_nan_count": 0,
+   "np.percentile_on_boot_with_nan": NaN,
+   "fallback_guard_fires": false
+  }
+ },
+ "BL-014_analyzer": {
+  "setting": "3 groups x n=100, Bernoulli(0.5), percentile, B=1000, 500 sims",
+  "coverage_of_0": 0.0,
+  "mcse": 0.0,
+  "lower_bound_min": 0.012621400481467218,
+  "lower_bound_median": 0.021105671760142893,
+  "lower_bound_max": 0.12439469713676118
+ },
+ "BL-014_refusal": {
+  "T=5": {
+   "templates_per_group": 5,
+   "true_rates": "all 0.3",
+   "coverage_of_0": 0.622,
+   "mcse": 0.02168483340955148,
+   "undefined": 0
+  },
+  "T=30": {
+   "templates_per_group": 30,
+   "true_rates": "all 0.3",
+   "coverage_of_0": 0.0,
+   "mcse": 0.0,
+   "undefined": 0
+  },
+  "T=100": {
+   "templates_per_group": 100,
+   "true_rates": "all 0.3",
+   "coverage_of_0": 0.0,
+   "mcse": 0.0,
+   "undefined": 0
+  }
+ }
+}
