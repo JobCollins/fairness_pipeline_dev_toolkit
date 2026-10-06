@@ -1,6 +1,6 @@
 import pandas as pd
-import streamlit as st
 
+from fairness_pipeline_dev_toolkit._extras import require_dependency
 from fairness_pipeline_dev_toolkit.monitoring import (
     ColumnMap,
     FairnessDriftAndAlertEngine,
@@ -8,6 +8,13 @@ from fairness_pipeline_dev_toolkit.monitoring import (
     MonitoringSettings,
     RealTimeFairnessTracker,
     TrackerConfig,
+)
+
+st = require_dependency(
+    "streamlit",
+    dependency_name="streamlit",
+    extra_name="monitoring",
+    purpose="monitoring_streamlit_app requires streamlit",
 )
 
 st.set_page_config(page_title="Fairness Monitoring", layout="wide")

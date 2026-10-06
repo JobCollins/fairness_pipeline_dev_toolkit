@@ -1,20 +1,89 @@
-# Changelog
-
-All notable changes to the Fairness Pipeline Development Toolkit are documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
----
-
 ## [Unreleased]
+
+### Upgrade notes (breaking)
+
+Read this before upgrading from ≤0.11.0. In 0.x a MINOR may break the API;
+every break is listed here. Stability promises apply from 1.0 (`docs/VERSIONING.md`).
+No version number is chosen in this branch — maintainers decide the next tag.
+
+**Packaging / backends / identity**
+
+- **`mlflow` is no longer installed by default** ([#39](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/39) / BL-029).
+  Use `pip install "fairpipe[tracking]"`. Calling MLflow logger helpers or
+  `--mlflow-experiment` without that extra raises `DependencyError` with the
+  install hint (previously returned `False` silently). CVE pins that existed
+  only for MLflow's transitive graph (`starlette`, `werkzeug`) moved into the
+  same extra. CVE pins for `filelock`, `urllib3`, and `fonttools` also moved
+  out of core into the extras that actually pull those packages
+  (`training` / `monitoring` / `tracking` / `adapters` / `api`).
+- **Default metrics backend is always ``native``** ([#37](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/37) / BL-027).
+  ``FairnessAnalyzer(backend=None)`` no longer auto-picks Fairlearn or Aequitas
+  when those packages are installed. Opt in with ``backend="fairlearn"`` or
+  ``backend="aequitas"`` (``pip install "fairpipe[adapters]"``).
+- **Equalized odds with an incomplete label stratum is undefined**
+  ([#29](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/29) /
+  BL-019 EO half). If any analysed group has no positives or no negatives,
+  ``equalized_odds_difference`` returns ``value=NaN``, ``ci=None`` with
+  ``ci_note="undefined:empty_label_stratum (...)"``, and ``p_value=None`` on
+  every backend (native previously could report ``0.0``). Classifier gating
+  treats non-finite values as **undefined** (``assert_fairness`` raises;
+  ``fairpipe validate --threshold`` exits **4**). Excluded-group *disclosure*
+  (the other half of BL-019) is still open.
+- **Packaged LLM fixture helpers are deprecated** ([#40](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/40) / BL-030).
+  ``default_recorded_*``, ``humanitarian_*``, ``populate_*``, and related
+  loaders emit ``FutureWarning`` and will be removed in the next release.
+  Fixtures remain in the wheel this release. ``default_recorded_toxicity_config``
+  is **not** a toxicity demo (all scores 0 — zero-variance → undefined path only).
+
+**Confidence intervals**
+
+- Every CI that ≤0.11.0 printed for a gap metric is **superseded**. See
+  "Confidence intervals changed" below for method details (simultaneous default
+  for DPD/EOD; mae / several LLM metrics default CI undefined; BCa deprecated
+  for gaps and refuses non-finite strata).
+
+**Trustworthy measurement, train-once transforms, and metric rename**
+
+- **LLM metric rename (`counterfactual_fairness_*` → `demographic_swap_*`)**
+  ([#45](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/45)).
+  Old names remain **input** aliases for one release and emit ``FutureWarning``.
+  **Outputs use only the new keys**.
+- **Undersized groups / non-finite LLM metrics** → ``gate_status: "undefined"``,
+  CLI exit **4** (illustrative > undefined > fail > pass).
+- **Probability / multiclass / non-``{0,1}`` encodings raise**
+  (``MulticlassNotSupportedError`` / ``NonBinaryEncodingError``). Threshold first.
+- **NaN/inf in ``y_true`` / ``y_pred``** are dropped; result reports
+  ``n_dropped_nonfinite`` and a caveat.
+- **Mismatched pandas indices** raise ``IndexMismatchError`` (BL-020).
+- **Transforms fit on training data only** (BL-025). Workflows that refit on
+  test get different numbers.
+- **LLM / pytest gates use magnitude** (BL-017): ``abs(value) > threshold``;
+  caveated results are illustrative.
+
+**Also shipped in this unreleased window (additive, call out for discoverability)**
+
+- **`KamiranCaldersReweighing`** ([#44](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/44)):
+  label-aware ``w(s,y)=(n_s·n_y)/(n·n_sy)``; prefer over deprecated
+  ``ReweighingTransformer``.
+- **`apply_pipeline(..., y=None)`** forwards labels to ``pipe.fit_transform(X, y)``;
+  ``execute_workflow`` passes ``y_train`` when fitting.
+
+### Identity, typing, and ``fairpipe.io`` (BL-030 / BL-018)
+
+- Added ``fairpipe.io`` and ``fairpipe.pipeline.config`` shims; README Quick start
+  is executed by ``tests/test_readme_quickstart.py``.
+- Identity map: [`docs/identity.md`](docs/identity.md).
+- Ship ``py.typed``; non-required CI job ``mypy-public`` checks
+  ``mypy-public.txt`` (12 → 0 errors on that list).
+- Classifier ``Result`` now subclasses ``MetricResult`` (field-identical, incl.
+  ``caveat``).
 
 ### Stereotype association is experimental (not BBQ bias score)
 
 - **`load_bbq_items()` no longer loads a silent default subset.** Pass an explicit
   `path=` or `fetch_upstream=True`. The schema-compatible JSON under
-  `llm_evals/fixtures/bbq/` remains for tests / recorded-cache helpers only
-  (Wave 4 will relocate it).
+  `llm_evals/fixtures/bbq/` remains for tests / recorded-cache helpers this release
+  (helpers deprecated; relocation deferred while public paths remain).
 - **Config load requires `bbq_path` when `stereotype_association_score` is listed**
   (`ConfigValidationError` → CLI exit 2, REST 422). Dry-run no longer invents a
   request count of 12 when the path is missing.
@@ -25,10 +94,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cannot pass or fail a CI threshold until real Parrish BBQ scoring lands (BL-021).
 - User-facing caveat strings no longer embed internal backlog ids (`BL-009`).
 - Metric name and public API are unchanged.
-
-Wave 1 trustworthy-measurement + train-once transforms (BL-013, BL-015, BL-017,
-BL-020, BL-025) plus the LLM metric rename below. Behaviour-changing; intended
-next release is a **minor** (0.12.0), not a patch. No version bump in this commit.
 
 ### Confidence intervals changed (BL-014, BL-016, BL-031) — read before quoting a CI
 
@@ -133,49 +198,6 @@ almost never contained 0 when groups were equal); old BCa intervals could be
   parameter on `ReweighingTransformer`; clarify which class to use and that
   only `reductions` consumes weights today ([#58](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/58)).
 
-### Upgrade notes (breaking)
-
-Read this before upgrading from ≤0.11.0.
-
-- **LLM metric rename (`counterfactual_fairness_*` → `demographic_swap_*`).**
-  `demographic_swap_divergence` / `demographic_swap_contrast` replace
-  `counterfactual_fairness_divergence` / `counterfactual_fairness_contrast`.
-  The old names remain **input** aliases for one release (YAML `evaluators:`,
-  REST bodies, CLI `--metric`, protocol method names, class import) and emit
-  `FutureWarning` (visible under default filters; CLI also prints to stderr;
-  REST returns a `deprecations` list). **Outputs use only the new keys** —
-  `result.metrics["counterfactual_fairness_divergence"]` raises `KeyError`
-  (deliberate; do not emit both). Case study moved to
-  `case_studies/llm_fairness_measurement_pitfalls.ipynb`; a stub remains at the
-  old path so PyPI / GitHub absolute links do not 404 until the next release
-  updates them.
-- **Undersized groups / non-finite LLM metrics** no longer pass the gate silently.
-  They produce `gate_status: "undefined"`, CLI exit **4**, and
-  `assert_llm_fairness` raises (unless `allow_nan=True` on the plugin). Precedence:
-  illustrative > undefined > fail > pass.
-- **Probability scores as `y_pred` raise.** Passing `predict_proba(X)[:, 1]` (or any
-  non-{0,1} encoding with more than two distinct values) raises
-  `MulticlassNotSupportedError` / `NonBinaryEncodingError`. Threshold first, e.g.
-  `(proba >= 0.5).astype(int)`. The error message says so.
-- **Multiclass and non-`{0,1}` binary encodings raise** (`MulticlassNotSupportedError`,
-  `NonBinaryEncodingError`). Positive class is **1**.
-- **NaN/inf in `y_true` / `y_pred`** are dropped; the result reports
-  `n_dropped_nonfinite` and a caveat (same idea as protected-attribute
-  `nan_policy="exclude"`).
-- **Mismatched pandas indices** among `y_true` / `y_pred` / `sensitive` /
-  `attrs_df` raise `IndexMismatchError` instead of silently zipping by position.
-  Fix with `.reindex()` / `.loc` / `.reset_index(drop=True)`. Mixed Series+array
-  stays positional.
-- **Transforms fit on training data only.** `execute_workflow` /
-  `apply_pipeline(..., fit=False)` apply the train-fitted mapping to test.
-  `DisparateImpactRemover` uses fitted train group CDFs, so single-row and batch
-  transforms agree. Workflows that refit on test or relied on within-batch ranks
-  get **different numbers**.
-- **LLM / pytest gates use magnitude.** `assert_llm_fairness` matches CLI/REST:
-  caveated results fail as illustrative; non-caveated use `abs(value) > threshold`.
-  A large **negative** signed contrast therefore fails — documented, not changed.
-  `comparator` is unused (call-site compatibility only).
-
 ### Fixed
 
 - **Detectors mis-routed pandas `StringDtype` columns into ANOVA (pandas 3 / explicit
@@ -208,9 +230,8 @@ Read this before upgrading from ≤0.11.0.
 
 ### Not fixed in this batch (still open)
 
-- **BL-014** — percentile CI coverage at true DPD equality remains ~0/100; the
-  determinism fix did not resolve it. Wave 3.
-- **BL-031** — BCa has no policy for NaN bootstrap replicates from analyzer stats.
+- **BL-019 disclosure half** — excluded / undersized groups are still not named
+  with counts on the result object (EO undefined rule is fixed above).
 - **Signed-metric gate** — `abs(value) > threshold` means a large negative contrast
   fails; intentional alignment with CLI, not changed here.
 - **Deploy follow-ons** — REST `/pipeline` cannot apply a previously fitted

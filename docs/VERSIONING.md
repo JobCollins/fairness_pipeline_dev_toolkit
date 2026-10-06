@@ -18,14 +18,17 @@ Version numbers follow the format: **MAJOR.MINOR.PATCH** (e.g., `0.5.0`)
 ### Version Number Components
 
 - **MAJOR** (X.0.0): Breaking changes that require user code modifications
-- **MINOR** (0.X.0): New features, enhancements, or additions that remain backward compatible
-- **PATCH** (0.0.X): Bug fixes, security patches, or minor improvements that don't change behavior
+- **MINOR** (0.X.0): New features; **in 0.x, may also include breaking changes** (see below)
+- **PATCH** (0.0.X): Bug fixes, security patches, or minor improvements that don't change behaviour
 
 ### Current Status
 
 - **Current Version:** `0.11.0` (Beta)
 - **Development Status:** Beta (pre-1.0.0)
-- **Pre-1.0.0 Policy:** During the 0.x phase, MINOR version increments may include breaking changes. Once we reach 1.0.0, strict SemVer will be enforced.
+- **0.x rule (decision):** In 0.x, a **MINOR** release may break the API. Every
+  breaking or behaviour-changing item is listed under an **Upgrade notes**
+  heading in `CHANGELOG.md`. Stability promises in this document apply from
+  **1.0.0** onward.
 
 ---
 
@@ -35,7 +38,9 @@ Version numbers follow the format: **MAJOR.MINOR.PATCH** (e.g., `0.5.0`)
 
 **What is considered "Public API"?**
 
-The following are considered public APIs and maintain backward compatibility within the same major version:
+The following are considered public APIs. **From 1.0.0**, they maintain backward
+compatibility within the same major version. **In 0.x**, they may change in a
+MINOR release when listed under CHANGELOG **Upgrade notes**:
 
 1. **Public Classes and Functions** exported in `__init__.py` files:
    - `fairpipe.FairnessAnalyzer`
@@ -73,6 +78,16 @@ The following are considered public APIs and maintain backward compatibility wit
 - **Documentation:** Comprehensive migration guide provided
 
 #### MINOR Version (0.X.0)
+
+**In 0.x (pre-1.0.0):**
+
+- May include **breaking** API or behaviour changes
+- Breaking changes are **always** listed under **Upgrade notes** in `CHANGELOG.md`
+- Prefer additive changes when possible; announce removals with `FutureWarning`
+  for at least one release when feasible
+
+**From 1.0.0:**
+
 - **Backward Compatible:** Existing code continues to work without modification
 - **New Features:** New functionality added without breaking existing APIs
 - **Additive Changes:** New optional parameters, new classes, new methods
@@ -342,9 +357,11 @@ See **[RELEASE.md](RELEASE.md)** for the mirror ([SvrusIO/fAIr](https://github.c
 
 During the 0.x phase:
 
-- **Flexibility:** MINOR versions may include breaking changes (with notice)
+- **Flexibility:** MINOR versions may include breaking changes
+- **Upgrade notes required:** every breaking or behaviour-changing item is listed
+  under **Upgrade notes** in `CHANGELOG.md`
 - **Rapid Iteration:** API evolution based on user feedback
-- **Stability Goal:** Move toward 1.0.0 with stable APIs
+- **Stability Goal:** Move toward 1.0.0 with stable APIs (guarantees apply from 1.0)
 
 ### Path to 1.0.0
 
@@ -414,11 +431,13 @@ If you encounter backward compatibility issues:
 
 ## Summary
 
-- **Versioning:** Semantic Versioning (SemVer)
+- **Versioning:** Semantic Versioning (SemVer), with an explicit **0.x** exception
 - **Current Version:** 0.11.0 (Beta)
-- **Backward Compatibility:** Guaranteed within major versions (post-1.0.0)
-- **Public APIs:** Stable within major versions
-- **Deprecation:** Minimum notice period before removal
+- **0.x:** MINOR releases may break the API; every break is under CHANGELOG **Upgrade notes**
+- **From 1.0.0:** Backward compatibility guaranteed within major versions
+- **Public APIs:** Stable within major versions starting at 1.0.0
+- **Deprecation:** Minimum notice period before removal when feasible
 - **Migration:** Guides provided for breaking changes
 
-This policy ensures predictable, stable releases while allowing the toolkit to evolve and improve based on user needs and feedback.
+This policy keeps 0.x flexible while making breaks discoverable, and locks
+stability from 1.0.0.

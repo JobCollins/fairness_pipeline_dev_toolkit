@@ -170,8 +170,8 @@ semantics as `NativeAdapter`. Use `allow_small_samples=True` (Python) or
 | `expanded_recorded_counterfactual_config()` | `recorded_counterfactual_expanded/` | n=9/group | finite divergence + CI; **lexical distance, not a group effect** ([BL-012](fairpipe-technical-backlog.md#bl-012--demographic_swap_divergence-has-no-no-effect-baseline)) |
 | `humanitarian_divergence_config()` | `recorded_refusal/` | n=5/group | finite ~0.202; same construct as hiring — **not a group effect** |
 | `default_recorded_refusal_config()` | `recorded_refusal/` | n=5/group | finite 0.0; **15/15 lexical ceiling — not a disparity finding** |
-| `default_recorded_toxicity_config()` | `recorded_toxicity/` | n=9/group | cache **replays**; hiring-copy, vacuous 0.0 — illustrative, not evidence |
-| `default_recorded_bbq_config()` | `recorded_bbq/` | n=6/group | cache **replays**; stereotype always experimental ([#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31)) |
+| `default_recorded_toxicity_config()` (**deprecated**) | `recorded_toxicity/` | n=9/group | **Not a toxicity demo.** All lexical scores are 0 — kept only to exercise the zero-variance → undefined path; do not cite as evidence |
+| `default_recorded_bbq_config()` (**deprecated**) | `recorded_bbq/` | n=6/group | cache **replays**; stereotype always experimental ([#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31)) |
 | `humanitarian_contrast_config()` | `recorded_humanitarian_contrast/` | n=5/group × 2 arms | contrast ≈ −0.056 (CI includes 0); gated ≈ 0.202, control ≈ 0.258 (~36% above the old 0.190 within-group control — per-run baseline); **null reading** |
 | `load_within_group_control_records()` | `recorded_within_group_control/` | 9 texts | within-group baseline ~0.19; **not** a group-effect fixture |
 
@@ -187,11 +187,14 @@ Fetch pinned BBQ JSONL (network, no LLM):
 pytest -m live_bbq tests/llm_evals/test_phase2_evaluators.py
 ```
 
-Toxicity cache is currently a **copy** of the expanded hiring-response cache
-(same provider/model/params/prompts). That is enough to prove replay; it is **not** a
-disparity measurement. The stereotype recorded cache uses an explicit schema fixture
-path (not a silent default); every `stereotype_association_score` is experimental.
-The refusal fixture is a live humanitarian recording (not a hiring copy). All 15 responses
+Toxicity cache is a **copy** of the expanded hiring-response cache (same
+provider/model/params/prompts) with all lexical toxicity scores 0. It is **not**
+a toxicity demo and must not be presented as one — it exists to exercise the
+zero-variance → undefined CI path. Packaged fixture helpers emit
+`FutureWarning` and will be removed in the next release. The stereotype recorded
+cache uses an explicit schema fixture path (not a silent default); every
+`stereotype_association_score` is experimental. The refusal fixture is a live
+humanitarian recording (not a hiring copy). All 15 responses
 score 1.0 under lexical `refusal_score` — a **ceiling**, not a disparity measurement.
 `refusal_rate_disparity` detects phrase-level refusal signals and does not distinguish a
 genuine refusal from a scope disclaimer on an otherwise complete answer

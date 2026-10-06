@@ -31,8 +31,8 @@ PyPI package: **[fairpipe](https://pypi.org/project/fairpipe/)** · License: **A
 pip install fairpipe
 ```
 
-**Optional extras:** `pip install 'fairpipe[api]'` · `'fairpipe[training]'` · `'fairpipe[monitoring]'` · `'fairpipe[adapters]'` · `'fairpipe[llm]'`  
-(REST API, PyTorch training helpers, dashboards/drift, Fairlearn/Aequitas backends, LLM provider SDKs.) Full detail is in the **documentation** below—not duplicated here.
+**Optional extras:** `pip install 'fairpipe[api]'` · `'fairpipe[training]'` · `'fairpipe[monitoring]'` · `'fairpipe[adapters]'` · `'fairpipe[llm]'` · `'fairpipe[tracking]'`  
+(REST API, PyTorch training helpers, dashboards/drift, Fairlearn/Aequitas backends, LLM provider SDKs, MLflow tracking.) Full detail is in the **documentation** below—not duplicated here.
 
 ---
 
@@ -92,6 +92,7 @@ Built from this repo’s Sphinx sources; includes getting started, user guide, A
 | Integration guide | [docs/integration_guide.md](https://github.com/SvrusIO/fAIr/blob/main/docs/integration_guide.md) |
 | Architecture / ADR | [docs/ADR-001-architecture.md](https://github.com/SvrusIO/fAIr/blob/main/docs/ADR-001-architecture.md) |
 | Versioning | [docs/VERSIONING.md](https://github.com/SvrusIO/fAIr/blob/main/docs/VERSIONING.md) |
+| Package / import identity | [docs/identity.md](docs/identity.md) |
 | Changelog | [CHANGELOG.md](https://github.com/SvrusIO/fAIr/blob/main/CHANGELOG.md) |
 
 ---

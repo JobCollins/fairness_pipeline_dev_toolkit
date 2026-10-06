@@ -37,7 +37,7 @@ Python 3.10, 3.11 and 3.12 are supported; CI runs all three on Ubuntu, macOS and
 Windows.
 
 ```bash
-pip install -e ".[dev,api]" -r requirements.txt   # same as CI
+pip install -e ".[dev,api,tracking]" -r requirements.txt   # same as CI
 ```
 
 Run these before proposing any change. They are exactly what CI enforces:

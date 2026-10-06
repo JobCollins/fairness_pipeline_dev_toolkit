@@ -30,6 +30,16 @@ RECORDED_BBQ_MANIFEST_PATH = _BBQ_ROOT / "manifest.json"
 
 
 def default_recorded_bbq_config() -> LLMEvalConfig:
+    """Config that replays the recorded BBQ-schema stereotype fixture.
+
+    .. deprecated::
+        Will be removed in the next release (packaged fixture helper).
+    """
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures._deprecation import (
+        warn_fixture_helper_deprecated,
+    )
+
+    warn_fixture_helper_deprecated("default_recorded_bbq_config")
     return LLMEvalConfig(
         provider=RECORDED_PROVIDER,
         model=RECORDED_MODEL,
@@ -46,6 +56,11 @@ async def populate_recorded_bbq_cache(
     model: str = RECORDED_MODEL,
     params: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures._deprecation import (
+        warn_fixture_helper_deprecated,
+    )
+
+    warn_fixture_helper_deprecated("populate_recorded_bbq_cache")
     with allow_live_llm_calls():
         return await _populate_recorded_bbq_cache(provider=provider, model=model, params=params)
 

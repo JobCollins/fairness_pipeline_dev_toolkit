@@ -8,6 +8,7 @@ evaluator's matched-by-template pairing on this cache as a disparity finding.
 from __future__ import annotations
 
 import json
+import warnings
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -36,6 +37,11 @@ WITHIN_GROUP_CONTROL_NAMES: Dict[str, List[str]] = {
 
 
 def load_recorded_within_group_control_manifest() -> Dict[str, Any]:
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures._deprecation import (
+        warn_fixture_helper_deprecated,
+    )
+
+    warn_fixture_helper_deprecated("load_recorded_within_group_control_manifest")
     if not RECORDED_WITHIN_GROUP_CONTROL_MANIFEST_PATH.exists():
         raise FileNotFoundError(
             "Within-group control manifest not found at "
@@ -45,8 +51,20 @@ def load_recorded_within_group_control_manifest() -> Dict[str, Any]:
 
 
 def load_within_group_control_records() -> List[Dict[str, str]]:
-    """Return the nine ``{group, name, prompt, response}`` control recordings."""
-    manifest = load_recorded_within_group_control_manifest()
+    """Return the nine ``{group, name, prompt, response}`` control recordings.
+
+    .. deprecated::
+        Will be removed in the next release (packaged fixture helper).
+    """
+    from fairness_pipeline_dev_toolkit.llm_evals.fixtures._deprecation import (
+        warn_fixture_helper_deprecated,
+    )
+
+    warn_fixture_helper_deprecated("load_within_group_control_records")
+    # Suppress the nested manifest helper warning — one FutureWarning per call site.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        manifest = load_recorded_within_group_control_manifest()
     records: List[Dict[str, str]] = []
     for entry in manifest["prompts"]:
         path = RECORDED_WITHIN_GROUP_CONTROL_CACHE_DIR / f"{entry['cache_key']}.txt"

@@ -1147,8 +1147,9 @@ analyzer = FairnessAnalyzer(
 
 **Solutions:**
 - Install optional dependencies: `pip install fairpipe[adapters]`
-- Use `backend="native"` (always available)
-- Let toolkit auto-select: `backend=None`
+- Use `backend="native"` (the default; always available)
+- Opt in explicitly: `backend="fairlearn"` or `backend="aequitas"` after `pip install fairpipe[adapters]`
+- Do **not** rely on `backend=None` to auto-select Fairlearn — it means native
 
 ```python
 analyzer = FairnessAnalyzer(backend="native")  # Always works

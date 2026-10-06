@@ -53,8 +53,8 @@ def _pairs(k: int) -> list[tuple[int, int]]:
 
 
 def simultaneous_gap_bounds(
-    lower: Sequence[float],
-    upper: Sequence[float],
+    lower: Sequence[float] | np.ndarray,
+    upper: Sequence[float] | np.ndarray,
     *,
     max_gap: Optional[float] = 1.0,
 ) -> Tuple[float, float]:
@@ -125,7 +125,9 @@ def _hull_with_point(bounds: Tuple[float, float], point: float) -> Tuple[float, 
     return min(bounds[0], point), max(bounds[1], point)
 
 
-def _validate_counts(successes: Sequence[float], n: Sequence[float]) -> Tuple[np.ndarray, ...]:
+def _validate_counts(
+    successes: Sequence[float] | np.ndarray, n: Sequence[float] | np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
     x = np.asarray(successes, dtype=float)
     m = np.asarray(n, dtype=float)
     if x.shape != m.shape or x.ndim != 1:
@@ -413,13 +415,14 @@ def permutation_gap_pvalue(
         blocks.append((g[idx], v[idx], counts))
 
     def stat(code_rows: list[np.ndarray]) -> np.ndarray:
-        out = None
+        out: Optional[np.ndarray] = None
         for (codes0, vals, counts), codes in zip(blocks, code_rows):
             c = codes.shape[0]
             flat = (np.arange(c)[:, None] * k + codes).ravel()
             sums = np.bincount(flat, weights=np.tile(vals, c), minlength=c * k).reshape(c, k)
             gap = _stratum_gap(sums, counts)
             out = gap if out is None else np.maximum(out, gap)
+        assert out is not None
         return out
 
     observed = float(stat([codes0[None, :] for codes0, _, _ in blocks])[0])

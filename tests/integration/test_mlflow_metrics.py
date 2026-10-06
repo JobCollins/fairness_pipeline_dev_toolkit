@@ -37,7 +37,7 @@ def test_log_fairness_metrics_uses_string_payloads(monkeypatch):
     module.log_text = log_text
 
     monkeypatch.setitem(sys.modules, "mlflow", module)
-    monkeypatch.setattr(mlflow_logger, "_is_mlflow_available", lambda: True)
+    monkeypatch.setattr(mlflow_logger, "_require_mlflow", lambda: module)
 
     metric = MetricResult(
         metric="demographic_parity_difference",

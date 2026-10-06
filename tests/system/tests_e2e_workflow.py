@@ -85,10 +85,6 @@ def test_e2e_mlflow_logging_mock(e2e_df, monkeypatch):
 
     # Patch mlflow module
     with monkeypatch.context() as m:
-        m.setattr(
-            "fairness_pipeline_dev_toolkit.integration.mlflow_logger._is_mlflow_available",
-            lambda: True,
-        )
         import sys
         import types
 
@@ -98,6 +94,10 @@ def test_e2e_mlflow_logging_mock(e2e_df, monkeypatch):
         mlflow_module.log_dict = mock_mlflow_module.log_dict
         mlflow_module.log_text = mock_mlflow_module.log_text
         m.setitem(sys.modules, "mlflow", mlflow_module)
+        m.setattr(
+            "fairness_pipeline_dev_toolkit.integration.mlflow_logger._require_mlflow",
+            lambda: mlflow_module,
+        )
 
         # Should not raise, and should attempt to log metrics and one artifact
         result = log_fairness_metrics(results=results)

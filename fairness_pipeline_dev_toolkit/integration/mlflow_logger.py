@@ -1,7 +1,10 @@
 """
 MLflow logger utilities.
 Design goals:
-- Be safe to import/run even if MLflow is not installed (graceful degradation).
+- Import safely when MLflow is not installed (lazy import only).
+- Using any logger entry point without the ``tracking`` extra raises
+  :class:`~fairness_pipeline_dev_toolkit.exceptions.DependencyError` with an
+  install hint for ``pip install "fairpipe[tracking]"``.
 - Accept MetricResult objects or plain dicts.
 - Log scalar metrics to MLflow metrics; structured blobs as JSON artifacts.
 
@@ -23,6 +26,18 @@ import tempfile
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
+
+from fairness_pipeline_dev_toolkit._extras import require_dependency
+
+
+def _require_mlflow() -> Any:
+    """Return the mlflow module or raise DependencyError naming the tracking extra."""
+    return require_dependency(
+        "mlflow",
+        dependency_name="mlflow",
+        extra_name="tracking",
+        purpose="MLflow tracking features require the tracking extra",
+    )
 
 
 def _is_mlflow_available() -> bool:
@@ -59,12 +74,11 @@ def log_fairness_metrics(
         artifact_name: Optional name for an artifact to log (e.g., "fairness_report.md").
         artifact_content: Content of the artifact to log, if artifact_name is provided.
     Returns:
-        bool: True if MLflow was available and logging was performed. False if MLflow is not available.
+        bool: True when logging was performed.
+    Raises:
+        DependencyError: If MLflow is not installed (``fairpipe[tracking]``).
     """
-    if not _is_mlflow_available():
-        return False
-
-    import mlflow
+    mlflow = _require_mlflow()
 
     # log all scalars to metrics; structured fields to params and an aggregate JSON artifact
     aggregate_results: Dict[str, Any] = {}
@@ -143,12 +157,11 @@ def log_workflow_results(
         run_name: Optional name for the MLflow run
 
     Returns:
-        bool: True if MLflow was available and logging was performed
+        bool: True when logging was performed.
+    Raises:
+        DependencyError: If MLflow is not installed (``fairpipe[tracking]``).
     """
-    if not _is_mlflow_available():
-        return False
-
-    import mlflow
+    mlflow = _require_mlflow()
 
     # Set experiment if specified
     if experiment_name:
@@ -271,16 +284,18 @@ def log_llm_eval_results(
     artifact_name: Optional[str] = None,
     artifact_content: Optional[str] = None,
 ) -> bool:
-    """Log LLM eval MetricResults the same way ``log_fairness_metrics`` logs classifier results."""
-    ok = log_fairness_metrics(
+    """Log LLM eval MetricResults the same way ``log_fairness_metrics`` logs classifier results.
+
+    Raises:
+        DependencyError: If MLflow is not installed (``fairpipe[tracking]``).
+    """
+    mlflow = _require_mlflow()
+    log_fairness_metrics(
         results,
         prefix="llm_eval_",
         artifact_name=artifact_name,
         artifact_content=artifact_content,
     )
-    if not ok:
-        return False
-    import mlflow
 
     for name, val in results.items():
         res_dict = _coerce_result_to_dict(val)

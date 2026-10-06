@@ -71,7 +71,7 @@ def bootstrap_ci(
     if n == 0:
         raise BootstrapUndefinedError("empty_data")
     rng = np.random.default_rng(random_state)
-    stats = np.empty(B, dtype=float)
+    stats: np.ndarray = np.empty(B, dtype=float)
     for b in range(B):
         sample = x[rng.integers(0, n, n)]
         stats[b] = stat_fn(sample)
@@ -108,7 +108,7 @@ def stratified_bootstrap_replicates(
     if not parts or any(p.size == 0 for p in parts):
         raise BootstrapUndefinedError("empty_stratum", "every stratum needs at least one row")
     rng = np.random.default_rng(random_state)
-    stats = np.empty(B, dtype=float)
+    stats: np.ndarray = np.empty(B, dtype=float)
     for b in range(B):
         idx = np.concatenate([p[rng.integers(0, p.size, p.size)] for p in parts])
         stats[b] = stat_fn(idx)
@@ -133,7 +133,7 @@ def bootstrap_difference_of_means(
     if n_a == 0 or n_b == 0:
         raise BootstrapUndefinedError("empty_data")
     rng = np.random.default_rng(random_state)
-    stats = np.empty(B, dtype=float)
+    stats: np.ndarray = np.empty(B, dtype=float)
     for i in range(B):
         sample_a = x[rng.integers(0, n_a, n_a)]
         sample_b = y[rng.integers(0, n_b, n_b)]
@@ -197,7 +197,7 @@ def bca_ci(
             "nonfinite_jackknife", f"{n_bad} of {n} leave-one-out values are not finite"
         )
     jack_mean = np.mean(jack)
-    num = np.sum((jack_mean - jack) ** 3)
+    num: float = float(np.sum((jack_mean - jack) ** 3))
     denom = 6.0 * (np.sum((jack_mean - jack) ** 2) ** 1.5 + 1e-12)
     a = num / denom
     if not np.isfinite(a):

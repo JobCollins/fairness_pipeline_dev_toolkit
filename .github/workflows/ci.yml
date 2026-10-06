@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade "pip>=25.3"
-          pip install -e ".[dev,api]" -r requirements.txt
+          pip install -e ".[dev,api,tracking]" -r requirements.txt
 
       - name: Debug Black version
         run: |
@@ -116,3 +116,102 @@ jobs:
           name: benchmark-results-${{ matrix.os }}-${{ matrix.python-version }}
           path: |
             benchmark_*.txt
+
+  # Non-required: published-artifact smoke (core wheel, no extras).
+  # Does not gate merge; tell maintainers if you want it required.
+  wheel-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build wheel
+        run: |
+          python -m pip install --upgrade "pip>=25.3" build
+          python -m build --wheel
+
+      - name: Install wheel in fresh venv (no extras)
+        run: |
+          python -m venv /tmp/fairpipe-wheel-smoke
+          /tmp/fairpipe-wheel-smoke/bin/python -m pip install --upgrade "pip>=25.3"
+          /tmp/fairpipe-wheel-smoke/bin/python -m pip install dist/fairpipe-*.whl
+
+      - name: Core smoke (import, metrics, recorded LLM, no mlflow)
+        working-directory: /tmp
+        run: |
+          /tmp/fairpipe-wheel-smoke/bin/python <<'PY'
+          import importlib
+          import sys
+
+          # MLflow must not ship with a core install.
+          assert importlib.util.find_spec("mlflow") is None, "mlflow must not be installed on core"
+
+          import fairpipe
+          from fairpipe.metrics import FairnessAnalyzer
+          from fairpipe.exceptions import DependencyError
+
+          # Public subpackages that must import on core.
+          for name in (
+              "fairpipe.metrics",
+              "fairpipe.pipeline",
+              "fairpipe.stats",
+              "fairpipe.integration",
+              "fairpipe.llm_evals",
+          ):
+              importlib.import_module(name)
+
+          import numpy as np
+          y_true = np.array([0, 0, 1, 1, 0, 1, 0, 1])
+          y_pred = np.array([0, 1, 1, 1, 0, 0, 0, 1])
+          sens = np.array(["A", "A", "A", "A", "B", "B", "B", "B"])
+          fa = FairnessAnalyzer(backend="native", min_group_size=2)
+          dpd = fa.demographic_parity_difference(y_pred, sens, with_ci=False)
+          eod = fa.equalized_odds_difference(y_true, y_pred, sens, with_ci=False)
+          assert dpd.value == dpd.value  # finite
+          assert eod.value == eod.value
+
+          # Tracking entry point must raise a clear install hint.
+          from fairpipe.integration import log_fairness_metrics
+
+          try:
+              log_fairness_metrics({"demographic_parity_difference": dpd})
+          except DependencyError as exc:
+              msg = str(exc)
+              assert "tracking" in msg.lower() or "fairpipe[tracking]" in msg
+          else:
+              raise AssertionError("expected DependencyError when mlflow missing")
+
+          # Recorded LLM fixture replay (no live calls; fixtures ship in the wheel).
+          from fairpipe.llm_evals import (
+              default_recorded_counterfactual_config,
+              run_llm_eval,
+          )
+
+          cfg = default_recorded_counterfactual_config()
+          result = run_llm_eval(cfg)
+          assert result is not None
+          print("wheel-smoke OK", fairpipe.__version__, "dpd", dpd.value, "eod", eod.value)
+          PY
+
+  # Non-required: mypy on the explicit public-API module list (mypy-public.txt).
+  mypy-public:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package + mypy
+        run: |
+          python -m pip install --upgrade "pip>=25.3"
+          python -m pip install -e ".[dev]" -r requirements.txt
+
+      - name: mypy public API
+        run: |
+          mapfile -t FILES < <(grep -v '^#' mypy-public.txt | grep -v '^$')
+          mypy --follow-imports=silent --ignore-missing-imports --no-incremental "${FILES[@]}"

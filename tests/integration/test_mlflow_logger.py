@@ -72,25 +72,30 @@ def mock_pytorch_model():
     return model
 
 
-@patch("fairness_pipeline_dev_toolkit.integration.mlflow_logger._is_mlflow_available")
-def test_log_workflow_results_no_mlflow(mock_available, mock_workflow_result, tmp_path):
-    """Test that logging gracefully handles MLflow not being available."""
-    mock_available.return_value = False
+@patch("fairness_pipeline_dev_toolkit.integration.mlflow_logger._require_mlflow")
+def test_log_workflow_results_no_mlflow(mock_require, mock_workflow_result, tmp_path):
+    """Test that logging raises DependencyError when MLflow is not installed."""
+    from fairness_pipeline_dev_toolkit.exceptions import DependencyError
 
-    result = log_workflow_results(
-        mock_workflow_result,
-        config_path=str(tmp_path / "config.yml"),
-        experiment_name="test",
+    mock_require.side_effect = DependencyError(
+        "MLflow tracking features require the tracking extra.",
+        dependency_name="mlflow",
+        extra_name="tracking",
     )
 
-    assert result is False
+    with pytest.raises(DependencyError) as excinfo:
+        log_workflow_results(
+            mock_workflow_result,
+            config_path=str(tmp_path / "config.yml"),
+            experiment_name="test",
+        )
+
+    assert "tracking" in str(excinfo.value).lower() or "mlflow" in str(excinfo.value).lower()
 
 
-@patch("fairness_pipeline_dev_toolkit.integration.mlflow_logger._is_mlflow_available")
-def test_log_workflow_results_with_mlflow(mock_available, mock_workflow_result, tmp_path):
+@patch("fairness_pipeline_dev_toolkit.integration.mlflow_logger._require_mlflow")
+def test_log_workflow_results_with_mlflow(mock_require, mock_workflow_result, tmp_path):
     """Test logging workflow results to MLflow."""
-    mock_available.return_value = True
-
     # Create a mock mlflow module
     mock_mlflow = MagicMock()
     mock_mlflow.set_experiment.return_value = None
@@ -98,6 +103,7 @@ def test_log_workflow_results_with_mlflow(mock_available, mock_workflow_result, 
     mock_mlflow.start_run.return_value = mock_context
     mock_context.__enter__ = MagicMock(return_value=None)
     mock_context.__exit__ = MagicMock(return_value=None)
+    mock_require.return_value = mock_mlflow
 
     # Patch sys.modules to inject our mock
     with patch.dict(sys.modules, {"mlflow": mock_mlflow}):
@@ -117,11 +123,9 @@ def test_log_workflow_results_with_mlflow(mock_available, mock_workflow_result, 
         mock_mlflow.start_run.assert_called_once()
 
 
-@patch("fairness_pipeline_dev_toolkit.integration.mlflow_logger._is_mlflow_available")
-def test_log_workflow_results_logs_metrics(mock_available, mock_workflow_result, tmp_path):
+@patch("fairness_pipeline_dev_toolkit.integration.mlflow_logger._require_mlflow")
+def test_log_workflow_results_logs_metrics(mock_require, mock_workflow_result, tmp_path):
     """Test that workflow results log metrics correctly."""
-    mock_available.return_value = True
-
     # Create a mock mlflow module
     mock_mlflow = MagicMock()
     mock_mlflow.set_experiment.return_value = None
@@ -129,9 +133,7 @@ def test_log_workflow_results_logs_metrics(mock_available, mock_workflow_result,
     mock_mlflow.start_run.return_value = mock_context
     mock_context.__enter__ = MagicMock(return_value=None)
     mock_context.__exit__ = MagicMock(return_value=None)
-
-    # Patch sys.modules to inject our mock
-    import sys
+    mock_require.return_value = mock_mlflow
 
     with patch.dict(sys.modules, {"mlflow": mock_mlflow}):
         config_file = tmp_path / "config.yml"
@@ -152,11 +154,9 @@ def test_log_workflow_results_logs_metrics(mock_available, mock_workflow_result,
         assert "accuracy" in metric_calls  # Should log accuracy from y_test and predictions
 
 
-@patch("fairness_pipeline_dev_toolkit.integration.mlflow_logger._is_mlflow_available")
-def test_log_workflow_results_logs_model_sklearn(mock_available, mock_workflow_result, tmp_path):
+@patch("fairness_pipeline_dev_toolkit.integration.mlflow_logger._require_mlflow")
+def test_log_workflow_results_logs_model_sklearn(mock_require, mock_workflow_result, tmp_path):
     """Test that sklearn models are logged as artifacts."""
-    mock_available.return_value = True
-
     # Create a mock mlflow module
     mock_mlflow = MagicMock()
     mock_mlflow.set_experiment.return_value = None
@@ -164,6 +164,7 @@ def test_log_workflow_results_logs_model_sklearn(mock_available, mock_workflow_r
     mock_mlflow.start_run.return_value = mock_context
     mock_context.__enter__ = MagicMock(return_value=None)
     mock_context.__exit__ = MagicMock(return_value=None)
+    mock_require.return_value = mock_mlflow
 
     mock_joblib = MagicMock()
     with patch.dict(sys.modules, {"mlflow": mock_mlflow, "joblib": mock_joblib}):
@@ -180,11 +181,9 @@ def test_log_workflow_results_logs_model_sklearn(mock_available, mock_workflow_r
         assert mock_joblib.dump.called or mock_mlflow.log_artifact.called
 
 
-@patch("fairness_pipeline_dev_toolkit.integration.mlflow_logger._is_mlflow_available")
-def test_log_workflow_results_logs_config(mock_available, mock_workflow_result, tmp_path):
+@patch("fairness_pipeline_dev_toolkit.integration.mlflow_logger._require_mlflow")
+def test_log_workflow_results_logs_config(mock_require, mock_workflow_result, tmp_path):
     """Test that config file is logged as artifact."""
-    mock_available.return_value = True
-
     # Create a mock mlflow module
     mock_mlflow = MagicMock()
     mock_mlflow.set_experiment.return_value = None
@@ -192,6 +191,7 @@ def test_log_workflow_results_logs_config(mock_available, mock_workflow_result, 
     mock_mlflow.start_run.return_value = mock_context
     mock_context.__enter__ = MagicMock(return_value=None)
     mock_context.__exit__ = MagicMock(return_value=None)
+    mock_require.return_value = mock_mlflow
 
     with patch.dict(sys.modules, {"mlflow": mock_mlflow}):
         config_file = tmp_path / "config.yml"

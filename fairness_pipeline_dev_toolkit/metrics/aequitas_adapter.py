@@ -3,6 +3,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from fairness_pipeline_dev_toolkit.exceptions import DependencyError
+
 from .base import MetricResult
 from .input_validation import (
     nonfinite_drop_caveat,
@@ -13,9 +15,12 @@ from .input_validation import (
 
 class AequitasAdapter:
     """
-    Adapter over Aequitas auditing.
-    Guarded import; falls back if not installed.
-    For Phase 1, we compute the same group-wise statistics manually to maintain parity.
+    Adapter named for Aequitas.
+
+    Aequitas does not expose demographic-parity / equalized-odds *difference* APIs
+    matching fairpipe's MetricResult contract, so all three metrics are **computed
+    natively**; the backend name is kept for compatibility. Availability still
+    requires ``import aequitas`` (``pip install fairpipe[adapters]``).
     """
 
     name = "aequitas"
@@ -32,6 +37,15 @@ class AequitasAdapter:
     def available(self) -> bool:
         return bool(self._ok)
 
+    def _require_available(self) -> None:
+        if self.available():
+            return
+        raise DependencyError(
+            "Aequitas adapter requires aequitas.",
+            dependency_name="aequitas",
+            extra_name="adapters",
+        )
+
     def _mask_small_groups(self, sensitive, min_group_size: int):
         s = pd.Series(sensitive)
         counts = s.value_counts()
@@ -41,8 +55,7 @@ class AequitasAdapter:
     def demographic_parity_difference(
         self, y_true, y_pred, sensitive, *, min_group_size: int = 30
     ) -> MetricResult:
-        if not self.available():
-            raise RuntimeError("Aequitas not available")
+        self._require_available()
         prepared = prepare_binary_classifier_inputs(
             y_pred=y_pred, sensitive=sensitive, y_true=y_true, require_y_true=False
         )
@@ -88,8 +101,7 @@ class AequitasAdapter:
     def equalized_odds_difference(
         self, y_true, y_pred, sensitive, *, min_group_size: int = 30
     ) -> MetricResult:
-        if not self.available():
-            raise RuntimeError("Aequitas not available")
+        self._require_available()
         prepared = prepare_binary_classifier_inputs(
             y_pred=y_pred, sensitive=sensitive, y_true=y_true, require_y_true=True
         )
@@ -109,27 +121,14 @@ class AequitasAdapter:
         s = s[valid].to_numpy()
         yt = yt[valid]
         yp = yp[valid]
-        groups = np.unique(s)
-        tpr, fpr, n_per = {}, {}, {}
-        for g in groups:
-            m = s == g
-            yt_g, yp_g = yt[m], yp[m]
-            pos = yt_g == 1
-            neg = yt_g == 0
-            tpr[str(g)] = float(np.mean(yp_g[pos]) if pos.any() else np.nan)
-            fpr[str(g)] = float(np.mean(yp_g[neg]) if neg.any() else np.nan)
-            n_per[str(g)] = int(m.sum())
+        groups = list(np.unique(s))
+        n_per = {str(g): int((s == g).sum()) for g in groups}
+        from .eod_undefined import equalized_odds_point_estimate
 
-        def span(d):
-            vals = [v for v in d.values() if not np.isnan(v)]
-            return np.nan if len(vals) < 2 else (max(vals) - min(vals))
-
-        tpr_gap = span(tpr)
-        fpr_gap = span(fpr)
-        value = np.nan if (np.isnan(tpr_gap) or np.isnan(fpr_gap)) else max(tpr_gap, fpr_gap)
+        value = equalized_odds_point_estimate(yt, yp, s, groups=groups)
         return MetricResult(
             "equalized_odds_difference",
-            float(value) if value == value else np.nan,
+            value,
             n_per_group=n_per,
             caveat=drop_caveat,
             n_dropped_nonfinite=prepared.n_dropped_nonfinite,
@@ -138,8 +137,7 @@ class AequitasAdapter:
     def mae_parity_difference(
         self, y_true, y_pred, sensitive, *, min_group_size: int = 30
     ) -> MetricResult:
-        if not self.available():
-            raise RuntimeError("Aequitas not available")
+        self._require_available()
         prepared = prepare_regression_metric_inputs(
             y_true=y_true, y_pred=y_pred, sensitive=sensitive
         )

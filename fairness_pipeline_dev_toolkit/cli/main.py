@@ -298,6 +298,17 @@ def cmd_validate(args: argparse.Namespace) -> int:
                 )
                 return 2
             value = _extract_metric_scalar(results[args.metric])
+            if value != value:  # NaN → undefined (not pass/fail)
+                md += (
+                    f"\n\n**Threshold gate:** metric `{args.metric}` is "
+                    f"**undefined** (non-finite value) — insufficient evidence "
+                    f"to compare against threshold {args.threshold}.\n"
+                )
+                print(md)
+                if args.out:
+                    with open(args.out, "w", encoding="utf-8") as f:
+                        f.write(md)
+                return 4
             passed = abs(value) <= args.threshold
             md += _threshold_verdict_markdown(
                 metric=args.metric,
@@ -646,16 +657,21 @@ def cmd_run_pipeline(args: argparse.Namespace) -> int:
 
         # MLflow logging if requested
         if args.mlflow_experiment:
+            from fairness_pipeline_dev_toolkit.exceptions import DependencyError
             from fairness_pipeline_dev_toolkit.integration.mlflow_logger import (
                 log_workflow_results,
             )
 
-            logged = log_workflow_results(
-                result,
-                config_path=args.config,
-                experiment_name=args.mlflow_experiment,
-                run_name=args.mlflow_run_name,
-            )
+            try:
+                logged = log_workflow_results(
+                    result,
+                    config_path=args.config,
+                    experiment_name=args.mlflow_experiment,
+                    run_name=args.mlflow_run_name,
+                )
+            except DependencyError as exc:
+                print(f"\nError: {exc}")
+                return 1
             if logged:
                 print(f"\nResults logged to MLflow experiment: {args.mlflow_experiment}")
 
@@ -754,7 +770,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--backend",
         choices=["auto", "native", "fairlearn", "aequitas"],
         default="auto",
-        help="Metric backend selection",
+        help=(
+            "Metric backend (default: auto=native). "
+            "Fairlearn/Aequitas require fairpipe[adapters] and must be named explicitly."
+        ),
     )
     p_val.add_argument("--out", help="Write Markdown report to this file")
     p_val.set_defaults(func=cmd_validate)
