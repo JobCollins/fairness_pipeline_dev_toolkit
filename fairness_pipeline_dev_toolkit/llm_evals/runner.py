@@ -141,6 +141,7 @@ async def run_llm_eval_async(
             ci_level=ci_level,
             bootstrap_B=bootstrap_B,
             random_state=random_state,
+            ci_method=ci_method,
         )
         metrics["toxicity_sentiment_disparity"] = metric
         transcripts["toxicity"] = rows

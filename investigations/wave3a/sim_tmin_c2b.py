@@ -154,6 +154,12 @@ def main():
     summary = {"by_T": by_T, "T_min": T_min, "S": S, "raw_c2b": True, "rows": rows}
     (OUT / "tmin_c2b_summary.json").write_text(json.dumps(summary, indent=1, default=float))
     print("SUMMARY", json.dumps({"by_T": by_T, "T_min": T_min}, indent=1))
+    # Keep published quotes in sync: regenerate display strings from this JSON.
+    from coverage_quotes import c2b_changelog_phrase, c2b_markdown_table, c2b_rst_table
+
+    print("QUOTES_RST\n" + c2b_rst_table(by_T))
+    print("QUOTES_MD\n" + c2b_markdown_table(by_T))
+    print("QUOTES_CHANGELOG\n" + c2b_changelog_phrase(by_T))
 
 
 if __name__ == "__main__":

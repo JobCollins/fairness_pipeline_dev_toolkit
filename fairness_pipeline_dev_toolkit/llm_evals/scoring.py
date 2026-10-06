@@ -77,9 +77,11 @@ def paired_template_gap_interval(
 ) -> Tuple[float, float]:
     """Bonferroni-t on per-template group differences, inverted to a gap interval.
 
-    Used for ``toxicity_sentiment_disparity``. ``scores_by_template`` maps
-    group → ``{replicate_id: score}``. Only templates complete for every group
-    are kept. Passed decision 8 at S=4000 (mean coverage 0.9515, min 0.948).
+    Opt-in helper for ``toxicity_sentiment_disparity``
+    (``ci_method="template_bonferroni_t"``). The metric's default CI is undefined:
+    the recorded-toxicity real-data check missed decision 8 (issue #63).
+    ``scores_by_template`` maps group → ``{replicate_id: score}``. Only templates
+    complete for every group are kept.
     """
     groups = [g for g, m in scores_by_template.items() if m]
     if len(groups) < 2:

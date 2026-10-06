@@ -102,10 +102,21 @@ def test_recorded_toxicity_cache_replays_without_error(assert_no_live_llm_calls)
     assert metric.n_per_group == {"woman": 9, "man": 9, "nonbinary": 9}
     assert metric.caveat is not None
     assert "BL-009" in metric.caveat
-    # Demo fixture is flat (gap 0, zero template variance) → paired-t undefined.
+    # Default CI undefined (paired-t missed decision 8 on recorded_toxicity).
     assert metric.ci is None
     assert metric.ci_kind is None
-    assert metric.ci_note is not None and metric.ci_note.startswith("undefined:zero_variance")
+    assert metric.ci_note is not None and metric.ci_note.startswith(
+        "undefined:no_calibrated_interval"
+    )
+    opted = run_llm_eval(
+        default_recorded_toxicity_config(),
+        with_ci=True,
+        bootstrap_B=50,
+        ci_method="template_bonferroni_t",
+    ).metrics["toxicity_sentiment_disparity"]
+    # Opt-in paired-t is still undefined here: fixture scores are identically 0.
+    assert opted.ci is None
+    assert opted.ci_note is not None and opted.ci_note.startswith("undefined:zero_variance")
 
 
 def test_recorded_bbq_cache_replays_without_error(assert_no_live_llm_calls):

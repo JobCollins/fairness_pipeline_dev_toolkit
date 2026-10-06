@@ -13,16 +13,18 @@ over arms.
 
 Real-data coverage (recorded fixture template means as a finite population,
 centred, resampled; S=2000; raw C2b at T=3,4 and the package floor T≥5 for
-T=5,7,10):
+T=5,7,10). Numbers are generated from
+``investigations/wave3a/results/tmin_c2b_summary.json`` via
+``investigations/wave3a/coverage_quotes.py`` (round half-up to 3 d.p.):
 
 =======  ===========  ==========
 T        mean cov     worst cov
 =======  ===========  ==========
 3        0.790        0.736
 4        0.875        0.845
-5        0.916        0.906
-7        0.946        0.932
-10       0.937        0.929
+5        0.929        0.920
+7        0.944        0.934
+10       0.945        0.939
 =======  ===========  ==========
 
 None of these cells clear decision 8 (mean ≥ 0.95 and min ≥ 0.93).
@@ -94,8 +96,9 @@ def template_bonferroni_t_max_mean(
 
     Notes
     -----
-    **Not the default** for demographic-swap metrics: real-data coverage at
-    T=5 / 7 / 10 was 0.916 / 0.946 / 0.937 (worst 0.906 / 0.932 / 0.929), and
+    **Not the default** for demographic-swap metrics: real-data coverage
+    (from ``tmin_c2b_summary.json`` via ``coverage_quotes.py``) at
+    T=5 / 7 / 10 was 0.929 / 0.944 / 0.945 (worst 0.920 / 0.934 / 0.939), and
     raw C2b at T=3 / 4 was 0.790 / 0.875 (worst 0.736 / 0.845) — all below
     decision 8. Opt in via ``ci_method="template_bonferroni_t"``.
 
@@ -119,11 +122,12 @@ def template_bonferroni_t_max_mean(
     D = len(arrays)
     a_tail = (1.0 - level) / (2.0 * D)
     crit = float(student_t.ppf(1.0 - a_tail, T - 1))
-    lowers, uppers = [], []
+    lowers: list[float] = []
+    uppers: list[float] = []
     all_zero = True
     for v in arrays.values():
         mean = float(v.mean())
-        sd = float(v.std(ddof=1)) if T > 1 else 0.0
+        sd = float(v.std(ddof=1))
         if sd > 0.0:
             all_zero = False
             se = sd / np.sqrt(T)
