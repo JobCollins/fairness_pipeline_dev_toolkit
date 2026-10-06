@@ -70,7 +70,7 @@ class TestAssertFairness:
 
     def test_none_value_without_allow_nan_raises(self):
         """Test that None values without allow_nan raise AssertionError."""
-        with pytest.raises(AssertionError, match="Fairness metric is NaN"):
+        with pytest.raises(AssertionError, match="undefined"):
             assert_fairness(None, 0.10, allow_nan=False)
 
     def test_none_value_with_allow_nan_passes(self):
