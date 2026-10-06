@@ -20,13 +20,9 @@ dependencies = [
   "PyYAML>=6.0",
   # pandas parquet I/O (fairpipe.io.load_data) needs an engine; keep in core
   "pyarrow>=14.0",
-  # Security-critical transitive dependencies pinned to secure versions
-  "filelock>=3.20.3",  # CVE-2025-68146, CVE-2026-22701
-  "urllib3>=2.6.3",  # CVE-2025-66418, CVE-2025-66471, CVE-2026-21441
-  # Medium-priority indirect dependencies with security fixes
-  "fonttools>=4.60.2",  # CVE-2025-66034 (indirect via matplotlib/plotly)
-  # Note: virtualenv>=20.36.2 (CVE-2026-22702) is a dev tool, not a runtime dependency
-  # mlflow / starlette / werkzeug live in the tracking extra (Wave 4 BL-029)
+  # CVE pins for optional transitive graphs live in the extras that pull them in
+  # (filelock→training/torch; fonttools→training|tracking|adapters/matplotlib;
+  # urllib3→monitoring|tracking|api/requests). See Wave 4 polish.
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -81,6 +77,8 @@ training = [
   "torch>=2.2",
   "matplotlib>=3.8",
   "plotly>=5.22",
+  "filelock>=3.20.3",  # CVE-2025-68146, CVE-2026-22701 (via torch)
+  "fonttools>=4.60.2",  # CVE-2025-66034 (via matplotlib)
 ]
 monitoring = [
   "streamlit>=1.37",
@@ -88,14 +86,17 @@ monitoring = [
   "plotly>=5.22",
   "jinja2>=3.1",
   "PyWavelets>=1.5",
+  "urllib3>=2.6.3",  # CVE-2025-66418/66471, CVE-2026-21441 (via requests)
 ]
 adapters = [
   "fairlearn>=0.10",
   "aequitas>=0.42 ; python_version < \"3.12\"",
+  "fonttools>=4.60.2",  # CVE-2025-66034 (via aequitas→matplotlib on py<3.12)
 ]
 api = [
   "fastapi[standard]>=0.111.0",
   "python-multipart>=0.0.9",
+  "urllib3>=2.6.3",  # CVE-2025-66418/66471, CVE-2026-21441 (via sentry-sdk / requests)
 ]
 llm = [
   "openai>=1.0",
@@ -107,6 +108,8 @@ tracking = [
   # CVE pins that exist only because of MLflow's transitive graph
   "starlette>=0.49.1",  # CVE-2025-62727 (via mlflow-skinny / fastapi)
   "werkzeug>=3.1.5",  # CVE-2025-66221, CVE-2026-21860 (via Flask)
+  "urllib3>=2.6.3",  # CVE-2025-66418/66471, CVE-2026-21441 (via requests/docker)
+  "fonttools>=4.60.2",  # CVE-2025-66034 (via matplotlib)
 ]
 
 [tool.setuptools.packages.find]

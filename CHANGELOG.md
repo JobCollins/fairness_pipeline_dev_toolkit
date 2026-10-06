@@ -6,14 +6,16 @@ Read this before upgrading from ≤0.11.0. In 0.x a MINOR may break the API;
 every break is listed here. Stability promises apply from 1.0 (`docs/VERSIONING.md`).
 No version number is chosen in this branch — maintainers decide the next tag.
 
-**Wave 4 (packaging / backends / identity)**
+**Packaging / backends / identity**
 
 - **`mlflow` is no longer installed by default** ([#39](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/39) / BL-029).
   Use `pip install "fairpipe[tracking]"`. Calling MLflow logger helpers or
   `--mlflow-experiment` without that extra raises `DependencyError` with the
   install hint (previously returned `False` silently). CVE pins that existed
   only for MLflow's transitive graph (`starlette`, `werkzeug`) moved into the
-  same extra.
+  same extra. CVE pins for `filelock`, `urllib3`, and `fonttools` also moved
+  out of core into the extras that actually pull those packages
+  (`training` / `monitoring` / `tracking` / `adapters` / `api`).
 - **Default metrics backend is always ``native``** ([#37](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/37) / BL-027).
   ``FairnessAnalyzer(backend=None)`` no longer auto-picks Fairlearn or Aequitas
   when those packages are installed. Opt in with ``backend="fairlearn"`` or
@@ -33,14 +35,14 @@ No version number is chosen in this branch — maintainers decide the next tag.
   Fixtures remain in the wheel this release. ``default_recorded_toxicity_config``
   is **not** a toxicity demo (all scores 0 — zero-variance → undefined path only).
 
-**Wave 3a (confidence intervals)**
+**Confidence intervals**
 
 - Every CI that ≤0.11.0 printed for a gap metric is **superseded**. See
   "Confidence intervals changed" below for method details (simultaneous default
   for DPD/EOD; mae / several LLM metrics default CI undefined; BCa deprecated
   for gaps and refuses non-finite strata).
 
-**Wave 1 (trustworthy measurement + train-once + rename)**
+**Trustworthy measurement, train-once transforms, and metric rename**
 
 - **LLM metric rename (`counterfactual_fairness_*` → `demographic_swap_*`)**
   ([#45](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/45)).
@@ -228,9 +230,8 @@ almost never contained 0 when groups were equal); old BCa intervals could be
 
 ### Not fixed in this batch (still open)
 
-- **BL-014** — percentile CI coverage at true DPD equality remains ~0/100; the
-  determinism fix did not resolve it. Wave 3.
-- **BL-031** — BCa has no policy for NaN bootstrap replicates from analyzer stats.
+- **BL-019 disclosure half** — excluded / undersized groups are still not named
+  with counts on the result object (EO undefined rule is fixed above).
 - **Signed-metric gate** — `abs(value) > threshold` means a large negative contrast
   fails; intentional alignment with CLI, not changed here.
 - **Deploy follow-ons** — REST `/pipeline` cannot apply a previously fitted

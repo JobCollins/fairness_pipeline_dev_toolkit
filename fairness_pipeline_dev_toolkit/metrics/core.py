@@ -18,7 +18,7 @@ from ..stats.gap_intervals import (
 from ..utils.array_utils import to_numpy_1d
 from ..utils.intersectional import build_intersectional_labels, min_group_mask
 from .aequitas_adapter import AequitasAdapter
-from .base import MetricResult
+from .base import MetricAdapter, MetricResult
 from .eod_undefined import (
     analysed_groups_have_empty_label_stratum,
     empty_label_stratum_ci_note,
@@ -259,7 +259,7 @@ class FairnessAnalyzer:
         self.min_group_size = min_group_size
         self.nan_policy = nan_policy
 
-        self._adapters = {
+        self._adapters: Dict[str, MetricAdapter] = {
             "fairlearn": FairlearnAdapter(),
             "aequitas": AequitasAdapter(),
             "native": NativeAdapter(),
@@ -274,7 +274,7 @@ class FairnessAnalyzer:
         if hasattr(a, "available") and not a.available():
             raise RuntimeError(f"Requested backend '{backend}' is not available")
         self._backend = backend
-        self._adapter = a
+        self._adapter: MetricAdapter = a
 
         self._cache: Dict[str, Any] = {}
 
@@ -592,7 +592,9 @@ class FairnessAnalyzer:
         prepared = prepare_binary_classifier_inputs(
             y_pred=yp, sensitive=sens, y_true=yt, require_y_true=True
         )
-        yp, sens, yt = prepared.y_pred, prepared.sensitive, prepared.y_true
+        yp, sens = prepared.y_pred, prepared.sensitive
+        assert prepared.y_true is not None  # require_y_true=True
+        yt = prepared.y_true
         drop_caveat = nonfinite_drop_caveat(prepared.n_dropped_nonfinite)
 
         mr = self._adapter.equalized_odds_difference(
@@ -785,7 +787,9 @@ class FairnessAnalyzer:
             sens = to_numpy_1d(sensitive, "sensitive")
 
         prepared = prepare_regression_metric_inputs(y_true=yt, y_pred=yp, sensitive=sens)
-        yp, sens, yt = prepared.y_pred, prepared.sensitive, prepared.y_true
+        yp, sens = prepared.y_pred, prepared.sensitive
+        assert prepared.y_true is not None
+        yt = prepared.y_true
         drop_caveat = nonfinite_drop_caveat(prepared.n_dropped_nonfinite)
 
         mr = self._adapter.mae_parity_difference(
