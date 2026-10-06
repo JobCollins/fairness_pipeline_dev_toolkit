@@ -25,6 +25,7 @@ from itertools import combinations
 from typing import Optional, Sequence, Tuple
 
 import numpy as np
+import numpy.typing as npt
 from scipy.stats import norm
 from scipy.stats import t as student_t
 
@@ -343,10 +344,10 @@ def _stratum_gap(sums: np.ndarray, counts: np.ndarray) -> np.ndarray:
 
 
 def permutation_gap_pvalue(
-    values: Sequence[float],
-    groups: Sequence[int],
+    values: Sequence[float] | npt.ArrayLike,
+    groups: Sequence[int] | npt.ArrayLike,
     *,
-    strata: Optional[Sequence[int]] = None,
+    strata: Optional[Sequence[int] | npt.ArrayLike] = None,
     n_permutations: int = 2000,
     random_state: Optional[int] = 42,
 ) -> float:

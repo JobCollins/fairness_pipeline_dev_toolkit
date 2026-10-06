@@ -1,7 +1,7 @@
 # Versioning Strategy and Backward Compatibility Policy
 
-**Last Updated:** 2026-09-21  
-**Current Version:** 0.11.0
+**Last Updated:** 2026-10-06  
+**Current Version:** 0.12.0
 
 ---
 
@@ -23,7 +23,7 @@ Version numbers follow the format: **MAJOR.MINOR.PATCH** (e.g., `0.5.0`)
 
 ### Current Status
 
-- **Current Version:** `0.11.0` (Beta)
+- **Current Version:** `0.12.0` (Beta)
 - **Development Status:** Beta (pre-1.0.0)
 - **0.x rule (decision):** In 0.x, a **MINOR** release may break the API. Every
   breaking or behaviour-changing item is listed under an **Upgrade notes**
@@ -312,13 +312,13 @@ If CLI changes are necessary:
 **Programmatically:**
 ```python
 from fairpipe import __version__
-print(__version__)  # "0.11.0"
+print(__version__)  # "0.12.0"
 ```
 
 **CLI:**
 ```bash
 fairpipe version
-# Output: 0.11.0
+# Output: 0.12.0
 ```
 
 **Package Metadata:**
@@ -345,7 +345,7 @@ See **[RELEASE.md](RELEASE.md)** for the mirror ([SvrusIO/fAIr](https://github.c
 - [ ] Update `docs/conf.py` `version` and `release`
 - [ ] Update `CHANGELOG.md` with release notes
 - [ ] Update API and integration docs if the public surface changed
-- [ ] Tag release in git: `git tag v0.11.0` and push to mirror remotes
+- [ ] Tag release on the **mirror first** (`git tag -a v0.12.0 …` then `git push mirror v0.12.0`), wait for PyPI, then push the same tag to **origin**
 - [ ] Build and publish to PyPI (`.github/workflows/release.yml` or manual)
 - [ ] Refresh hosted documentation
 
@@ -353,7 +353,7 @@ See **[RELEASE.md](RELEASE.md)** for the mirror ([SvrusIO/fAIr](https://github.c
 
 ## Pre-1.0.0 Considerations
 
-### Current Status: Beta (0.11.0)
+### Current Status: Beta (0.12.0)
 
 During the 0.x phase:
 
@@ -386,13 +386,16 @@ Once version 1.0.0 is released:
 
 **For Production:**
 ```txt
-fairpipe==0.11.0
+fairpipe==0.12.0
 ```
 
-**For Development:**
+**For Development (0.x):**
 ```txt
-fairpipe>=0.11.0,<1.0.0
+fairpipe~=0.12.0
 ```
+That is `>=0.12.0,<0.13`. Do **not** use `>=0.12.0,<1.0.0`: in 0.x a MINOR may break the API,
+so the compatible range is the current minor only.
+
 
 ### Staying Updated
 
@@ -432,7 +435,7 @@ If you encounter backward compatibility issues:
 ## Summary
 
 - **Versioning:** Semantic Versioning (SemVer), with an explicit **0.x** exception
-- **Current Version:** 0.11.0 (Beta)
+- **Current Version:** 0.12.0 (Beta)
 - **0.x:** MINOR releases may break the API; every break is under CHANGELOG **Upgrade notes**
 - **From 1.0.0:** Backward compatibility guaranteed within major versions
 - **Public APIs:** Stable within major versions starting at 1.0.0

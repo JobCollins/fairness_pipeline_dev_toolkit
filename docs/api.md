@@ -1693,7 +1693,7 @@ Get the toolkit version:
 
 ```python
 from fairpipe import __version__
-print(__version__)  # "0.11.0"
+print(__version__)  # "0.12.0"
 ```
 
 ---
@@ -1763,7 +1763,7 @@ Returns server version and current UTC timestamp.
 ```json
 {
   "status": "ok",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "timestamp": "2026-05-07T10:00:00.000000+00:00"
 }
 ```
