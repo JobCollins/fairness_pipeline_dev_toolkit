@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `path=` or `fetch_upstream=True`. The schema-compatible JSON under
   `llm_evals/fixtures/bbq/` remains for tests / recorded-cache helpers only
   (Wave 4 will relocate it).
+- **Config load requires `bbq_path` when `stereotype_association_score` is listed**
+  (`ConfigValidationError` → CLI exit 2, REST 422). Dry-run no longer invents a
+  request count of 12 when the path is missing.
 - **Every `stereotype_association_score` result is caveated**
   (`Experimental: this is not the BBQ bias score…`; see
   [#31](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/31)).

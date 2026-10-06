@@ -120,9 +120,14 @@ def estimate_dry_run(
         breakdown[evaluator] = n
 
     if "stereotype_association_score" in evaluators:
-        n_bbq = bbq_item_count if bbq_item_count is not None else 12
-        request_count += n_bbq
-        breakdown["stereotype_association_score"] = n_bbq
+        if bbq_item_count is None:
+            raise ConfigValidationError(
+                "bbq_item_count is required when estimating "
+                "'stereotype_association_score' (set bbq_path so items can be "
+                "counted). BBQ-schema items must be supplied."
+            )
+        request_count += bbq_item_count
+        breakdown["stereotype_association_score"] = bbq_item_count
 
     input_tokens = request_count * input_tokens_per_prompt
     output_tokens = request_count * output_tokens_per_response

@@ -299,6 +299,14 @@ def _validate_llm_eval_block(raw: Dict[str, Any]) -> LLMEvalConfig:
     bbq_path = raw.get("bbq_path")
     if bbq_path is not None and not isinstance(bbq_path, str):
         raise ConfigValidationError("Config field 'bbq_path' must be a string when provided.")
+    if isinstance(bbq_path, str):
+        bbq_path = bbq_path.strip() or None
+    if "stereotype_association_score" in evaluators and not bbq_path:
+        raise ConfigValidationError(
+            "Config field 'bbq_path' is required when 'stereotype_association_score' "
+            "is listed in evaluators. BBQ-schema items must be supplied "
+            "(pass an explicit JSON path to BBQ-schema items)."
+        )
 
     allow_small_samples = raw.get("allow_small_samples", False)
     if not isinstance(allow_small_samples, bool):

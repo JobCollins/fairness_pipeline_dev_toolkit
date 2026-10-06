@@ -228,6 +228,28 @@ def test_llm_eval_cli_unknown_metric_exit_two(tmp_path, capsys):
     assert "not_a_real_metric" in captured.err
 
 
+def test_llm_eval_cli_stereotype_without_bbq_path_exit_two(tmp_path, capsys):
+    """Real run (not dry-run): missing bbq_path fails at config load with exit 2."""
+    cfg = tmp_path / "llm_eval.yml"
+    cfg.write_text(
+        yaml.safe_dump(
+            {
+                "llm_eval": {
+                    "provider": "local",
+                    "model": "demo",
+                    "evaluators": ["stereotype_association_score"],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    exit_code = main(["llm-eval", "--config", str(cfg)])
+    captured = capsys.readouterr()
+    assert exit_code == EXIT_USAGE
+    assert "bbq_path" in captured.err
+    assert "BBQ-schema" in captured.err
+
+
 def test_llm_eval_cli_cache_miss_nonzero_instant(tmp_path, capsys, assert_no_live_llm_calls):
     config = LLMEvalConfig(
         provider=RECORDED_PROVIDER,

@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from fairness_pipeline_dev_toolkit.exceptions import ConfigValidationError
 from fairness_pipeline_dev_toolkit.integration.reporting import to_markdown_report
 from fairness_pipeline_dev_toolkit.metrics.base import MetricResult
 
@@ -70,21 +71,22 @@ async def run_llm_eval_async(
     n_templates = (
         len(as_template_list(config.counterfactual.template)) if config.counterfactual else 1
     )
+    if "stereotype_association_score" in config.evaluators:
+        if not config.bbq_path:
+            raise ConfigValidationError(
+                "bbq_path is required when 'stereotype_association_score' is listed "
+                "in evaluators. BBQ-schema items must be supplied."
+            )
+        bbq_item_count: Optional[int] = len(load_bbq_items(config.bbq_path))
+    else:
+        bbq_item_count = None
     estimate = estimate_dry_run(
         provider=config.provider,
         model=config.model,
         evaluators=config.evaluators,
         counterfactual_dimensions=cf_dims,
         n_templates=n_templates,
-        bbq_item_count=(
-            (
-                len(load_bbq_items(config.bbq_path))
-                if config.bbq_path
-                else None  # dry-run falls back to 12 when path unset
-            )
-            if "stereotype_association_score" in config.evaluators
-            else None
-        ),
+        bbq_item_count=bbq_item_count,
     )
     if dry_run:
         return LLMEvalRunResult(metrics={}, dry_run=estimate)

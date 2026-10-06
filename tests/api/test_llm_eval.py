@@ -211,6 +211,20 @@ def test_llm_eval_bad_config(client):
     assert r.status_code == 422
 
 
+def test_llm_eval_stereotype_without_bbq_path_is_422(client):
+    """stereotype_association_score without bbq_path → 422 at config load."""
+    payload = {
+        "provider": "local",
+        "model": "demo",
+        "evaluators": ["stereotype_association_score"],
+    }
+    r = client.post("/llm-eval", json=payload)
+    assert r.status_code == 422
+    detail = str(r.json()["detail"])
+    assert "bbq_path" in detail
+    assert "BBQ-schema" in detail
+
+
 def _name_pool_payload(**counterfactual_extra: Any) -> Dict[str, Any]:
     counterfactual: Dict[str, Any] = {
         "template": [
