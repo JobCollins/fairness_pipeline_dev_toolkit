@@ -7,6 +7,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from fairness_pipeline_dev_toolkit.exceptions import BootstrapUndefinedError
 from fairness_pipeline_dev_toolkit.stats.bootstrap import (
     _percentile_ci,
     _phi,
@@ -191,12 +192,11 @@ class TestBootstrapCI:
         assert np.isfinite(upper)
 
     def test_bootstrap_ci_empty_data(self):
-        """Test with empty data."""
+        """Empty data refuses instead of returning a (nan, nan) interval."""
         data = np.array([])
-        lower, upper = bootstrap_ci(data, np.mean, random_state=42)
-
-        assert np.isnan(lower)
-        assert np.isnan(upper)
+        with pytest.raises(BootstrapUndefinedError) as err:
+            bootstrap_ci(data, np.mean, random_state=42)
+        assert err.value.reason == "empty_data"
 
     def test_bootstrap_ci_different_confidence_levels(self):
         """Test with different confidence levels."""
@@ -330,31 +330,26 @@ class TestBCACI:
         assert isinstance(upper, float)
         assert lower < upper
 
-    def test_bca_ci_non_finite_data_fallback(self):
-        """Test that BCa falls back to percentile for non-finite data."""
+    def test_bca_ci_non_finite_data_refuses(self):
+        """NaN data gives NaN replicates; BCa refuses instead of a percentile fallback."""
         x = np.array([1.0, 2.0, 3.0, 4.0, np.nan, 6.0, 7.0, 8.0, 9.0, 10.0])
         stat_fn = np.mean
         rng = np.random.default_rng(42)
         boot_stats = np.array([stat_fn(x[rng.integers(0, len(x), len(x))]) for _ in range(100)])
 
-        lower, upper = bca_ci(x, stat_fn, boot_stats, level=0.95)
+        with pytest.raises(BootstrapUndefinedError) as err:
+            bca_ci(x, stat_fn, boot_stats, level=0.95)
+        assert err.value.reason == "nonfinite_replicates"
 
-        # Should fallback to percentile method
-        assert isinstance(lower, float)
-        assert isinstance(upper, float)
-
-    def test_bca_ci_inf_data_fallback(self):
-        """Test that BCa falls back to percentile for inf data."""
+    def test_bca_ci_inf_data_refuses(self):
+        """Inf data gives non-finite replicates; BCa refuses."""
         x = np.array([1.0, 2.0, 3.0, 4.0, np.inf, 6.0, 7.0, 8.0, 9.0, 10.0])
         stat_fn = np.mean
         rng = np.random.default_rng(42)
         boot_stats = np.array([stat_fn(x[rng.integers(0, len(x), len(x))]) for _ in range(100)])
 
-        lower, upper = bca_ci(x, stat_fn, boot_stats, level=0.95)
-
-        # Should fallback to percentile method
-        assert isinstance(lower, float)
-        assert isinstance(upper, float)
+        with pytest.raises(BootstrapUndefinedError):
+            bca_ci(x, stat_fn, boot_stats, level=0.95)
 
     def test_bca_ci_different_confidence_levels(self):
         """Test BCa CI with different confidence levels."""

@@ -1,10 +1,12 @@
 """Compatibility shim for `fairpipe.exceptions`."""
 
 from fairness_pipeline_dev_toolkit.exceptions import (  # noqa: F401
+    BootstrapUndefinedError,
     ConfigValidationError,
     DataValidationError,
     DependencyError,
     FairnessToolkitError,
+    IntervalUndefinedError,
     KamiranCaldersLabelError,
     MetricComputationError,
     PipelineExecutionError,
@@ -20,4 +22,6 @@ __all__ = [
     "DataValidationError",
     "DependencyError",
     "KamiranCaldersLabelError",
+    "IntervalUndefinedError",
+    "BootstrapUndefinedError",
 ]

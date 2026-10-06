@@ -31,7 +31,17 @@ from fairness_pipeline_dev_toolkit.llm_evals.guards import (  # noqa: E402
 
 pytest_plugins = ("tests.llm_evals.conftest",)
 
-_METRIC_ENVELOPE_KEYS = ("metric", "value", "ci", "effect_size", "n_per_group", "caveat")
+_METRIC_ENVELOPE_KEYS = (
+    "metric",
+    "value",
+    "ci",
+    "effect_size",
+    "n_per_group",
+    "caveat",
+    "p_value",
+    "ci_kind",
+    "ci_note",
+)
 
 
 @pytest.fixture

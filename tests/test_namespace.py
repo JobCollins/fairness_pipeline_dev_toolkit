@@ -29,6 +29,23 @@ def test_fairpipe_stats_shim_identity():
     assert shim_ci is src_ci
 
 
+def test_fairpipe_wave3a_names_shim_identity():
+    from fairness_pipeline_dev_toolkit import exceptions as src_exc
+    from fairness_pipeline_dev_toolkit.stats import gap_intervals as src_gap
+    from fairness_pipeline_dev_toolkit.stats.bootstrap import (
+        stratified_bootstrap_replicates,
+    )
+    from fairpipe import exceptions as shim_exc
+    from fairpipe.stats import bootstrap as shim_boot
+    from fairpipe.stats import gap_intervals as shim_gap
+
+    for name in src_gap.__all__:
+        assert getattr(shim_gap, name) is getattr(src_gap, name)
+    assert shim_boot.stratified_bootstrap_replicates is stratified_bootstrap_replicates
+    assert shim_exc.IntervalUndefinedError is src_exc.IntervalUndefinedError
+    assert shim_exc.BootstrapUndefinedError is src_exc.BootstrapUndefinedError
+
+
 def test_fairpipe_api_shim_identity():
     from fairness_pipeline_dev_toolkit.api import create_app as src_create
     from fairpipe.api import ResultStore

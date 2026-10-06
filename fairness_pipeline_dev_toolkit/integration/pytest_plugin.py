@@ -71,10 +71,15 @@ def _as_metric_result(value: Any) -> MetricResult:
     if isinstance(value, MetricResult):
         return value
     if isinstance(value, dict) and "value" in value:
+        ci = value.get("ci")
         return MetricResult(
             metric=str(value.get("metric") or "llm_eval"),
             value=float(value["value"]) if value["value"] is not None else float("nan"),
+            ci=tuple(ci) if ci is not None else None,
             caveat=value.get("caveat"),
+            p_value=value.get("p_value"),
+            ci_kind=value.get("ci_kind"),
+            ci_note=value.get("ci_note"),
         )
     # Bare float / None — no caveat (same as pre-fix scalar path, minus comparator).
     raw = value
