@@ -8,6 +8,8 @@ import pandas as pd
 
 _SUPPORTED_EXTENSIONS = {".csv", ".parquet", ".pq"}
 
+__all__ = ["load_data"]
+
 
 def load_data(path: str | Path) -> pd.DataFrame:
     """Load a tabular data file into a DataFrame.

@@ -30,13 +30,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every backend (native previously could report ``0.0``). Classifier gating
   treats non-finite values as **undefined** (``assert_fairness`` raises;
   ``fairpipe validate --threshold`` exits **4**).
+- **Packaged LLM fixture helpers are deprecated** ([#40](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/40) / BL-030).
+  ``default_recorded_*``, ``humanitarian_*``, ``populate_*``, and related
+  loaders emit ``FutureWarning`` and will be removed in the next release.
+  Fixtures remain in the wheel this release (all have a public helper or
+  runtime consumer). ``default_recorded_toxicity_config`` is **not** a toxicity
+  demo (all scores 0 — zero-variance → undefined path only).
+- **0.x versioning:** a MINOR may break the API; breaks are always under
+  CHANGELOG **Upgrade notes**. Stability promises apply from 1.0
+  (`docs/VERSIONING.md`).
+
+### Identity, typing, and ``fairpipe.io`` (BL-030 / BL-018)
+
+- Added ``fairpipe.io`` and ``fairpipe.pipeline.config`` shims; README Quick start
+  is executed by ``tests/test_readme_quickstart.py``.
+- Identity map: [`docs/identity.md`](docs/identity.md).
+- Ship ``py.typed``; non-required CI job ``mypy-public`` checks
+  ``mypy-public.txt`` (12 → 0 errors on that list).
+- Classifier ``Result`` now subclasses ``MetricResult`` (field-identical, incl.
+  ``caveat``).
 
 ### Stereotype association is experimental (not BBQ bias score)
 
 - **`load_bbq_items()` no longer loads a silent default subset.** Pass an explicit
   `path=` or `fetch_upstream=True`. The schema-compatible JSON under
-  `llm_evals/fixtures/bbq/` remains for tests / recorded-cache helpers only
-  (Wave 4 will relocate it).
+  `llm_evals/fixtures/bbq/` remains for tests / recorded-cache helpers this release
+  (helpers deprecated; relocation deferred while public paths remain).
 - **Config load requires `bbq_path` when `stereotype_association_score` is listed**
   (`ConfigValidationError` → CLI exit 2, REST 422). Dry-run no longer invents a
   request count of 12 when the path is missing.

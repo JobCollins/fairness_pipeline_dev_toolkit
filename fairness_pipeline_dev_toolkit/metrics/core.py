@@ -18,6 +18,7 @@ from ..stats.gap_intervals import (
 from ..utils.array_utils import to_numpy_1d
 from ..utils.intersectional import build_intersectional_labels, min_group_mask
 from .aequitas_adapter import AequitasAdapter
+from .base import MetricResult
 from .eod_undefined import (
     analysed_groups_have_empty_label_stratum,
     empty_label_stratum_ci_note,
@@ -231,19 +232,8 @@ def mae_gap_stat_from_indices(
 
 
 @dataclass
-class Result:
-    """Analyzer result. Field semantics match :class:`~.base.MetricResult`."""
-
-    metric: str
-    value: float
-    ci: Optional[tuple[float, float]] = None
-    effect_size: Optional[float] = None
-    n_per_group: Optional[Dict[str, int]] = None
-    caveat: Optional[str] = None
-    n_dropped_nonfinite: Optional[int] = None
-    p_value: Optional[float] = None
-    ci_kind: Optional[str] = None
-    ci_note: Optional[str] = None
+class Result(MetricResult):
+    """Analyzer result. Field-identical to :class:`~.base.MetricResult` (incl. ``caveat``)."""
 
 
 class FairnessAnalyzer:
@@ -418,6 +408,7 @@ class FairnessAnalyzer:
         yp = to_numpy_1d(y_pred, "y_pred")
 
         if intersectional:
+            assert attrs_df is not None  # checked above
             if len(yp) != len(attrs_df):
                 raise LengthMismatchError(
                     f"y_pred and attrs_df must have the same length; "
@@ -573,6 +564,7 @@ class FairnessAnalyzer:
         yp = to_numpy_1d(y_pred, "y_pred")
 
         if intersectional:
+            assert attrs_df is not None  # checked above
             if len(yp) != len(attrs_df) or len(yt) != len(attrs_df):
                 raise LengthMismatchError(
                     f"y_true, y_pred, and attrs_df must have the same length; "
@@ -767,6 +759,7 @@ class FairnessAnalyzer:
         yp = to_numpy_1d(y_pred, "y_pred")
 
         if intersectional:
+            assert attrs_df is not None  # checked above
             if len(yp) != len(attrs_df) or len(yt) != len(attrs_df):
                 raise LengthMismatchError(
                     f"y_true, y_pred, and attrs_df must have the same length; "
@@ -853,8 +846,8 @@ class FairnessAnalyzer:
                     (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g
                 )[0]
                 maes_by_group[g] = float(abs_err[idx].mean())
-            g_max = max(maes_by_group, key=maes_by_group.get)
-            g_min = min(maes_by_group, key=maes_by_group.get)
+            g_max = max(maes_by_group, key=lambda g: maes_by_group[g])
+            g_min = min(maes_by_group, key=lambda g: maes_by_group[g])
             x = abs_err[
                 np.where(
                     (sens.astype(str) if sens.dtype.kind not in {"U", "S", "O"} else sens) == g_max

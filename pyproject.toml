@@ -115,7 +115,12 @@ include = ["fairness_pipeline_dev_toolkit*", "fairpipe*"]   # <-- IMPORTANT
 exclude = ["tests*", "benchmarks*"]
 
 [tool.setuptools.package-data]
+"fairness_pipeline_dev_toolkit" = ["py.typed"]
 "fairness_pipeline_dev_toolkit.llm_evals" = ["fixtures/**/*"]
+"fairpipe" = ["py.typed"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["*/__pycache__/*", "*.py[co]"]
 
 [project.scripts]
 fairpipe = "fairness_pipeline_dev_toolkit.cli.main:main"
