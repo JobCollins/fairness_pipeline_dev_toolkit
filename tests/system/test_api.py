@@ -147,6 +147,7 @@ class TestPipelineAPI:
                 "InstanceReweighting",
                 "DisparateImpactRemover",
                 "ReweighingTransformer",
+                "KamiranCaldersReweighing",
                 "ProxyDropper",
             ]
 

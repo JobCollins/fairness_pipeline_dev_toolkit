@@ -440,7 +440,8 @@ def run_transform_and_train(
             X_test_pipe[col] = df.loc[X_test.index, col]
 
         # Fit on train only; apply the same fitted transform to test (no leakage).
-        train_pr = apply_pipeline(pipe, X_train_pipe, fit=True)
+        # Forward y_train so label-aware steps (KamiranCaldersReweighing) can fit.
+        train_pr = apply_pipeline(pipe, X_train_pipe, y=y_train, fit=True)
         test_pr = apply_pipeline(pipe, X_test_pipe, fit=False)
         X_train_transformed = train_pr.data
         X_test_transformed = test_pr.data

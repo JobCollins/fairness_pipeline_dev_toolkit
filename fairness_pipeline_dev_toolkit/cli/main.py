@@ -38,6 +38,7 @@ from fairness_pipeline_dev_toolkit.config.env import (
     FAIRPIPE_MLFLOW_EXPERIMENT,
     get_env_int,
 )
+from fairness_pipeline_dev_toolkit.exceptions import KamiranCaldersLabelError
 from fairness_pipeline_dev_toolkit.integration.reporting import to_markdown_report
 from fairness_pipeline_dev_toolkit.io import load_data
 from fairness_pipeline_dev_toolkit.metrics import FairnessAnalyzer
@@ -377,10 +378,18 @@ def cmd_pipeline_run(args: argparse.Namespace) -> int:
             _write_artifact(args.detector_json, detector_report.to_json())
 
     # 4) Build pipeline
-    pipe = build_pipeline(cfg)
+    try:
+        pipe = build_pipeline(cfg)
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
 
-    # 5) Apply pipeline
-    Xt = apply_pipeline(pipe, df).data
+    # 5) Apply pipeline (KC without labels → usage error, exit 2)
+    try:
+        Xt = apply_pipeline(pipe, df).data
+    except KamiranCaldersLabelError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
 
     # 6) Persist outputs
     if args.out_csv:

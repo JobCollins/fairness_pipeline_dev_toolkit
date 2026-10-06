@@ -262,6 +262,14 @@ class DataValidationError(FairnessToolkitError):
         super().__init__(message, context=context, suggestion=suggestion)
 
 
+class KamiranCaldersLabelError(DataValidationError):
+    """Raised when Kamiran–Calders reweighing cannot obtain valid binary labels.
+
+    Prefer ``fit(X, y)``, or set ``label=`` / ``training.target_column`` so labels
+    are read from ``X``. Never silently falls back to frequency balancing.
+    """
+
+
 class DependencyError(FairnessToolkitError):
     """Raised when required optional dependencies are missing.
 

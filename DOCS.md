@@ -379,6 +379,18 @@ pipeline:
 
 ### Available Transformers
 
+Which reweighing class to use:
+
+- **Frequency balancing** (`InstanceReweighting`) changes how much each *group*
+  counts in the training loss. It **cannot** change a group's internal base
+  rate (positive-label rate within the group).
+- **Kamiran–Calders** (`KamiranCaldersReweighing`) removes label–group
+  dependence in the *weighted* training sample so weighted positive rates
+  match across (joint) groups.
+- Only the **`reductions`** training path consumes sample weights today;
+  `regularized` / `lagrangian` log a warning and ignore them
+  ([#58](https://github.com/JobCollins/fairness_pipeline_dev_toolkit/issues/58)).
+
 1. **InstanceReweighting**
    - Group-frequency balancing: inverse-frequency (or benchmark) weights per
      sensitive attribute. Ignores `y` — **not** Kamiran & Calders / AIF360
@@ -394,11 +406,30 @@ pipeline:
      - `repair_level`: Strength of repair (0.0 to 1.0)
      - `min_group_size`: Skip groups smaller than this at fit (default 20)
 
-3. **ReweighingTransformer**
-   - Advanced reweighing with custom strategies
-   - Parameters: `strategy` (e.g., "none", "demographic_parity")
+3. **KamiranCaldersReweighing**
+   - Label-aware reweighing (Kamiran & Calders, 2012): each row in joint group
+     `s` with label `y` gets `w(s,y) = (n_s · n_y) / (n · n_sy)`.
+   - Guarantees independence of group and label in the **weighted training
+     data** (equal weighted positive rates). Does **not** guarantee equalized
+     odds, fairness through proxies, or stable small-cell estimates.
+   - Multiple sensitive attributes use the **joint** cell (not a product of
+     per-attribute weights).
+   - Parameters: `sensitive`, optional `label` (column in `X` when `y` is not
+     passed to `fit`), optional `max_weight` (clips then renormalizes to mean 1;
+     independence then holds only approximately; default `None` = no clip).
+   - Citation: Kamiran, F. & Calders, T. (2012). Data preprocessing techniques
+     for classification without discrimination. *Knowledge and Information
+     Systems*, 33(1).
 
-4. **ProxyDropper**
+4. **ReweighingTransformer** *(deprecated)*
+   - Group-frequency balancer (ignores `y`), similar in intent to
+     `InstanceReweighting` but **not** an alias — small differences
+     (target-count rounding; missing-column raise vs skip) would change
+     weights. Emits `FutureWarning`. Prefer `InstanceReweighting` or
+     `KamiranCaldersReweighing`.
+   - Parameters: `sensitive`, optional `benchmarks`, `clip`
+
+5. **ProxyDropper**
    - Removes features that are proxies for sensitive attributes
    - Parameters:
      - `threshold`: Correlation threshold (default: 0.30)

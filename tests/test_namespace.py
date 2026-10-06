@@ -60,6 +60,7 @@ def test_top_level_imports():
     from fairpipe.pipeline import (  # noqa: F401
         DisparateImpactRemover,
         InstanceReweighting,
+        KamiranCaldersReweighing,
         PipelineResult,
         ProxyDropper,
         ReweighingTransformer,
@@ -127,6 +128,7 @@ def test_legacy_imports_still_work():
     from fairness_pipeline_dev_toolkit.pipeline import (  # noqa: F401
         DisparateImpactRemover,
         InstanceReweighting,
+        KamiranCaldersReweighing,
         PipelineResult,
         ProxyDropper,
         ReweighingTransformer,

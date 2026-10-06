@@ -5,6 +5,7 @@ from fairness_pipeline_dev_toolkit.exceptions import (  # noqa: F401
     DataValidationError,
     DependencyError,
     FairnessToolkitError,
+    KamiranCaldersLabelError,
     MetricComputationError,
     PipelineExecutionError,
     TrainingError,
@@ -18,4 +19,5 @@ __all__ = [
     "TrainingError",
     "DataValidationError",
     "DependencyError",
+    "KamiranCaldersLabelError",
 ]

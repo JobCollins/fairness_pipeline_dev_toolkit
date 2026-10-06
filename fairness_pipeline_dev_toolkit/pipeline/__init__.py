@@ -4,7 +4,8 @@ Public API for pipeline utilities.
 Public exports:
 - PipelineConfig, load_config
 - build_pipeline, apply_pipeline, run_detectors, PipelineResult
-- InstanceReweighting, DisparateImpactRemover, ReweighingTransformer, ProxyDropper
+- InstanceReweighting, DisparateImpactRemover, ReweighingTransformer,
+  KamiranCaldersReweighing, ProxyDropper
 
 Internal modules (do not import directly):
 - .orchestration.registry
@@ -16,6 +17,7 @@ from .orchestration import PipelineResult, apply_pipeline, build_pipeline, run_d
 from .transformers import (
     DisparateImpactRemover,
     InstanceReweighting,
+    KamiranCaldersReweighing,
     ProxyDropper,
     ReweighingTransformer,
 )
@@ -30,5 +32,6 @@ __all__ = [
     "InstanceReweighting",
     "DisparateImpactRemover",
     "ReweighingTransformer",
+    "KamiranCaldersReweighing",
     "ProxyDropper",
 ]

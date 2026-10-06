@@ -19,6 +19,7 @@ from ..detectors.report import BiasReport
 from ..results import PipelineResult
 from ..transformers.disparate_impact import DisparateImpactRemover
 from ..transformers.instance_reweighting import InstanceReweighting
+from ..transformers.kamiran_calders import KamiranCaldersReweighing
 from ..transformers.proxy_dropper import ProxyDropper
 from ..transformers.reweighing import ReweighingTransformer
 from .registry import get_transformer_class
@@ -98,6 +99,10 @@ def _make_step(step: PipelineStep, cfg: PipelineConfig):
     if cls in (InstanceReweighting, ReweighingTransformer):
         params.setdefault("sensitive", cfg.sensitive)
         params.setdefault("benchmarks", cfg.benchmarks)
+    elif cls is KamiranCaldersReweighing:
+        params.setdefault("sensitive", cfg.sensitive)
+        if cfg.training is not None and cfg.training.target_column:
+            params.setdefault("label", cfg.training.target_column)
     elif cls is DisparateImpactRemover:
         # require a single sensitive attribute for Phase 2
         if "sensitive" not in params:
@@ -126,7 +131,13 @@ def build_pipeline(cfg: PipelineConfig) -> Pipeline:
     return Pipeline(steps=steps)
 
 
-def apply_pipeline(pipe: Pipeline, X: pd.DataFrame, *, fit: bool = True) -> PipelineResult:
+def apply_pipeline(
+    pipe: Pipeline,
+    X: pd.DataFrame,
+    *,
+    y: Any = None,
+    fit: bool = True,
+) -> PipelineResult:
     """
     Apply a pipeline to ``X``, optionally fitting first.
 
@@ -136,23 +147,28 @@ def apply_pipeline(pipe: Pipeline, X: pd.DataFrame, *, fit: bool = True) -> Pipe
         An sklearn :class:`~sklearn.pipeline.Pipeline` from :func:`build_pipeline`.
     X :
         Input DataFrame (must include columns required by the steps).
+    y :
+        Optional label vector forwarded to ``pipe.fit_transform(X, y)`` when
+        ``fit=True``. Required by :class:`KamiranCaldersReweighing` unless that
+        step's ``label`` parameter names a column in ``X``. Existing transformers
+        accept and ignore ``y``.
     fit :
         If ``True`` (default), call ``fit_transform`` — use for training data.
         If ``False``, call ``transform`` only — use for held-out / inference data
         after the same ``pipe`` instance was fitted on train. Never refit on test.
 
     Returns a :class:`~fairness_pipeline_dev_toolkit.pipeline.results.PipelineResult`.
-    For :class:`InstanceReweighting` / :class:`ReweighingTransformer`, ``sample_weight``
-    is taken from the fitted step (aligned to the training fit, not to ``X`` when
-    ``fit=False``).
+    For :class:`InstanceReweighting` / :class:`ReweighingTransformer` /
+    :class:`KamiranCaldersReweighing`, ``sample_weight`` is taken from the fitted
+    step (aligned to the training fit, not to ``X`` when ``fit=False``).
     """
     if fit:
-        Xt = pipe.fit_transform(X)
+        Xt = pipe.fit_transform(X, y)
     else:
         Xt = pipe.transform(X)
     artifacts: Dict[str, Any] = {}
     for _name, step in pipe.steps:
-        if isinstance(step, (InstanceReweighting, ReweighingTransformer)):
+        if isinstance(step, (InstanceReweighting, ReweighingTransformer, KamiranCaldersReweighing)):
             if getattr(step, "sample_weight_", None) is not None:
                 artifacts["sample_weight"] = step.sample_weight_
     meta = artifacts or None
