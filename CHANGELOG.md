@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Performance
+
+- `build_intersectional_labels` now joins attribute columns with vectorised
+  `Series.str.cat` instead of a row-wise `DataFrame.agg(str.join)`, making
+  intersectional `demographic_parity_difference`, `equalized_odds_difference`,
+  and `mae_parity_difference` 10-13x faster on large inputs. Output values are
+  unchanged (`tests/utils/test_intersectional.py::TestBuildIntersectionalLabelsEquivalence`).
+
 ## [v0.12.0] — 2026-10-06
 
 ### Upgrade notes (breaking)

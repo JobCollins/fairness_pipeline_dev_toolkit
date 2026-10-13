@@ -42,12 +42,38 @@ def build_intersectional_labels(
     if include_na:
         # Replace NaN with string "NaN" for labeling
         df = df.fillna("NaN")
-        labels = df.astype(str).agg(sep.join, axis=1)
+        str_df = df.astype(str)
+        if len(str_df) == 0:
+            # ``DataFrame.agg`` on zero rows returns the (empty) ``DataFrame`` itself
+            # rather than a ``Series``; callers/tests already special-case this
+            # existing quirk, so keep it exactly rather than routing through the
+            # vectorised path below.
+            labels = str_df.agg(sep.join, axis=1)
+        else:
+            labels = _join_columns(str_df, columns, sep)
     else:
         # will introduce NaNs where any attribute is NaN
-        labels = df.astype("string").agg(sep.join, axis=1)
+        str_df = df.astype("string")
+        if len(str_df) == 0 or str_df.isna().to_numpy().any():
+            # ``DataFrame.agg`` on zero rows returns the (empty) ``DataFrame`` itself
+            # rather than a ``Series``, and row-wise join raises on NA -- both are
+            # existing behaviours callers/tests already special-case, so keep them
+            # exactly rather than routing through the vectorised path below.
+            labels = str_df.agg(sep.join, axis=1)
+        else:
+            # Row-wise ``agg(str.join)`` returns plain Python ``str`` (object dtype),
+            # not the "string" extension dtype of ``str_df`` -- match that exactly.
+            labels = _join_columns(str_df, columns, sep).astype(object)
 
     return labels.astype("category")
+
+
+def _join_columns(str_df: pd.DataFrame, columns: List[str], sep: str) -> pd.Series:
+    """Vectorised equivalent of ``str_df.agg(sep.join, axis=1)`` for non-empty, NA-free columns."""
+    first = str_df[columns[0]]
+    if len(columns) == 1:
+        return first.rename(None)
+    return first.str.cat([str_df[c] for c in columns[1:]], sep=sep).rename(None)
 
 
 def min_group_mask(labels: Iterable, min_group_size: int) -> np.ndarray:
