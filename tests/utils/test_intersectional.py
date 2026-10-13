@@ -6,12 +6,90 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from fairness_pipeline_dev_toolkit.utils.intersectional import (
     build_intersectional_labels,
     group_sizes,
     min_group_mask,
 )
+
+
+def _build_intersectional_labels_rowwise(attrs_df, columns=None, sep="||", include_na=True):
+    """Reference (pre-optimisation) row-wise implementation, kept only for the
+    equivalence test below: ``build_intersectional_labels`` used to call
+    ``DataFrame.agg(sep.join, axis=1)`` for every row, which is correct but slow
+    on large frames. The vectorised version must match it exactly, including its
+    quirks (empty-frame returns a ``DataFrame``, NaN with ``include_na=False``
+    raises ``TypeError``).
+    """
+    if columns is None:
+        columns = list(attrs_df.columns)
+    df = attrs_df[columns].copy()
+    if include_na:
+        df = df.fillna("NaN")
+        labels = df.astype(str).agg(sep.join, axis=1)
+    else:
+        labels = df.astype("string").agg(sep.join, axis=1)
+    return labels.astype("category")
+
+
+class TestBuildIntersectionalLabelsEquivalence:
+    """Pins the vectorised ``build_intersectional_labels`` against the original
+    row-wise ``agg(str.join)`` implementation across edge cases (BL perf pass).
+    """
+
+    @pytest.mark.parametrize("include_na", [True, False])
+    @pytest.mark.parametrize(
+        "df",
+        [
+            pytest.param(
+                pd.DataFrame(
+                    {
+                        "race": np.random.default_rng(0).choice(["A", "B", "C", "D", "E"], 2000),
+                        "gender": np.random.default_rng(1).choice(["M", "F"], 2000),
+                        "age_group": np.random.default_rng(2).choice(["<30", "30-50", "50+"], 2000),
+                    }
+                ),
+                id="large_intersectional_3col",
+            ),
+            pytest.param(pd.DataFrame({"only": ["x", "y", "x", "z"]}), id="single_column"),
+            pytest.param(
+                pd.DataFrame({"a": [None, None], "b": ["x", "y"]}), id="one_group_all_nan"
+            ),
+            pytest.param(pd.DataFrame({"a": ["x"], "b": ["y"]}), id="single_row_group"),
+            pytest.param(
+                pd.DataFrame({"a": pd.Series([], dtype=object), "b": pd.Series([], dtype=object)}),
+                id="empty_group",
+            ),
+            pytest.param(
+                pd.DataFrame({"race": ["A", "B", None, "A"], "gender": ["M", "F", "M", "F"]}),
+                id="nan_group_value",
+            ),
+        ],
+    )
+    def test_matches_rowwise_reference(self, df, include_na):
+        def run(fn):
+            try:
+                return ("OK", fn(df, include_na=include_na))
+            except Exception as exc:  # noqa: BLE001 - comparing error parity, not type
+                return ("ERR", type(exc))
+
+        old_status, old_val = run(_build_intersectional_labels_rowwise)
+        new_status, new_val = run(build_intersectional_labels)
+
+        assert old_status == new_status
+        if old_status == "ERR":
+            assert old_val is new_val
+            return
+
+        assert type(old_val) is type(new_val)
+        if isinstance(old_val, pd.DataFrame):
+            assert old_val.equals(new_val)
+        else:
+            assert old_val.equals(new_val)
+            assert old_val.dtype == new_val.dtype
+            assert old_val.name == new_val.name
 
 
 class TestBuildIntersectionalLabels:
